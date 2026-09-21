@@ -1,0 +1,372 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 77;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		1BFB93EA2F3A3172C123FFF2 /* sfx_win.wav in Resources */ = {isa = PBXBuildFile; fileRef = D644D353640FE3488EC24BB5 /* sfx_win.wav */; };
+		2C4EA93B9BE8A61353433F99 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 4CE329D050C1592D2D294CA4 /* Assets.xcassets */; };
+		589FDDA434ED3903A82E032E /* GameConfig.swift in Sources */ = {isa = PBXBuildFile; fileRef = F9B71A9603FC430564B24DAF /* GameConfig.swift */; };
+		7031477A4C74FC7C8BBAF358 /* HUD.swift in Sources */ = {isa = PBXBuildFile; fileRef = A8D38D3F1FFA74347C2EE4A3 /* HUD.swift */; };
+		8872C834D5F268D6BB38497D /* CipetApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9E09BDD7F9B6C7AA95F3D235 /* CipetApp.swift */; };
+		967AD386AC598ABD2561BBEE /* GameView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C50C765CCED84BD4E5EBB2F8 /* GameView.swift */; };
+		9C46F3BF5ABD967A3E61ABC8 /* sfx_success.wav in Resources */ = {isa = PBXBuildFile; fileRef = 39B01FB27A11E647024A5A0B /* sfx_success.wav */; };
+		C452222819DFF15542BAF770 /* Game.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0771F4CABEABDE2D49FD73A7 /* Game.swift */; };
+		C8B338EFC427FEE7705A2468 /* sfx_caught.wav in Resources */ = {isa = PBXBuildFile; fileRef = 7575ACA1CC181AFCA3311EDC /* sfx_caught.wav */; };
+		EE46FD7E233CF79921955CE3 /* Audio.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5986F8FC0BE6FD07B02FA7AB /* Audio.swift */; };
+		F1B7C75963251606A10822AD /* sfx_move.wav in Resources */ = {isa = PBXBuildFile; fileRef = 07D768DD3D692C31A92FEE6D /* sfx_move.wav */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXFileReference section */
+		0771F4CABEABDE2D49FD73A7 /* Game.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Game.swift; sourceTree = "<group>"; };
+		07D768DD3D692C31A92FEE6D /* sfx_move.wav */ = {isa = PBXFileReference; lastKnownFileType = audio.wav; path = sfx_move.wav; sourceTree = "<group>"; };
+		39B01FB27A11E647024A5A0B /* sfx_success.wav */ = {isa = PBXFileReference; lastKnownFileType = audio.wav; path = sfx_success.wav; sourceTree = "<group>"; };
+		4CE329D050C1592D2D294CA4 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		5986F8FC0BE6FD07B02FA7AB /* Audio.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Audio.swift; sourceTree = "<group>"; };
+		7575ACA1CC181AFCA3311EDC /* sfx_caught.wav */ = {isa = PBXFileReference; lastKnownFileType = audio.wav; path = sfx_caught.wav; sourceTree = "<group>"; };
+		9E09BDD7F9B6C7AA95F3D235 /* CipetApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CipetApp.swift; sourceTree = "<group>"; };
+		A8D38D3F1FFA74347C2EE4A3 /* HUD.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HUD.swift; sourceTree = "<group>"; };
+		BD1C86A0AC1DB821FB8E2526 /* Cipet.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = Cipet.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		C50C765CCED84BD4E5EBB2F8 /* GameView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GameView.swift; sourceTree = "<group>"; };
+		D644D353640FE3488EC24BB5 /* sfx_win.wav */ = {isa = PBXFileReference; lastKnownFileType = audio.wav; path = sfx_win.wav; sourceTree = "<group>"; };
+		F9B71A9603FC430564B24DAF /* GameConfig.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GameConfig.swift; sourceTree = "<group>"; };
+/* End PBXFileReference section */
+
+/* Begin PBXGroup section */
+		0E115FFBB3565F23535CC785 = {
+			isa = PBXGroup;
+			children = (
+				97E59855DB4C64602BC366A5 /* Resources */,
+				ECF624A34BDCFC1DCB5E4602 /* Sources */,
+				A1867501950F2394CB5D5567 /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		97E59855DB4C64602BC366A5 /* Resources */ = {
+			isa = PBXGroup;
+			children = (
+				4CE329D050C1592D2D294CA4 /* Assets.xcassets */,
+				C652AF0BC9687A9C419EA8F1 /* Audio */,
+			);
+			path = Resources;
+			sourceTree = "<group>";
+		};
+		A1867501950F2394CB5D5567 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				BD1C86A0AC1DB821FB8E2526 /* Cipet.app */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		C652AF0BC9687A9C419EA8F1 /* Audio */ = {
+			isa = PBXGroup;
+			children = (
+				7575ACA1CC181AFCA3311EDC /* sfx_caught.wav */,
+				07D768DD3D692C31A92FEE6D /* sfx_move.wav */,
+				39B01FB27A11E647024A5A0B /* sfx_success.wav */,
+				D644D353640FE3488EC24BB5 /* sfx_win.wav */,
+			);
+			path = Audio;
+			sourceTree = "<group>";
+		};
+		ECF624A34BDCFC1DCB5E4602 /* Sources */ = {
+			isa = PBXGroup;
+			children = (
+				5986F8FC0BE6FD07B02FA7AB /* Audio.swift */,
+				9E09BDD7F9B6C7AA95F3D235 /* CipetApp.swift */,
+				0771F4CABEABDE2D49FD73A7 /* Game.swift */,
+				F9B71A9603FC430564B24DAF /* GameConfig.swift */,
+				C50C765CCED84BD4E5EBB2F8 /* GameView.swift */,
+				A8D38D3F1FFA74347C2EE4A3 /* HUD.swift */,
+			);
+			path = Sources;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		451401C5639D8371EF5DAF2C /* Cipet */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 586FF1B4E10D7BE88596928B /* Build configuration list for PBXNativeTarget "Cipet" */;
+			buildPhases = (
+				8B38095752170C3236C51F24 /* Sources */,
+				0B702D856F59EA7E9D123251 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = Cipet;
+			packageProductDependencies = (
+			);
+			productName = Cipet;
+			productReference = BD1C86A0AC1DB821FB8E2526 /* Cipet.app */;
+			productType = "com.apple.product-type.application";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		67DD680F9B0B49EAAB0FB31E /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = YES;
+				LastUpgradeCheck = 1430;
+				TargetAttributes = {
+					451401C5639D8371EF5DAF2C = {
+						DevelopmentTeam = JLQK39AS23;
+					};
+				};
+			};
+			buildConfigurationList = 0E3840C948FFB03E5EA623E9 /* Build configuration list for PBXProject "Cipet" */;
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				Base,
+				en,
+			);
+			mainGroup = 0E115FFBB3565F23535CC785;
+			minimizedProjectReferenceProxies = 1;
+			preferredProjectObjectVersion = 77;
+			productRefGroup = A1867501950F2394CB5D5567 /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				451401C5639D8371EF5DAF2C /* Cipet */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		0B702D856F59EA7E9D123251 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				2C4EA93B9BE8A61353433F99 /* Assets.xcassets in Resources */,
+				C8B338EFC427FEE7705A2468 /* sfx_caught.wav in Resources */,
+				F1B7C75963251606A10822AD /* sfx_move.wav in Resources */,
+				9C46F3BF5ABD967A3E61ABC8 /* sfx_success.wav in Resources */,
+				1BFB93EA2F3A3172C123FFF2 /* sfx_win.wav in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		8B38095752170C3236C51F24 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				EE46FD7E233CF79921955CE3 /* Audio.swift in Sources */,
+				8872C834D5F268D6BB38497D /* CipetApp.swift in Sources */,
+				C452222819DFF15542BAF770 /* Game.swift in Sources */,
+				589FDDA434ED3903A82E032E /* GameConfig.swift in Sources */,
+				967AD386AC598ABD2561BBEE /* GameView.swift in Sources */,
+				7031477A4C74FC7C8BBAF358 /* HUD.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin XCBuildConfiguration section */
+		118E4D0E25A0A3291CC56B40 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"$(inherited)",
+					"DEBUG=1",
+				);
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				MTL_FAST_MATH = YES;
+				ONLY_ACTIVE_ARCH = YES;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+				SWIFT_VERSION = 5.0;
+			};
+			name = Debug;
+		};
+		3D874EFF0B9BF479A7D0723A /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_IDENTITY = "iPhone Developer";
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = JLQK39AS23;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = "Cipet-Info.plist";
+				INFOPLIST_KEY_CFBundleDisplayName = "c!pet";
+				INFOPLIST_KEY_ITSAppUsesNonExemptEncryption = NO;
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.games";
+				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				INFOPLIST_KEY_UIRequiresFullScreen = YES;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations = "UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 0.1;
+				PRODUCT_BUNDLE_IDENTIFIER = com.gamejam.cipet;
+				SDKROOT = iphoneos;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 1;
+			};
+			name = Release;
+		};
+		ABEDC7E0D59DE4D00401883A /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				MTL_FAST_MATH = YES;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SWIFT_COMPILATION_MODE = wholemodule;
+				SWIFT_OPTIMIZATION_LEVEL = "-O";
+				SWIFT_VERSION = 5.0;
+			};
+			name = Release;
+		};
+		B1BBE0CB9DA03DE9218AD028 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_IDENTITY = "iPhone Developer";
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = JLQK39AS23;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = "Cipet-Info.plist";
+				INFOPLIST_KEY_CFBundleDisplayName = "c!pet";
+				INFOPLIST_KEY_ITSAppUsesNonExemptEncryption = NO;
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.games";
+				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				INFOPLIST_KEY_UIRequiresFullScreen = YES;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations = "UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 0.1;
+				PRODUCT_BUNDLE_IDENTIFIER = com.gamejam.cipet;
+				SDKROOT = iphoneos;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 1;
+			};
+			name = Debug;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		0E3840C948FFB03E5EA623E9 /* Build configuration list for PBXProject "Cipet" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				118E4D0E25A0A3291CC56B40 /* Debug */,
+				ABEDC7E0D59DE4D00401883A /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+		586FF1B4E10D7BE88596928B /* Build configuration list for PBXNativeTarget "Cipet" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				B1BBE0CB9DA03DE9218AD028 /* Debug */,
+				3D874EFF0B9BF479A7D0723A /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+/* End XCConfigurationList section */
+	};
+	rootObject = 67DD680F9B0B49EAAB0FB31E /* Project object */;
+}

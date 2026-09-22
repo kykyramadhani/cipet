@@ -5,20 +5,18 @@ struct HUD: View {
 
     var body: some View {
         ZStack {
-            VStack {
-                ZStack {
-                    timer                                        // ditaruh di ZStack biar bener-bener di tengah
-                    HStack {
-                        loot
-                        Spacer()
-                        if game.phase == .play { pauseButton }
-                    }
-                }
-                Spacer()
-                hint
+            // Layout dari desain (kanvas 874x402): frame 140x60 di top 20, wallet left 24,
+            // clock left 367 (= pas di tengah), pause 60x60 nempel kanan dengan margin yang sama.
+            loot.padding(.top, Self.top).padding(.leading, Self.side)
+                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+            timer.padding(.top, Self.top)
+                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+            if game.phase == .play {
+                pauseButton.padding(.top, Self.top).padding(.trailing, Self.side)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topTrailing)
             }
-            .padding(.horizontal, 22)
-            .padding(.vertical, 14)
+            hint.padding(.bottom, 14)
+                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottom)
 
             switch game.phase {
             case .paused: pausedCard
@@ -29,21 +27,29 @@ struct HUD: View {
     }
 
     // MARK: Bar atas
+    //
+    // Ukuran ngikutin desain: frame 140x60, tombol pause 60x60, ikon 40x40. Art `hud_frame`
+    // aslinya 145x65 jadi ditarik dikit ke 140x60 — beda rasionya kecil, nggak kelihatan.
+    // Teks yang ngalah: nyusut lewat `minimumScaleFactor` kalau angkanya kepanjangan.
+
+    private static let top:    CGFloat = 20
+    private static let side:   CGFloat = 24
+    private static let frameW: CGFloat = 140
+    private static let frameH: CGFloat = 60
+    private static let pauseW: CGFloat = 60
+    private static let icon:   CGFloat = 40
+    private static let number: CGFloat = 40                      // angka di dalam frame, Skranji Regular
 
     private var loot: some View {
-        HStack(spacing: 7) {
-            Image("wallet").resizable().scaledToFit().frame(height: 26)
-            VStack(alignment: .leading, spacing: 0) {
-                Text("Rp \(game.score) rb").font(.system(size: 17, weight: .black, design: .rounded))
-                Text("\(game.taken) barang").font(.system(size: 11, weight: .semibold, design: .rounded))
-                    .foregroundStyle(.white.opacity(0.75))
-            }
-            .contentTransition(.identity)
-            .transaction { $0.animation = nil }                  // angkanya jangan ikut dianimasiin
+        panel {
+            Image("hud_wallet").resizable().frame(width: Self.icon, height: Self.icon)
+            // Jumlah barang yang berhasil dicopet, selalu dua digit ("00", "07") biar lebarnya stabil.
+            Text(String(format: "%02d", game.taken))
+                .font(.skranji(Self.number, bold: false)).monospacedDigit()
+                .lineLimit(1).minimumScaleFactor(0.6)
+                .contentTransition(.identity)
+                .transaction { $0.animation = nil }              // angkanya jangan ikut dianimasiin
         }
-        .foregroundStyle(.white)
-        .padding(.horizontal, 12).padding(.vertical, 7)
-        .background(.black.opacity(0.45), in: Capsule())
         .scaleEffect(game.flash != nil ? 1.1 : 1)                // nyentak pas dapat barang
         .animation(.spring(response: 0.3, dampingFraction: 0.55), value: game.flash != nil)
     }
@@ -54,29 +60,38 @@ struct HUD: View {
         let label = left >= 60 ? String(format: "%d:%02d", left / 60, left % 60) : "\(left)s"
         // Jangan kasih animasi ke angka yang ganti tiap detik — kalau dianimasiin, SwiftUI
         // nampilin angka lama dan angka baru barengan (ini yang bikin timernya keliatan dobel).
-        return Text(label)
-            .font(.system(size: 26, weight: .black, design: .rounded)).monospacedDigit()
-            .foregroundStyle(left <= 15 ? .red : .white)
-            .contentTransition(.identity)
-            .animation(nil, value: game.time)
-            .transaction { $0.animation = nil }
-            .padding(.horizontal, 16).padding(.vertical, 5)
-            .background(.black.opacity(0.45), in: Capsule())
+        return panel {
+            Image("hud_clock").resizable().frame(width: Self.icon, height: Self.icon)
+            Text(label)
+                .font(.skranji(Self.number, bold: false)).monospacedDigit()
+                .lineLimit(1).minimumScaleFactor(0.6)
+                .foregroundStyle(left <= 15 ? .red : .black)
+                .contentTransition(.identity)
+                .animation(nil, value: game.time)
+                .transaction { $0.animation = nil }
+        }
     }
 
     private var pauseButton: some View {
         Button { game.togglePause() } label: {
-            Image(systemName: "pause.fill")
-                .font(.system(size: 17, weight: .black))
-                .foregroundStyle(.white)
-                .frame(width: 42, height: 42)
-                .background(.black.opacity(0.45), in: Circle())
+            Image("hud_pause").resizable()
+                .frame(width: Self.pauseW, height: Self.frameH)
         }
+        .buttonStyle(.plain)
+    }
+
+    /// Frame putih bergaris tangan + isi di tengahnya.
+    private func panel<C: View>(@ViewBuilder _ content: () -> C) -> some View {
+        HStack(spacing: 6) { content() }
+            .foregroundStyle(.black)
+            .padding(.horizontal, 10)
+            .frame(width: Self.frameW, height: Self.frameH)
+            .background(Image("hud_frame").resizable())
     }
 
     private var hint: some View {
         Text("Tahan penumpang sebelah buat nyopet  ·  Tap kursi kosong buat pindah")
-            .font(.system(size: 12, weight: .semibold, design: .rounded))
+            .font(.skranji(13, bold: false))
             .foregroundStyle(.white.opacity(0.9))
             .padding(.horizontal, 12).padding(.vertical, 6)
             .background(.black.opacity(0.4), in: Capsule())
@@ -88,10 +103,10 @@ struct HUD: View {
 
     private var pausedCard: some View {
         card {
-            Text("JEDA").font(.system(size: 32, weight: .black, design: .rounded))
+            Text("JEDA").font(.skranji(34))
                 .foregroundStyle(.white)
             Text("Angkotnya nungguin kamu.")
-                .font(.system(size: 13, weight: .medium, design: .rounded))
+                .font(.skranji(14, bold: false))
                 .foregroundStyle(.white.opacity(0.8))
             HStack(spacing: 12) {
                 pill("Lanjut", .yellow) { game.togglePause() }
@@ -105,16 +120,16 @@ struct HUD: View {
         let won = game.phase == .win
         return card {
             Text(won ? "TURUN, BANG!" : "KETAHUAN!")
-                .font(.system(size: 32, weight: .black, design: .rounded))
+                .font(.skranji(34))
                 .foregroundStyle(won ? .green : .red)
             Text(won ? "Selamat, lolos sampai turun." : "Ada yang mergokin kamu.")
-                .font(.system(size: 13, weight: .medium, design: .rounded))
+                .font(.skranji(14, bold: false))
                 .foregroundStyle(.white.opacity(0.8))
             Text("Rp \(game.score) ribu")
-                .font(.system(size: 26, weight: .black, design: .rounded))
+                .font(.skranji(28))
                 .foregroundStyle(.yellow)
             Text("\(game.taken) barang berhasil dicopet")
-                .font(.system(size: 13, weight: .semibold, design: .rounded))
+                .font(.skranji(14, bold: false))
                 .foregroundStyle(.white.opacity(0.8))
             pill("Main Lagi", .yellow) { game.restart() }
                 .padding(.top, 6)
@@ -136,10 +151,21 @@ struct HUD: View {
     private func pill(_ title: String, _ bg: Color, fg: Color = .black, action: @escaping () -> Void) -> some View {
         Button(action: action) {
             Text(title)
-                .font(.system(size: 17, weight: .bold, design: .rounded))
+                .font(.skranji(18))
                 .foregroundStyle(fg)
                 .padding(.horizontal, 28).padding(.vertical, 10)
                 .background(bg, in: Capsule())
         }
+    }
+}
+
+// MARK: - Font
+
+extension Font {
+    /// Skranji (Resources/Fonts, OFL) — font tulisan tangan buat semua teks HUD.
+    /// Nama PostScript-nya `Skranji` (regular, BUKAN "Skranji-Regular") dan `Skranji-Bold`,
+    /// didaftarin lewat `UIAppFonts`. Salah nama = diam-diam jatuh ke font sistem.
+    static func skranji(_ size: CGFloat, bold: Bool = true) -> Font {
+        .custom(bold ? "Skranji-Bold" : "Skranji", size: size)
     }
 }

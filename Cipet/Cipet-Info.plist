@@ -4,5 +4,10 @@
 <dict>
 	<key>CFBundleIconName</key>
 	<string>AppIcon</string>
+	<key>UIAppFonts</key>
+	<array>
+		<string>Skranji-Regular.ttf</string>
+		<string>Skranji-Bold.ttf</string>
+	</array>
 </dict>
 </plist>

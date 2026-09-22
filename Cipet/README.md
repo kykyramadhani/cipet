@@ -1,193 +1,200 @@
-# Cipet — Nyopet di Angkot — Prototype Gameplay
+# Cipet — Pickpocketing on the Angkot — Gameplay Prototype
 
-Prototipe main loop lengkap: **pilih target → tahan buat nyopet → progress lawan awareness →
-berhasil / ketahuan → ulangi sampai ronde habis.** Pakai art asli dari `environment/` + `character/`.
+The full main loop: **pick a target → hold to rob → progress races their awareness →
+you get the item or you get caught → keep going until the round runs out.** Every drawing in the
+game comes from `Placeholder/`.
 
-## Jalanin
+## Running it
 
 ```bash
 open Cipet.xcodeproj
 ```
-Pilih simulator iPhone → Run. **Landscape**, iOS 17+.
-Kalau `project.yml` diubah: `xcodegen generate`.
+Pick an iPhone simulator → Run. **Landscape**, iOS 17+.
+If you change `project.yml`: `xcodegen generate`.
 
-## Cara main
+## How to play
 
-| Aksi | Kontrol |
+| Action | Control |
 |---|---|
-| Pindah kursi | Tap kursi kosong (yang ada garis putus-putus putih) |
-| Nyopet | **Tahan** penumpang di sebelah kiri/kanan kamu |
-| Nyopet dua sekaligus | Dari kursi tengah, **tahan dua-duanya pakai dua jari** |
-| Batal | Lepas jari — progress hangus, awareness turun sendiri |
-| Jeda | Tombol pause di kanan atas (waktu, jalan, dan semua penumpang ikut berhenti) |
+| Change seat | Tap an empty seat (the one with the dashed white outline) |
+| Rob somebody | **Hold** the passenger sitting to your left or right |
+| Rob two at once | From a middle seat, **hold both of them with two fingers** |
+| Abort | Let go — the progress is lost and their awareness drops back down on its own |
+| Pause | Pause button, top right (the clock, the road and every passenger stop with it) |
 
-Bar **hijau** = progress nyopet. Bar **merah** = awareness korban. Hijau duluan penuh = dapat barang.
-Merah duluan penuh = ketahuan, ronde selesai. Tanda **!** artinya awareness korban lagi naik.
-Ronde 90 detik; bertahan sampai habis = menang.
+The **green** bar is your progress, the **red** bar is the victim's awareness. Green fills first and
+you get the item. Red fills first and you are caught, which ends the round. A **!** means their
+awareness is climbing. A round is 90 seconds; survive to the end and you win.
 
-Penumpang naik-turun sendiri sepanjang ronde: tiap orang punya jatah waktu ikut angkot
-(`Tune.rideTime`), habis itu turun — **mau udah kecopetan atau belum, sama aja**. Kursi yang
-ditinggal nganggur sebentar (`Tune.boardWait`), terus ada penumpang baru naik. Jadi dalam satu
-ronde korbannya terus berganti.
+Passengers get on and off throughout the round: everyone has their own ride length
+(`Tune.rideTime`), and when it is up they get off — **robbed or not, it makes no difference**. The
+seat they leave sits empty for a moment (`Tune.boardWait`) before somebody new boards. So a single
+round keeps handing you fresh victims.
 
-## Kursi
+## Seats
 
-Yang bisa diduduki cuma **jok hijau**, sesuai art. Totalnya **9 kursi**:
+**7 seats** can be used, laid out exactly as in `Placeholder/Benchmark.png`:
 
-- **Bangku seberang — 5 kursi** (4 jok + 1 kursi lipat dekat pintu), satu jok satu orang.
-  Penumpang di sini kelihatan dari depan, jadi pakai art `*_left_*` yang state-nya paling lengkap.
-- **Bangku dekat — 4 kursi.** Dua jok hijau lebar, **masing-masing muat 2 orang**.
-  Kelihatan dari belakang, jadi pakai art `*_right_*`.
+- **Far bench — 3 seats.** Passengers face the camera, so they use `victim_far`.
+- **Near bench — 4 seats.** We see their backs, so they use `victim_near`.
 
-**Copet bebas pindah ke kursi kosong mana pun**, termasuk bangku dekat. Jumlah penumpang dibatasi
-`Tune.maxPassengers` (5 dari 9), jadi selalu ada 3 kursi nganggur buat pindah.
+**The thief can move into any empty seat**, near bench included. The passenger count is capped by
+`Tune.maxPassengers` (4 of 7), so there are always at least two free seats to move into.
 
-Nyopet cuma bisa ke orang yang **duduk persis di sebelah** dan **satu bangku** — beda bangku nggak
-saling jangkau (`Layout.adjacent`). Kalau copet duduk pas di tengah dua penumpang, dua-duanya bisa
-ditahan barengan pakai dua jari.
+You can only rob somebody **sitting right next to you on the same bench** — you cannot reach across
+the aisle (`Layout.adjacent`). Sit between two passengers and you can hold both at once, two fingers.
 
-Kursi sopir & kursi depan warnanya krem, jadi nggak pernah bisa ditap.
+The folding seat by the door (with the kid on it) and the driver's seat are scenery, not seats.
 
 ## Tech stack
 
-| Bagian | Pakai apa |
+| Part | What it uses |
 |---|---|
-| Bahasa & UI | **Swift 5 + SwiftUI**, target iOS 17, landscape |
-| Game loop | `Timer.publish(every: 1/60)` + `.onReceive` — bukan `TimelineView`, bukan `SKScene` |
-| Gambar | `Image` + `Canvas` (buat jalan yang di-tile), semua di Asset Catalog |
-| Audio | **AVFoundation** (`AVAudioPlayer`), file WAV di `Resources/Audio` |
-| Project file | **XcodeGen** (`project.yml`) — `.xcodeproj` bisa di-generate ulang kapan aja |
-| Dependency luar | **Nol.** Nggak ada SPM/CocoaPods/engine |
+| Language & UI | **Swift 5 + SwiftUI**, iOS 17, landscape |
+| Game loop | `Timer.publish(every: 1/60)` + `.onReceive` — not `TimelineView`, not `SKScene` |
+| Graphics | `Image`, everything in the asset catalog |
+| Audio | **AVFoundation** (`AVAudioPlayer`), WAV files in `Resources/Audio` |
+| Project file | **XcodeGen** (`project.yml`) — the `.xcodeproj` can be regenerated at any time |
+| Third-party code | **None.** No SPM, no CocoaPods, no engine |
 
-### SpriteKit atau SwiftUI?
+### SpriteKit or SwiftUI?
 
-**SwiftUI murni. Nggak ada SpriteKit sama sekali.**
+**Pure SwiftUI. No SpriteKit anywhere.**
 
-Yang kita butuhin cuma: satu background yang geser horizontal, ±15 sprite diam yang gambarnya
-ganti-ganti sesuai state, beberapa bar, dan UI. Nggak ada physics, collision, particle, kamera,
-atau ratusan node. Buat beban segitu SwiftUI santai di 60fps, dan kita dapat HUD, tombol, layar
-menang/kalah, plus SwiftUI Preview gratis — nggak perlu bikin ulang semua itu di dalam `SKScene`.
+All we need is one background that scrolls sideways, around 15 still sprites, a few bars and some
+UI. No physics, no collisions, no particles, no camera, no hundreds of nodes. SwiftUI handles that
+at 60fps without breaking a sweat, and we get the HUD, the buttons, the win/lose screens and
+SwiftUI Previews for free — none of which we would want to rebuild inside an `SKScene`.
 
-Kapan baru pindah ke SpriteKit:
-- sprite udah ratusan sekaligus, atau ada particle emitter beneran (debu, konfeti, asap knalpot)
-- butuh physics/collision engine
-- animasi frame-by-frame sprite sheet yang rapat (bukan cuma ganti gambar per state)
-- profiling nunjukin SwiftUI nggak sanggup 60fps
+When it would be time to move to SpriteKit:
+- hundreds of sprites at once, or a real particle emitter (dust, confetti, exhaust smoke)
+- a physics/collision engine
+- dense frame-by-frame sprite sheet animation (not just swapping an image per state)
+- profiling showing SwiftUI cannot hold 60fps
 
-Pindahnya nggak bakal nyakitin: `Game` itu struct murni yang nggak impor SwiftUI sama sekali.
-Kalau suatu saat ganti ke SpriteKit, yang ditulis ulang cuma lapisan gambarnya — aturan mainnya
-tetap kepake apa adanya. Itu alasan utama logika dan tampilan dipisah dari awal.
+The move would not hurt: `Game` is a plain struct that never imports SwiftUI. Switching to SpriteKit
+would mean rewriting only the drawing layer — the rules carry over untouched. That is the main
+reason logic and presentation were split from the start.
 
-### Alur kerja
+### How it fits together
 
 ```
-NyopetPrototypeApp
+CipetApp
       |
-   GameView  @State var game: Game          <- satu-satunya sumber kebenaran
+   GameView  @State var game: Game          <- the single source of truth
       |
-      |  Timer 60fps -> game.tick(1/60)
-      |        tick: jalan geser, timer ronde, state penumpang,
-      |              penumpang naik-turun, progress copet vs awareness,
-      |              menang / ketahuan
+      |  60fps Timer -> game.tick(1/60)
+      |        tick: scroll the road, round clock, passenger states,
+      |              people getting on and off, steal progress vs awareness,
+      |              win / caught
       |
-      |  @State berubah -> SwiftUI render ulang
-      +--> RoadLayer    (Canvas, tile jalan digeser)
-      +--> CabinLayer   (body angkot -> sprite orang -> UI kursi + area tap)
-      +--> HUD          (skor, timer, pause, layar akhir)
+      |  @State changes -> SwiftUI re-renders
+      +--> RoadLayer    (road tiles, scrolled)
+      +--> CabinLayer   (bus body -> scenery -> seats -> people -> seat UI and tap targets)
+      +--> HUD          (score, timer, pause, end screens)
 
   input: SeatInput -> game.move(to:) / beginSteal / endSteal
-  audio: GameView .onChange(taken / copet / phase) -> Audio.shared.play(...)
+  audio: GameView .onChange(taken / thief / phase) -> Audio.shared.play(...)
 ```
 
-Arahnya satu jalur: **input → model → render**. Model nggak pernah manggil view, dan nggak pernah
-manggil audio — view yang ngelihat state berubah lalu bunyiin SFX. Makanya `Game` gampang di-test
-tanpa bikin UI sama sekali (lihat `runGameChecks()`).
+It runs one way: **input → model → render**. The model never calls the view and never calls audio —
+the view notices the state change and fires the SFX. That is why `Game` is easy to test with no UI
+at all (see `runGameChecks()`).
 
-## Isi file
+## What lives where
 
-| File | Isinya |
+| File | What's in it |
 |---|---|
-| `Sources/GameConfig.swift` | `Layout` (koordinat kursi), `Tune` (semua angka balancing), `Kind` (config tiap archetype) |
-| `Sources/Game.swift` | Model murni: penumpang, state machine, awareness, steal, menang/kalah + self-check |
-| `Sources/GameView.swift` | Gambar scene: jalan bergerak, body angkot, sprite, area tap |
-| `Sources/HUD.swift` | Timer, skor, tombol pause, layar jeda & layar akhir |
-| `Sources/Audio.swift` | Pemutar SFX, 3 voice per bunyi biar bisa numpuk |
+| `Sources/GameConfig.swift` | `Layout` (scene coordinates), `Art` (sprite sizes), `Tune` (all balancing numbers), `Kind` (per-archetype config) |
+| `Sources/Game.swift` | Pure model: passengers, state machine, awareness, stealing, win/lose + self-check |
+| `Sources/GameView.swift` | Draws the scene: scrolling road, bus, scenery, sprites, tap targets |
+| `Sources/HUD.swift` | Timer, score, pause button, pause and end screens |
+| `Sources/Audio.swift` | SFX player, 3 voices per sound so they can overlap |
 
-## Yang perlu diketahui programmer
+## What a programmer needs to know
 
-**Scene pakai koordinat art, bukan pixel layar.**
-`environment/angkot.svg` dan `road.svg` viewBox-nya sama persis (1966.5 × 904.5) — emang
-dirancang buat ditumpuk. Jadi semua digambar di ruang itu lalu di-scale sekali biar nutup layar.
-Ganti HP, ganti orientasi, layout tetap bener. Posisi kursi disimpan 0...1 relatif kotak angkot
-(hasil scan pixel hijau di art), bukan angka pixel.
+**The scene uses the art's coordinates, not screen pixels.**
+`Jalan.png` and `Benchmark.png` are both 2622x1206, and `Benchmark.png` is the composition the
+whole scene is rebuilt from. Everything is drawn in that space and scaled once to cover the screen,
+so a different phone or orientation keeps the layout correct. Every sprite is placed at its native
+size at the coordinates it occupies in `Benchmark.png`, so nothing is stretched or guessed.
 
-**Tambah archetype = tambah 1 case, bukan tambah sistem.**
-`Kind.config` isinya art per state + kecepatan awareness + durasi lengah + lama nyopet.
-Sistem awareness dan steal-nya sama buat semua penumpang. Mau nambah "Anxious" atau "Child"?
-Tambah `case`, isi `Config`, selesai — `Game.tick` nggak perlu disentuh.
+**Adding an archetype means one more case, not another system.**
+`Kind.config` holds awareness speed, how long they stay distracted, how long a robbery takes, plus
+the colour wash and the badge symbol. The awareness and steal systems are the same for everybody.
+Want an "Anxious" or a "Child"? Add a `case`, fill in `Config`, done — `Game.tick` stays untouched.
 
-**Semua angka balancing ngumpul di `enum Tune` dan `Kind.config`.**
-Durasi ronde, kecepatan jalan, decay awareness, penalti pindah kursi, lama nyopet per archetype.
-Nggak ada magic number nyelip di view.
+**All the balancing numbers live in `enum Tune` and `Kind.config`.** Round length, road speed,
+awareness decay, the penalty for changing seats, how long a robbery takes per archetype. No magic
+numbers hidden in the view.
 
-**Semua kursi didefinisikan di satu tempat.** `Layout.seats` itu array `SeatSpec`: bangku mana,
-titik tengah, lebar, batas jok, dan garis duduk sprite-nya. Mau nambah/geser kursi? Ubah array itu,
-sisanya (gambar, area tap, penanda kosong, aturan bersebelahan) ikut sendiri.
+**All the seats are defined in one place.** `Layout.seats` is an array of `SeatSpec`: which bench,
+where the seat sprite goes, and the baseline the sitting sprite rests on. Want to add or move a
+seat? Change that array — the drawing, the tap target, the empty marker and the adjacency rules all
+follow.
 
-**Nyopet bisa lebih dari satu target.** `Game.steals` itu `[kursi: progress]`, bukan satu target.
-Tiap target punya progress sendiri dan awareness sendiri. Di view, tiap kursi pasang
-`simultaneousGesture` (bukan `gesture`) supaya dua kursi bisa ditahan barengan. Kalau pemain cuma
-pakai satu jari, jalannya persis kayak satu target — nggak ada yang berubah.
+**You can rob more than one person at a time.** `Game.steals` is `[seat: progress]`, not a single
+target. Each target has its own progress and its own awareness. In the view every seat uses
+`simultaneousGesture` (not `gesture`) so two of them can be held together. With one finger it
+behaves exactly like a single target — nothing changes.
 
-**Penumpang keluar-masuk sendiri.** Tiap penumpang bawa `rideLeft`. Habis waktunya, dia turun —
-nggak peduli udah kecopetan atau belum. Kursinya nganggur selama `Tune.boardWait` (acak), terus
-diisi penumpang baru dengan archetype acak yang beda dari tetangganya. Kalau kursinya lagi diduduki
-copet, penumpang baru nunggu sampai copetnya pindah.
+**Passengers come and go by themselves.** Each one carries `rideLeft`. When it runs out they get
+off, robbed or not. The seat stays empty for a random `Tune.boardWait`, then a new passenger boards
+with a random archetype that is not the same as their neighbour's. If the thief is sitting there,
+the new passenger waits until the thief moves.
 
-**State machine penumpang:** `busy → waking → alert → busy`.
-`waking` itu jendela peringatan singkat (art `sleepy_left_wakeup`) — pemain masih sempat lepas.
-Awareness naik pelan pas `busy`, cepat pas `alert`. Kalau nggak lagi dicopet, awareness turun sendiri.
-Duo sengaja dikasih durasi fix (bukan random) biar A dan B berhenti ngobrol barengan.
+**Passenger state machine:** `busy → waking → alert → busy`.
+`waking` is a short warning window — you still have time to let go. Awareness climbs slowly while
+they are `busy` and fast while they are `alert`. When nobody is robbing them it drains on its own.
+The two chatters get fixed (not random) timings so they stop talking at the same moment.
 
-**Logika kepisah dari tampilan.** `Game` itu struct murni tanpa SwiftUI. `runGameChecks()` di bawah
-`Game.swift` nguji aturan kursi, adjacency, sukses, ketahuan, dan ronde habis — jalan tiap app
-dibuka di DEBUG, app langsung crash kalau ada aturan yang rusak.
+**Logic is separate from presentation.** `Game` is a plain struct with no SwiftUI. `runGameChecks()`
+at the bottom of `Game.swift` exercises the seat rules, adjacency, a success, getting caught and the
+round running out — it runs on every launch in DEBUG, so the app crashes immediately if a rule breaks.
 
-**Game loop-nya satu `Timer` 60fps**, bukan `TimelineView`. Semua yang gerak (jalan, getaran mesin,
-timer, awareness) maju dari `Game.tick(dt)` yang sama, jadi gampang di-pause dan di-test.
+**One 60fps `Timer` drives the game loop**, not `TimelineView`. Everything that moves (the road, the
+clock, awareness) advances from the same `Game.tick(dt)`, which makes it easy to pause and to test.
 
-## Catatan audio
+## Audio notes
 
-SFX-nya **placeholder yang di-generate**, bukan rekaman — `sfx_success` (dapat barang),
-`sfx_caught` (ketahuan), `sfx_move` (pindah kursi), `sfx_win` (lolos sampai turun).
-Tinggal timpa file `.wav`-nya di `Resources/Audio` pakai nama yang sama, nggak usah ubah kode.
+The SFX are **generated placeholders**, not recordings — `sfx_success` (item lifted), `sfx_caught`
+(spotted), `sfx_move` (seat change), `sfx_win` (made it to your stop). Drop the real `.wav` files
+into `Resources/Audio` under the same names; no code changes needed.
 
-Session-nya `.ambient` + `.mixWithOthers`: ikut tombol silent dan nggak motong musik yang lagi
-diputar pemain. Kalau nanti mau bunyi tetap keluar walau silent, ganti ke `.playback` di
-`Audio.init`.
+The session is `.ambient` + `.mixWithOthers`: it respects the silent switch and does not cut the
+player's own music. If you later want sound even on silent, switch to `.playback` in `Audio.init`.
 
-## Catatan art
+## Art notes
 
-- File `.svg` di `environment/` dan `character/` sebenarnya PNG yang dibungkus SVG, dan tiap file
-  karakter itu **sprite sheet 12 pose** yang di-crop ke satu sel. Sudah diekstrak jadi PNG
-  transparan satu-satu ke `Resources/Assets.xcassets`. Kalau art-nya di-update, ekstrak ulang —
-  jangan drag `.svg`-nya langsung ke Xcode, Xcode nggak bisa baca raster di dalam SVG.
-- `copet_left_act_left` dan `copet_left_act_right` isinya pose yang sama persis, jadi yang kiri
-  dicermin di kode. Begitu juga `sleepy_right_idle` dan `sleepy_right_sleeping`.
-- "Zzz" di `sleepy_*_sleeping` bentuknya teks vektor dan nggak keikut waktu diekstrak, jadi
-  digambar ulang di SwiftUI (sekalian bisa dianimasiin).
-- Art `copet_left_act_*` itu **ngejangkau ke kiri**. Buat target di kanan, sprite-nya dicermin
-  (`scaleEffect(x: -1)`) — jangan dibalik lagi, nanti arahnya kebalik.
-- Duo belum punya art `aware`/`shock`, sementara pakai `idle`. Bar merah + tanda **!** yang
-  nanggung info bahayanya.
+Everything in the game comes from `Placeholder/`, the team's own hand-drawn placeholder set.
+`Benchmark.png` is the reference composition — the road, the bus, the seats and the characters are
+all placed at exactly the coordinates they occupy there, so the running game and the reference match
+pixel for pixel.
 
-## Belum ada (sengaja)
+| Asset | Source file | Used for |
+|---|---|---|
+| `road` | `Jalan.png` | the scrolling road, tiled with a 2557px period |
+| `angkot` | `Angkot.png` | the bus body — it has no seats drawn in, they are separate sprites |
+| `seat_far` / `seat_near` | `KursiKiri.png` / `KursiKanan.png` | the two benches |
+| `seat_folding` / `kid` | `KursiExtra.png` / `Bocah.png` | the folding seat by the door, scenery |
+| `driver` | `Sopir.png` | the driver, scenery |
+| `thief` | `Pencipet.png` | the player |
+| `victim_far` / `victim_near` | `VictimKiri.png` / `VictimKanan.png` | every passenger |
 
-Musik latar, menu utama, high score, archetype Anxious/Child/Driver, nyawa lebih dari satu.
-Ketahuan = ronde langsung selesai, biar satu jalur kode dan tensinya kerasa.
+What this placeholder set does not have yet, and how the game covers for it:
 
-Waktu nyopet dua orang barengan, pose copet cuma bisa ngadep satu arah — art `act` cuma ada satu
-tangan. Kalau mau, bisa ditambah pose "dua tangan" nanti.
+- **One passenger drawing per bench, with no per-archetype or per-state variants.** The archetype is
+  carried by a colour wash (`Kind.config.tint`, the same idea as the red and blue victims in
+  `Benchmark.png`) and the state by the badge above the head (`Kind.config.busySymbol` while they are
+  distracted, then an eye while waking, a filled eye while alert). Swap in real per-state drawings
+  later and the tint and the badge can go.
+- **One thief drawing, front view, with no reaching or sliding pose.** It is drawn once and slid
+  between seats, and it leans `Tune.reach` towards whoever is being robbed. On the near bench it
+  still faces the camera while everybody else faces away.
+- **Nothing is mirrored.** The old art had a reach pose that had to be flipped; none of these
+  drawings do.
 
-Copet yang duduk di **bangku dekat** cuma punya `copet_right_idle` — belum ada art nyopet/geser
-tampak belakang, jadi pose-nya diam walau lagi nyopet. Bar hijau/merah yang nanggung feedback-nya.
+## Deliberately missing
+
+Background music, a main menu, high scores, more than one life. Getting caught ends the round right
+away, which keeps it to one code path and keeps the tension up.

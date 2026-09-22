@@ -1,129 +1,138 @@
 import SwiftUI
 
 // MARK: - Layout
-// Angka di sini diukur dari environment/angkot.svg (viewBox 1966.5 x 904.5). Jalan sekarang
-// pakai Placeholder/Jalan.png yang rasionya sama, jadi tetap ditumpuk di ruang koordinat itu.
+//
+// Everything is measured in the pixel space of the placeholder art: Jalan.png and Benchmark.png
+// are both 2622x1206, and Benchmark.png is the composition reference the whole scene is rebuilt
+// from. Angkot.png, the seats and the characters are all placed at their native size, so the
+// numbers below are literally the coordinates the sprites sit at in Benchmark.png.
 
 enum Bench {
-    case far     // bangku seberang: penumpang kelihatan dari depan (art *_left_*)
-    case near    // bangku dekat: kelihatan dari belakang (art *_right_*)
+    case far     // bench across the aisle: passengers face the camera (victim_far)
+    case near    // bench on our side: we see their backs (victim_near)
 }
 
 struct SeatSpec {
     let bench: Bench
-    let x: CGFloat        // titik tengah kursi, 0...1 relatif lebar gambar angkot
-    let w: CGFloat        // lebar kursi
-    let top: CGFloat      // batas atas jok (buat penanda kursi kosong + area tap)
-    let bottom: CGFloat   // batas bawah jok
-    let sitY: CGFloat     // garis bawah sprite orang yang duduk di kursi ini
+    let seat: CGRect      // where the seat sprite is drawn, in scene coordinates
+    let sitY: CGFloat     // baseline the seated character's feet rest on
 }
 
 enum Layout {
-    static let scene  = CGSize(width: 1966.5, height: 904.5)
-    static let angkot = CGRect(x: 411.02, y: 47.39, width: 1146.05, height: 826.21)
+    static let scene  = CGSize(width: 2622, height: 1206)
+    static let angkot = CGRect(x: 620, y: 87, width: 1307, height: 1036)
 
-    // Jalan pakai Placeholder/Jalan.png (2622x1206) — rasionya sama persis dengan scene, jadi
-    // satu tile = satu layar. Gambarnya tangan, nggak periodik; tile-nya dipotong di x=2557 px
-    // (ujung blok gelap trotoar terakhir) supaya sambungannya mulus: trotoar lanjut gelap->terang
-    // dan garis putus-putus di ujung kanan nyambung sama yang di ujung kiri.
-    static let roadTile   = CGSize(width: 1966.5, height: 904.5)
-    static let roadPeriod: CGFloat = 2557 * (904.5 / 1206)
+    // One road tile covers the whole screen. The drawing is hand-made and not periodic, so the
+    // tile is cut at x = 2557 (the end of the last dark kerb block): there the pavement carries
+    // on dark -> light and the dashed centre line lines up with the one on the left edge.
+    static let roadTile   = scene
+    static let roadPeriod: CGFloat = 2557
     static let roadX0:     CGFloat = 0
 
-    /// 9 kursi hijau. Posisi diambil dari hasil scan pixel hijau di art, bukan kira-kira.
-    /// Bangku seberang: 4 jok + 1 kursi lipat dekat pintu, masing-masing 1 orang.
-    /// Bangku dekat: 2 jok hijau lebar, masing-masing muat 2 orang -> 4 orang.
+    // Scenery: neither of these is playable, they just fill the cabin the way Benchmark.png does.
+    static let foldingSeat = CGRect(x: 1304, y: 427, width: 160, height: 202)
+    static let kid         = CGRect(x: 1270, y: 338, width: 182, height: 232)
+    static let driver      = CGRect(x: 1516, y: 532, width: 216, height: 289)
+
+    /// 7 seats a passenger can use: 3 on the far bench, 4 on the near bench.
+    /// The folding seat by the door is taken by the kid, so it is scenery, not a seat.
     static let seats: [SeatSpec] = [
-        .init(bench: .far,  x: 0.179, w: 0.088, top: 0.259, bottom: 0.417, sitY: 0.455),
-        .init(bench: .far,  x: 0.271, w: 0.088, top: 0.259, bottom: 0.417, sitY: 0.455),
-        .init(bench: .far,  x: 0.364, w: 0.088, top: 0.259, bottom: 0.417, sitY: 0.455),
-        .init(bench: .far,  x: 0.459, w: 0.088, top: 0.259, bottom: 0.417, sitY: 0.455),
-        .init(bench: .far,  x: 0.599, w: 0.088, top: 0.259, bottom: 0.417, sitY: 0.455),
-        .init(bench: .near, x: 0.162, w: 0.082, top: 0.532, bottom: 0.610, sitY: 0.638),
-        .init(bench: .near, x: 0.246, w: 0.082, top: 0.532, bottom: 0.610, sitY: 0.638),
-        .init(bench: .near, x: 0.340, w: 0.082, top: 0.532, bottom: 0.610, sitY: 0.638),
-        .init(bench: .near, x: 0.433, w: 0.082, top: 0.532, bottom: 0.610, sitY: 0.638),
+        .init(bench: .far,  seat: CGRect(x:  678, y: 258, width: 215, height: 262), sitY: 511),
+        .init(bench: .far,  seat: CGRect(x:  864, y: 258, width: 215, height: 262), sitY: 511),
+        .init(bench: .far,  seat: CGRect(x: 1050, y: 258, width: 215, height: 262), sitY: 511),
+        .init(bench: .near, seat: CGRect(x:  684, y: 666, width: 235, height: 188), sitY: 784),
+        .init(bench: .near, seat: CGRect(x:  870, y: 666, width: 235, height: 188), sitY: 784),
+        .init(bench: .near, seat: CGRect(x: 1056, y: 666, width: 235, height: 188), sitY: 784),
+        .init(bench: .near, seat: CGRect(x: 1242, y: 666, width: 235, height: 188), sitY: 784),
     ]
 
-    /// Bersebelahan = satu bangku dan nomornya nempel. Beda bangku nggak bisa saling jangkau.
+    /// Within reach = same bench and next seat along. You cannot reach across the aisle.
     static func adjacent(_ a: Int, _ b: Int) -> Bool {
         abs(a - b) == 1 && seats[a].bench == seats[b].bench
     }
 }
 
+/// Character sprites, at their native size so nothing gets stretched away from the reference art.
+enum Art {
+    struct Sprite {
+        let name: String
+        let size: CGSize
+        /// The drawn pixels inside `size`. The placeholder PNGs have uneven transparent margins,
+        /// so badges and tap targets follow this rather than the bitmap's edges.
+        let ink: CGRect
+    }
+
+    static let thief      = Sprite(name: "thief",
+                                   size: CGSize(width: 163, height: 228),
+                                   ink: CGRect(x: 5, y: 8, width: 153, height: 215))
+    static let victimFar  = Sprite(name: "victim_far",
+                                   size: CGSize(width: 160, height: 235),
+                                   ink: CGRect(x: 0, y: 2, width: 158, height: 226))
+    static let victimNear = Sprite(name: "victim_near",
+                                   size: CGSize(width: 196, height: 243),
+                                   ink: CGRect(x: 12, y: 25, width: 158, height: 207))
+
+    static func victim(_ bench: Bench) -> Sprite { bench == .far ? victimFar : victimNear }
+}
+
 // MARK: - Balancing
-// Semua angka yang bakal diubah-ubah waktu playtest ngumpul di sini.
+// Every number that gets touched during playtesting lives here.
 
 enum Tune {
-    static let round: Double = 90          // durasi ronde (detik)
-    static let roadSpeed: Double = 300     // unit scene per detik
-    static let slideTime: Double = 0.3     // animasi geser kursi
-    static let awareDecay: Double = 0.40   // awareness turun per detik kalau nggak dicopet
+    static let round: Double = 90          // round length (seconds)
+    static let roadSpeed: Double = 300     // scene units per second
+    static let slideTime: Double = 0.3     // seat-change animation
+    static let awareDecay: Double = 0.40   // awareness lost per second while nobody is stealing
     static let moveSuspicion: Double = 0.20
     static let warnAwareness: Double = 0.30
+    static let reach: CGFloat = 14         // how far the thief leans towards the seat being robbed
 
-    static let rideTime:  ClosedRange<Double> = 10...24   // lama penumpang ikut angkot sebelum turun
-    static let boardWait: ClosedRange<Double> = 1.5...5.0 // kursi kosong nganggur sebelum ada yang naik
-    static let maxPassengers = 5                          // sisanya dibiarin kosong biar copet bisa pindah
-
-    static let charH: CGFloat = 0.215      // tinggi sprite relatif tinggi angkot
+    static let rideTime:  ClosedRange<Double> = 10...24   // how long a passenger rides before getting off
+    static let boardWait: ClosedRange<Double> = 1.5...5.0 // how long an empty seat stays empty
+    static let maxPassengers = 4                          // leaves the thief at least two seats to move to
 }
 
 // MARK: - Archetype (data-driven)
 
 enum Kind: CaseIterable {
-    case sleepy, doom, duoA, duoB
+    case sleeper, doomscroller, chatterA, chatterB
 
     var config: Config {
         switch self {
-        case .sleepy:
-            return Config(busy: "sleepy_left_sleeping", waking: "sleepy_left_wakeup",
-                          alert: "sleepy_left_aware",   shock: "sleepy_left_shock",
-                          busyTime: 5.0...8.0, alertTime: 2.0...3.5, wakeTime: 0.9,
-                          awareBusy: 0.16, awareAlert: 0.75, stealTime: 2.2)
-        case .doom:
-            return Config(busy: "doomscrollings_left_active", waking: "doomscrollings_left_active",
-                          alert: "doomscrollings_left_aware", shock: "doomscrollings_left_shock",
-                          busyTime: 4.0...7.0, alertTime: 1.5...2.5, wakeTime: 0.5,
-                          awareBusy: 0.22, awareAlert: 0.95, stealTime: 1.9)
-        case .duoA, .duoB:
-            let n = self == .duoA ? "duoA" : "duoB"
-            return Config(busy: "\(n)_left_talking", waking: "\(n)_left_idle",
-                          alert: "\(n)_left_idle",   shock: "\(n)_left_idle",
-                          busyTime: 6.0...6.0, alertTime: 3.0...3.0, wakeTime: 0.4,
-                          awareBusy: 0.30, awareAlert: 1.05, stealTime: 2.6)
+        case .sleeper:
+            return Config(busyTime: 5.0...8.0, alertTime: 2.0...3.5, wakeTime: 0.9,
+                          awareBusy: 0.16, awareAlert: 0.75, stealTime: 2.2,
+                          tint: Color(red: 0.72, green: 0.83, blue: 1.00), busySymbol: "zzz")
+        case .doomscroller:
+            return Config(busyTime: 4.0...7.0, alertTime: 1.5...2.5, wakeTime: 0.5,
+                          awareBusy: 0.22, awareAlert: 0.95, stealTime: 1.9,
+                          tint: Color(red: 1.00, green: 0.72, blue: 0.72), busySymbol: "iphone")
+        case .chatterA, .chatterB:
+            // Fixed (not random) timings so the two of them stop chatting at the same moment.
+            return Config(busyTime: 6.0...6.0, alertTime: 3.0...3.0, wakeTime: 0.4,
+                          awareBusy: 0.30, awareAlert: 1.05, stealTime: 2.6,
+                          tint: self == .chatterA ? Color(red: 1.00, green: 0.90, blue: 0.64)
+                                                  : Color(red: 0.75, green: 0.94, blue: 0.76),
+                          busySymbol: "bubble.left.and.bubble.right.fill")
         }
-    }
-
-    /// Bangku dekat butuh art tampak belakang. Duo belum punya, jadi mereka nggak pernah duduk di situ.
-    var hasBackArt: Bool { self == .sleepy || self == .doom }
-
-    func art(_ state: PState, bench: Bench) -> String {
-        guard bench == .near else {
-            switch state {
-            case .busy:   return config.busy
-            case .waking: return config.waking
-            case .alert:  return config.alert
-            case .shock:  return config.shock
-            }
-        }
-        if self == .sleepy { return state == .busy ? "sleepy_right_sleeping" : "sleepy_right_idle" }
-        return "doomscrollings_right_active"
     }
 }
 
 struct Config {
-    let busy: String, waking: String, alert: String, shock: String
     let busyTime: ClosedRange<Double>
     let alertTime: ClosedRange<Double>
     let wakeTime: Double
     let awareBusy: Double
     let awareAlert: Double
     let stealTime: Double
+    /// The placeholder passengers are one blank sprite per bench, so the archetype is carried by
+    /// a colour wash and the state by the badge above the head.
+    let tint: Color
+    let busySymbol: String
 }
 
 enum Loot: CaseIterable {
     case wallet, bag
     var art: String { self == .wallet ? "wallet" : "bag" }
-    var value: Int { self == .wallet ? 50 : 30 }     // ribuan rupiah
+    var value: Int { self == .wallet ? 50 : 30 }     // thousands of rupiah
 }

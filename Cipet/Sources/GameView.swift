@@ -6,20 +6,15 @@ struct GameView: View {
 
     var body: some View {
         GeometryReader { geo in
-            // Scene digambar di koordinat 1966.5x904.5 (viewBox asli art), lalu di-scale biar nutup layar.
+            // The scene is drawn in the placeholder art's own pixel space (2622x1206, the size of
+            // Jalan.png and Benchmark.png) and then scaled once to cover the screen.
             let s  = max(geo.size.width / Layout.scene.width, geo.size.height / Layout.scene.height)
             let ox = (geo.size.width  - Layout.scene.width  * s) / 2
             let oy = (geo.size.height - Layout.scene.height * s) / 2
 
             ZStack {
                 RoadLayer(size: geo.size, s: s, ox: ox, oy: oy, roadX: game.roadX)
-
-                CabinLayer(game: $game,
-                           w: Layout.angkot.width * s,
-                           h: Layout.angkot.height * s)
-                    .position(x: ox + Layout.angkot.midX * s,
-                              y: oy + Layout.angkot.midY * s)
-
+                CabinLayer(game: $game, s: s, ox: ox, oy: oy)
                 HUD(game: $game)
             }
             .background(.black)
@@ -28,9 +23,9 @@ struct GameView: View {
         .statusBarHidden()
         .persistentSystemOverlays(.hidden)
         .onReceive(clock) { _ in game.tick(1.0 / 60) }
-        // Model-nya tetap polos tanpa audio; view yang nyalain SFX pas state-nya berubah.
+        // The model stays audio-free; the view is what fires SFX when its state changes.
         .onChange(of: game.taken) { _, n in if n > 0 { Audio.shared.play(.success) } }
-        .onChange(of: game.copet) { _, _ in Audio.shared.play(.move, volume: 0.55) }
+        .onChange(of: game.thief) { _, _ in Audio.shared.play(.move, volume: 0.55) }
         .onChange(of: game.phase) { _, p in
             if p == .caught { Audio.shared.play(.caught) }
             if p == .win    { Audio.shared.play(.win) }
@@ -39,7 +34,7 @@ struct GameView: View {
     }
 }
 
-// MARK: - Jalan yang bergerak
+// MARK: - Scrolling road
 
 struct RoadLayer: View {
     let size: CGSize
@@ -53,10 +48,10 @@ struct RoadLayer: View {
         let count  = Int(ceil(size.width / period)) + 3
 
         ZStack(alignment: .topLeading) {
-            Color(white: 163.0 / 255)                            // abu-abu dasar Jalan.png
-            HStack(spacing: -(tile.width - period)) {           // tile-nya sengaja saling numpuk dikit
+            Color(white: 163.0 / 255)                            // the base grey of Jalan.png
+            HStack(spacing: -(tile.width - period)) {            // tiles deliberately overlap a little
                 ForEach(0..<count, id: \.self) { _ in
-                    Image("jalan").resizable().frame(width: tile.width, height: tile.height)
+                    Image("road").resizable().frame(width: tile.width, height: tile.height)
                 }
             }
             .offset(x: ox + Layout.roadX0 * s - shift - period, y: oy)
@@ -66,61 +61,90 @@ struct RoadLayer: View {
     }
 }
 
-// MARK: - Kabin: body angkot, lalu orang-orangnya, lalu UI kursi
+// MARK: - Cabin: bus body, scenery, seats, people, then the seat UI
+//
+// Draw order is the one Benchmark.png is built in: far seats, far passengers, folding seat and
+// the kid on it, near seats, near passengers, driver.
 
 struct CabinLayer: View {
     @Binding var game: Game
-    let w: CGFloat, h: CGFloat
-
-    private var charH: CGFloat { h * Tune.charH }
+    let s: CGFloat, ox: CGFloat, oy: CGFloat
 
     var body: some View {
-        Color.clear
-            .frame(width: w, height: h)
-            .overlay { Image("angkot").resizable().frame(width: w, height: h) }
-            // urutan indeks = urutan gambar: bangku seberang dulu, bangku dekat nimpa di atasnya
-            .overlay { ForEach(Layout.seats.indices, id: \.self) { seatSprite($0) } }
-            .overlay { ForEach(Layout.seats.indices, id: \.self) { seatUI($0) } }
+        ZStack {
+            sprite("angkot", Layout.angkot)
+
+            ForEach(farSeats,  id: \.self) { sprite("seat_far",  Layout.seats[$0].seat) }
+            ForEach(farSeats,  id: \.self) { passenger($0) }
+
+            sprite("seat_folding", Layout.foldingSeat)
+            sprite("kid", Layout.kid)
+
+            ForEach(nearSeats, id: \.self) { sprite("seat_near", Layout.seats[$0].seat) }
+            ForEach(nearSeats, id: \.self) { passenger($0) }
+
+            sprite("driver", Layout.driver)
+
+            thief
+            ForEach(Layout.seats.indices, id: \.self) { seatUI($0) }
+        }
+        .frame(width: Layout.scene.width * s, height: Layout.scene.height * s)
+        .position(x: ox + Layout.scene.width * s / 2, y: oy + Layout.scene.height * s / 2)
     }
 
-    // MARK: Sprite
+    private var farSeats:  [Int] { Layout.seats.indices.filter { Layout.seats[$0].bench == .far } }
+    private var nearSeats: [Int] { Layout.seats.indices.filter { Layout.seats[$0].bench == .near } }
 
-    @ViewBuilder private func seatSprite(_ i: Int) -> some View {
+    /// Places a sprite at its scene rect, at native size — no stretching anywhere.
+    private func sprite(_ name: String, _ r: CGRect) -> some View {
+        Image(name).resizable()
+            .frame(width: r.width * s, height: r.height * s)
+            .position(x: r.midX * s, y: r.midY * s)
+    }
+
+    /// Where a seated character's sprite sits: centred on the seat, feet on `sitY`.
+    private func charRect(_ i: Int, _ a: Art.Sprite) -> CGRect {
         let spec = Layout.seats[i]
-        let y = h * spec.sitY - charH / 2
+        return CGRect(x: spec.seat.midX - a.size.width / 2, y: spec.sitY - a.size.height,
+                      width: a.size.width, height: a.size.height)
+    }
 
-        if i == game.copet {
-            let pose = copetPose(spec.bench)
-            Image(pose.art).resizable().scaledToFit()
-                .frame(height: charH)
-                .scaleEffect(x: pose.flip ? -1 : 1)
-                .position(x: spec.x * w, y: y)
-                .animation(.easeOut(duration: Tune.slideTime), value: game.copet)
-        } else if let p = game.seats[i] {
-            Image(p.art(spec.bench)).resizable().scaledToFit()
-                .frame(height: charH)
-                .position(x: spec.x * w, y: y)
+    /// Same, but only the pixels that are actually drawn — what badges and tap targets hang off.
+    private func inkRect(_ i: Int, _ a: Art.Sprite) -> CGRect {
+        let r = charRect(i, a)
+        return CGRect(x: r.minX + a.ink.minX, y: r.minY + a.ink.minY,
+                      width: a.ink.width, height: a.ink.height)
+    }
+
+    // MARK: Sprites
+
+    @ViewBuilder private func passenger(_ i: Int) -> some View {
+        if i != game.thief, let p = game.seats[i] {
+            let art = Art.victim(Layout.seats[i].bench)
+            sprite(art.name, charRect(i, art))
+                // One blank sprite per bench, so the archetype is carried by a colour wash.
+                .colorMultiply(p.kind.config.tint)
+                .saturation(p.state == .shock ? 0 : 1)
         }
     }
 
-    /// Art `act` di folder karakter itu ngejangkau ke KIRI, jadi dicermin kalau targetnya di kanan.
-    /// Bangku dekat belum punya art nyopet/geser, sementara pakai idle tampak belakang.
-    private func copetPose(_ bench: Bench) -> (art: String, flip: Bool) {
-        if bench == .near       { return ("copet_right_idle", false) }
-        if game.slide > 0       { return (game.facing > 0 ? "copet_left_slide_right" : "copet_left_slide_left", false) }
-        if !game.steals.isEmpty { return ("copet_left_act_left", game.facing > 0) }
-        return ("copet_left_idle", false)
+    /// Only one thief sprite exists, so it is drawn once and slid between seats. The lean towards
+    /// the seat being robbed is what replaces the old reaching pose.
+    private var thief: some View {
+        let r = charRect(game.thief, Art.thief)
+        let lean = game.steals.isEmpty ? 0 : CGFloat(game.facing) * Tune.reach
+        return sprite(Art.thief.name, r.offsetBy(dx: lean, dy: 0))
+            .animation(.easeOut(duration: Tune.slideTime), value: game.thief)
+            .animation(.easeOut(duration: 0.12), value: game.steals.isEmpty)
     }
 
-    // MARK: UI per kursi + area tap
+    // MARK: Per-seat UI and tap targets
 
     @ViewBuilder private func seatUI(_ i: Int) -> some View {
         let spec = Layout.seats[i]
-        let cx = spec.x * w
-        let hitW = max(spec.w * w, 46)
-        let headY = h * spec.sitY - charH
-        let hitTop = min(headY - 4, h * spec.top)
-        let hitH = max(h * spec.bottom - hitTop, 44)
+        let art  = Art.victim(spec.bench)
+        let body = inkRect(i, art)
+        let hit  = spec.seat.union(body)                 // the near bench sits below its passenger
 
         ZStack {
             if game.isEmpty(i) {
@@ -128,76 +152,97 @@ struct CabinLayer: View {
                     .strokeBorder(.white, style: StrokeStyle(lineWidth: 3, dash: [7, 5]))
                     .background(RoundedRectangle(cornerRadius: 7).fill(.white.opacity(0.35)))
                     .shadow(color: .black.opacity(0.35), radius: 3)
-                    .frame(width: hitW, height: h * (spec.bottom - spec.top))
-                    .position(x: cx, y: h * (spec.top + spec.bottom) / 2)
+                    .frame(width: spec.seat.width * s, height: spec.seat.height * s)
+                    .position(x: spec.seat.midX * s, y: spec.seat.midY * s)
             }
-            if let p = game.seats[i] {
-                badges(p, i: i, cx: cx, top: headY - 6, barW: hitW)
+            if let p = game.seats[i], i != game.thief {
+                badges(p, i: i, cx: body.midX * s, headY: body.minY * s,
+                       barW: body.width * s, bodyH: body.height * s)
             }
             Rectangle().fill(.clear).contentShape(Rectangle())
-                .frame(width: hitW, height: hitH)
-                .position(x: cx, y: hitTop + hitH / 2)
+                .frame(width: max(hit.width * s, 46), height: max(hit.height * s, 44))
+                .position(x: hit.midX * s, y: hit.midY * s)
                 .modifier(SeatInput(game: $game, seat: i))
         }
     }
 
-    @ViewBuilder private func badges(_ p: Passenger, i: Int, cx: CGFloat, top: CGFloat, barW: CGFloat) -> some View {
-        // Zzz di art aslinya berupa teks vektor dan nggak keikut waktu diekspor, jadi digambar di sini.
-        if p.kind == .sleepy, p.state == .busy {
-            Text("z Z")
-                .font(.system(size: max(11, w * 0.022), weight: .black, design: .rounded))
-                .foregroundStyle(.black.opacity(0.75))
-                .rotationEffect(.degrees(-12))
-                .offset(y: CGFloat(sin(game.clock * 2.2)) * 3)
-                .position(x: cx + barW * 0.42, y: top + 10)
-        }
+    @ViewBuilder private func badges(_ p: Passenger, i: Int, cx: CGFloat, headY: CGFloat,
+                                     barW: CGFloat, bodyH: CGFloat) -> some View {
+        // The placeholder passengers have no per-state drawing, so the state is spelled out here.
+        Image(systemName: stateSymbol(p))
+            .font(.system(size: 13, weight: .bold))
+            .foregroundStyle(stateColor(p))
+            .frame(width: 15, height: 15)
+            .padding(4)
+            .background(.white.opacity(0.92), in: Circle())
+            .overlay(Circle().stroke(.black.opacity(0.4), lineWidth: 1))
+            .offset(y: p.state == .busy ? CGFloat(sin(game.clock * 2.2)) * 3 : 0)
+            .position(x: cx + barW * 0.5, y: headY + 8)
 
-        if let progress = game.steals[i] {                        // dua bar cuma muncul pas lagi dicopet
+        if let progress = game.steals[i] {                        // both bars only show mid-robbery
             VStack(spacing: 3) {
                 Bar(value: progress,    tint: .green, width: barW)
                 Bar(value: p.awareness, tint: .red,   width: barW)
             }
-            .position(x: cx, y: top - 10)
+            .position(x: cx, y: headY - 14)
         } else if p.awareness > Tune.warnAwareness {
             Text("!").font(.system(size: 22, weight: .black, design: .rounded))
                 .foregroundStyle(.red)
                 .shadow(color: .white, radius: 2)
-                .position(x: cx, y: top - 6)
+                .position(x: cx, y: headY - 10)
         }
 
-        if p.loot == nil {                                        // barangnya udah diambil
+        if p.loot == nil {                                        // already cleaned out
             Text("✓").font(.system(size: 15, weight: .bold))
                 .foregroundStyle(.white).padding(3)
                 .background(.green.opacity(0.85), in: Circle())
-                .position(x: cx + barW * 0.34, y: top + 2)
+                .position(x: cx - barW * 0.5, y: headY + 8)
         }
 
         if let f = game.flash, f.seat == i {
-            let t = CGFloat(1 - f.life)                       // 0 -> 1 sepanjang animasi
+            let t = CGFloat(1 - f.life)                       // 0 -> 1 across the animation
+            let h = bodyH
 
-            Circle()                                          // cincin meletus di badan korban
+            Circle()                                          // ring bursting off the victim
                 .stroke(.white.opacity(Double(1 - t) * 0.85), lineWidth: 4 * (1 - t) + 1)
                 .frame(width: barW * (0.6 + t * 1.9), height: barW * (0.6 + t * 1.9))
-                .position(x: cx, y: top + charH * 0.45)
+                .position(x: cx, y: headY + h * 0.45)
 
-            Image(f.loot).resizable().scaledToFit()           // barangnya melayang keluar
-                .frame(height: charH * 0.46)
+            Image(f.loot).resizable().scaledToFit()           // the item floating away
+                .frame(height: h * 0.46)
                 .scaleEffect(0.6 + (1 - t) * 0.65)
                 .rotationEffect(.degrees(Double(t) * 22))
                 .shadow(color: .black.opacity(0.45), radius: 3)
-                .position(x: cx, y: top + charH * 0.45 - t * charH * 0.85)
+                .position(x: cx, y: headY + h * 0.45 - t * h * 0.85)
                 .opacity(Double(1 - t * t))
 
             Text(f.text).font(.system(size: 18, weight: .black, design: .rounded))
                 .foregroundStyle(.yellow)
                 .shadow(color: .black, radius: 3)
-                .position(x: cx + barW * 0.5, y: top + 2 - t * 30)
+                .position(x: cx + barW * 0.5, y: headY - t * 30)
                 .opacity(f.life)
+        }
+    }
+
+    private func stateSymbol(_ p: Passenger) -> String {
+        switch p.state {
+        case .busy:   return p.kind.config.busySymbol
+        case .waking: return "eye"
+        case .alert:  return "eye.fill"
+        case .shock:  return "exclamationmark.triangle.fill"
+        }
+    }
+
+    private func stateColor(_ p: Passenger) -> Color {
+        switch p.state {
+        case .busy:   return .black.opacity(0.7)
+        case .waking: return .orange
+        case .alert, .shock: return .red
         }
     }
 }
 
-/// Kursi kosong = tap buat pindah. Kursi berpenumpang = tahan buat nyopet, lepas buat batal.
+/// Empty seat = tap to move there. Occupied seat = hold to rob, let go to abort.
 struct SeatInput: ViewModifier {
     @Binding var game: Game
     let seat: Int
@@ -206,7 +251,7 @@ struct SeatInput: ViewModifier {
         if game.isEmpty(seat) {
             content.onTapGesture { game.move(to: seat) }
         } else if game.seats[seat] != nil {
-            // simultaneousGesture, bukan gesture: biar dua kursi bisa ditahan barengan
+            // simultaneousGesture, not gesture: so two seats can be held at the same time
             content.simultaneousGesture(
                 DragGesture(minimumDistance: 0)
                     .onChanged { _ in game.beginSteal(seat) }

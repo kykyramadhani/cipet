@@ -1,7 +1,7 @@
 import AVFoundation
 
-/// SFX placeholder — file WAV-nya di-generate, tinggal ditimpa sama audio asli nanti.
-/// Nama file di Resources/Audio harus sama persis sama case di bawah.
+/// Placeholder SFX — the WAV files are generated, just drop the real audio on top later.
+/// The filenames in Resources/Audio must match the cases below exactly.
 enum SFX: String, CaseIterable {
     case success = "sfx_success"
     case caught  = "sfx_caught"
@@ -14,10 +14,10 @@ final class Audio {
 
     private var pool: [SFX: [AVAudioPlayer]] = [:]
     private var next: [SFX: Int] = [:]
-    private static let voices = 3            // biar bunyi yang sama bisa numpuk
+    private static let voices = 3            // so the same sound can overlap itself
 
     private init() {
-        // .ambient: ikut tombol silent, nggak motong musik yang lagi diputar pemain
+        // .ambient: respects the silent switch and does not cut the player's own music
         try? AVAudioSession.sharedInstance().setCategory(.ambient, options: [.mixWithOthers])
         try? AVAudioSession.sharedInstance().setActive(true)
 

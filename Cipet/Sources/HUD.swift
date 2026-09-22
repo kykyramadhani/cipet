@@ -5,8 +5,8 @@ struct HUD: View {
 
     var body: some View {
         ZStack {
-            // Layout dari desain (kanvas 874x402): frame 140x60 di top 20, wallet left 24,
-            // clock left 367 (= pas di tengah), pause 60x60 nempel kanan dengan margin yang sama.
+            // Straight from the design (874x402 canvas): 140x60 frame at top 20, wallet at left 24,
+            // clock at left 367 (dead centre), 60x60 pause pinned right with the same margin.
             loot.padding(.top, Self.top).padding(.leading, Self.side)
                 .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
             timer.padding(.top, Self.top)
@@ -26,11 +26,11 @@ struct HUD: View {
         }
     }
 
-    // MARK: Bar atas
+    // MARK: Top bar
     //
-    // Ukuran ngikutin desain: frame 140x60, tombol pause 60x60, ikon 40x40. Art `hud_frame`
-    // aslinya 145x65 jadi ditarik dikit ke 140x60 — beda rasionya kecil, nggak kelihatan.
-    // Teks yang ngalah: nyusut lewat `minimumScaleFactor` kalau angkanya kepanjangan.
+    // Sizes follow the design: 140x60 frame, 60x60 pause button, 40x40 icons. The `hud_frame` art
+    // is really 145x65 and gets squeezed to 140x60 — the aspect difference is too small to see.
+    // The text is what gives way: `minimumScaleFactor` shrinks it when a number runs long.
 
     private static let top:    CGFloat = 20
     private static let side:   CGFloat = 24
@@ -38,28 +38,28 @@ struct HUD: View {
     private static let frameH: CGFloat = 60
     private static let pauseW: CGFloat = 60
     private static let icon:   CGFloat = 40
-    private static let number: CGFloat = 40                      // angka di dalam frame, Skranji Regular
+    private static let number: CGFloat = 40                      // the number inside the frame, Skranji Regular
 
     private var loot: some View {
         panel {
             Image("hud_wallet").resizable().frame(width: Self.icon, height: Self.icon)
-            // Jumlah barang yang berhasil dicopet, selalu dua digit ("00", "07") biar lebarnya stabil.
+            // How many items were lifted, always two digits ("00", "07") so the width stays put.
             Text(String(format: "%02d", game.taken))
                 .font(.skranji(Self.number, bold: false)).monospacedDigit()
                 .lineLimit(1).minimumScaleFactor(0.6)
                 .contentTransition(.identity)
-                .transaction { $0.animation = nil }              // angkanya jangan ikut dianimasiin
+                .transaction { $0.animation = nil }              // never animate the number itself
         }
-        .scaleEffect(game.flash != nil ? 1.1 : 1)                // nyentak pas dapat barang
+        .scaleEffect(game.flash != nil ? 1.1 : 1)                // pops when something is lifted
         .animation(.spring(response: 0.3, dampingFraction: 0.55), value: game.flash != nil)
     }
 
     private var timer: some View {
         let left = max(0, Int(game.time.rounded(.up)))
-        // Di atas semenit pakai m:ss, di bawah itu detik polos.
+        // Over a minute it reads m:ss, under that just plain seconds.
         let label = left >= 60 ? String(format: "%d:%02d", left / 60, left % 60) : "\(left)s"
-        // Jangan kasih animasi ke angka yang ganti tiap detik — kalau dianimasiin, SwiftUI
-        // nampilin angka lama dan angka baru barengan (ini yang bikin timernya keliatan dobel).
+        // Never animate a number that changes every second — SwiftUI then shows the old and the
+        // new value at once, which is what made the timer look doubled.
         return panel {
             Image("hud_clock").resizable().frame(width: Self.icon, height: Self.icon)
             Text(label)
@@ -80,7 +80,7 @@ struct HUD: View {
         .buttonStyle(.plain)
     }
 
-    /// Frame putih bergaris tangan + isi di tengahnya.
+    /// Hand-drawn white frame with its contents centred inside.
     private func panel<C: View>(@ViewBuilder _ content: () -> C) -> some View {
         HStack(spacing: 6) { content() }
             .foregroundStyle(.black)
@@ -90,7 +90,7 @@ struct HUD: View {
     }
 
     private var hint: some View {
-        Text("Tahan penumpang sebelah buat nyopet  ·  Tap kursi kosong buat pindah")
+        Text("Hold the passenger next to you to rob them  ·  Tap an empty seat to move")
             .font(.skranji(13, bold: false))
             .foregroundStyle(.white.opacity(0.9))
             .padding(.horizontal, 12).padding(.vertical, 6)
@@ -99,18 +99,18 @@ struct HUD: View {
             .animation(.easeOut(duration: 0.4), value: game.taken)
     }
 
-    // MARK: Layar tumpang
+    // MARK: Overlay screens
 
     private var pausedCard: some View {
         card {
-            Text("JEDA").font(.skranji(34))
+            Text("PAUSED").font(.skranji(34))
                 .foregroundStyle(.white)
-            Text("Angkotnya nungguin kamu.")
+            Text("The angkot is waiting for you.")
                 .font(.skranji(14, bold: false))
                 .foregroundStyle(.white.opacity(0.8))
             HStack(spacing: 12) {
-                pill("Lanjut", .yellow) { game.togglePause() }
-                pill("Ulangi", .white.opacity(0.22), fg: .white) { game.restart() }
+                pill("Resume", .yellow) { game.togglePause() }
+                pill("Restart", .white.opacity(0.22), fg: .white) { game.restart() }
             }
             .padding(.top, 6)
         }
@@ -119,19 +119,19 @@ struct HUD: View {
     private var endingCard: some View {
         let won = game.phase == .win
         return card {
-            Text(won ? "TURUN, BANG!" : "KETAHUAN!")
+            Text(won ? "THIS IS MY STOP!" : "BUSTED!")
                 .font(.skranji(34))
                 .foregroundStyle(won ? .green : .red)
-            Text(won ? "Selamat, lolos sampai turun." : "Ada yang mergokin kamu.")
+            Text(won ? "Clean getaway — you made it off the angkot." : "Somebody caught you in the act.")
                 .font(.skranji(14, bold: false))
                 .foregroundStyle(.white.opacity(0.8))
-            Text("Rp \(game.score) ribu")
+            Text("Rp \(game.score)k")
                 .font(.skranji(28))
                 .foregroundStyle(.yellow)
-            Text("\(game.taken) barang berhasil dicopet")
+            Text(game.taken == 1 ? "1 item lifted" : "\(game.taken) items lifted")
                 .font(.skranji(14, bold: false))
                 .foregroundStyle(.white.opacity(0.8))
-            pill("Main Lagi", .yellow) { game.restart() }
+            pill("Play Again", .yellow) { game.restart() }
                 .padding(.top, 6)
         }
     }
@@ -162,9 +162,9 @@ struct HUD: View {
 // MARK: - Font
 
 extension Font {
-    /// Skranji (Resources/Fonts, OFL) — font tulisan tangan buat semua teks HUD.
-    /// Nama PostScript-nya `Skranji` (regular, BUKAN "Skranji-Regular") dan `Skranji-Bold`,
-    /// didaftarin lewat `UIAppFonts`. Salah nama = diam-diam jatuh ke font sistem.
+    /// Skranji (Resources/Fonts, OFL) — the handwritten face used for every bit of HUD text.
+    /// Its PostScript names are `Skranji` (regular, NOT "Skranji-Regular") and `Skranji-Bold`,
+    /// registered through `UIAppFonts`. Get the name wrong and it silently falls back to system.
     static func skranji(_ size: CGFloat, bold: Bool = true) -> Font {
         .custom(bold ? "Skranji-Bold" : "Skranji", size: size)
     }

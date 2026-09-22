@@ -7,7 +7,7 @@ targets:
   Cipet:
     type: application
     platform: iOS
-    sources: [Sources, Resources]
+    sources: [Sources, Resources]   # Resources/Fonts ikut ke bundle; nama font didaftarin di Cipet-Info.plist (UIAppFonts)
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.gamejam.cipet

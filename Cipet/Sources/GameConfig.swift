@@ -1,8 +1,8 @@
 import SwiftUI
 
 // MARK: - Layout
-// Angka di sini diukur dari environment/angkot.svg + road.svg.
-// Dua file itu viewBox-nya sama persis (1966.5 x 904.5) — memang dirancang buat ditumpuk.
+// Angka di sini diukur dari environment/angkot.svg (viewBox 1966.5 x 904.5). Jalan sekarang
+// pakai Placeholder/Jalan.png yang rasionya sama, jadi tetap ditumpuk di ruang koordinat itu.
 
 enum Bench {
     case far     // bangku seberang: penumpang kelihatan dari depan (art *_left_*)
@@ -22,9 +22,13 @@ enum Layout {
     static let scene  = CGSize(width: 1966.5, height: 904.5)
     static let angkot = CGRect(x: 411.02, y: 47.39, width: 1146.05, height: 826.21)
 
-    static let roadTile   = CGSize(width: 1457.94, height: 904.0)
-    static let roadPeriod: CGFloat = 1447.05
-    static let roadX0:     CGFloat = -17.30
+    // Jalan pakai Placeholder/Jalan.png (2622x1206) — rasionya sama persis dengan scene, jadi
+    // satu tile = satu layar. Gambarnya tangan, nggak periodik; tile-nya dipotong di x=2557 px
+    // (ujung blok gelap trotoar terakhir) supaya sambungannya mulus: trotoar lanjut gelap->terang
+    // dan garis putus-putus di ujung kanan nyambung sama yang di ujung kiri.
+    static let roadTile   = CGSize(width: 1966.5, height: 904.5)
+    static let roadPeriod: CGFloat = 2557 * (904.5 / 1206)
+    static let roadX0:     CGFloat = 0
 
     /// 9 kursi hijau. Posisi diambil dari hasil scan pixel hijau di art, bukan kira-kira.
     /// Bangku seberang: 4 jok + 1 kursi lipat dekat pintu, masing-masing 1 orang.

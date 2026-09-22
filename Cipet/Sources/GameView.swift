@@ -53,10 +53,10 @@ struct RoadLayer: View {
         let count  = Int(ceil(size.width / period)) + 3
 
         ZStack(alignment: .topLeading) {
-            Color(red: 0.36, green: 0.36, blue: 0.39)
+            Color(white: 163.0 / 255)                            // abu-abu dasar Jalan.png
             HStack(spacing: -(tile.width - period)) {           // tile-nya sengaja saling numpuk dikit
                 ForEach(0..<count, id: \.self) { _ in
-                    Image("road").resizable().frame(width: tile.width, height: tile.height)
+                    Image("jalan").resizable().frame(width: tile.width, height: tile.height)
                 }
             }
             .offset(x: ox + Layout.roadX0 * s - shift - period, y: oy)

@@ -7,7 +7,7 @@ targets:
   Cipet:
     type: application
     platform: iOS
-    sources: [Sources, Resources]   # Resources/Fonts ikut ke bundle; nama font didaftarin di Cipet-Info.plist (UIAppFonts)
+    sources: [Sources, Resources]   # Resources/Fonts ships with the bundle; the font names are registered in Cipet-Info.plist (UIAppFonts)
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.gamejam.cipet
@@ -18,8 +18,8 @@ targets:
         INFOPLIST_FILE: Cipet-Info.plist
         TARGETED_DEVICE_FAMILY: "1"
         SWIFT_VERSION: "5.0"
-        # HARUS "AppIcon". Kalau dikosongin, ikonnya nggak ikut ke bundle dan
-        # App Store Connect nolak dengan error 90022 + 90713.
+        # MUST be "AppIcon". Leave it blank and the icon never reaches the bundle, and
+        # App Store Connect rejects the build with errors 90022 + 90713.
         ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
         INFOPLIST_KEY_CFBundleDisplayName: "c!pet"
         INFOPLIST_KEY_LSApplicationCategoryType: "public.app-category.games"

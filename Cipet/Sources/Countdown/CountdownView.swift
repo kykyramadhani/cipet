@@ -9,9 +9,11 @@ enum Countdown {
     static let wheel    = CGRect(x: 0,     y: 14.13, width: 455.891, height: 425.875)
     static let roof     = CGRect(x: 3.528, y: 3.534, width: 448.475, height: 418.812)
 
-    static let readyX: CGFloat = -295   // parked while the round card is up
-    static let firstX: CGFloat = -128   // on "3"
-    static let lastX:  CGFloat =  209   // on "Start"
+    static let readyX: CGFloat = -295   // parked off to the left while the round card is up
+
+    /// where the angkot has got to on each beat. it brakes rather than sliding evenly, and
+    /// by "1" its basically parked in the middle where it stays for Start and Steal Time.
+    static let vanXs: [CGFloat] = [-128, 27, 173, 209, 209]
 
     static let banner     = CGRect(x: 0, y: 109, width: 874, height: 184)
     static let dots       = CGRect(x: -100.003, y: -366.998, width: 1074.986, height: 918.275)
@@ -24,13 +26,18 @@ enum Countdown {
     static let buttonArt = CGRect(x: 337.696, y: 312.984, width: 224.554, height: 65.0165)
     static let startSize: CGFloat = 48
 
-    static let labels = ["3", "2", "1", "Start"]
+    static let labels = ["3", "2", "1", "Start", ""]
+    static let steal = labels.count - 1   // the last beat swaps the banner for the van's sign
     static let tick: Double = 1.0   // seconds per number
-    static let hold: Double = 0.7   // beat on "Start" before the round begins
+    static let hold: Double = 0.7   // how long Steal Time sits there before the round starts
 
-    static func vanX(_ step: Int) -> CGFloat {
-        firstX + (lastX - firstX) * CGFloat(step) / CGFloat(labels.count - 1)
-    }
+    // the "Steal Time!" lettering, centred on the angkot group's own coordinates
+    static let stealCentre  = CGPoint(x: 229, y: 212)
+    static let stealSize:    CGFloat = 120
+    static let stealOutline: CGFloat = 9
+    static let stealGap:     CGFloat = -77.8   // stacked words, pulled back over skranjis own line box
+
+    static func vanX(_ step: Int) -> CGFloat { vanXs[step] }
 }
 
 struct CountdownView: View {
@@ -45,7 +52,7 @@ struct CountdownView: View {
             ZStack(alignment: .topLeading) {
                 place(Countdown.road, space) { Image("menu_road").resizable() }
                 angkot(space)
-                place(Countdown.banner, space) { banner(space) }
+                if !vm.stealing { place(Countdown.banner, space) { banner(space) } }
                 if vm.waiting { startButton(space) }
             }
             .frame(width: geo.size.width, height: geo.size.height)
@@ -66,8 +73,24 @@ struct CountdownView: View {
             }
             .frame(width: space.px(Countdown.group.width),
                    height: space.px(Countdown.group.height), alignment: .topLeading)
+            .overlay(alignment: .topLeading) { if vm.stealing { stealSign(space) } }
         }
         .animation(.linear(duration: Countdown.tick), value: vm.step)
+    }
+
+    private func stealSign(_ space: DesignSpace) -> some View {
+        VStack(spacing: space.px(Countdown.stealGap)) {
+            stealWord("Steal", space)
+            stealWord("Time!", space)
+        }
+        .position(x: space.px(Countdown.stealCentre.x), y: space.px(Countdown.stealCentre.y))
+    }
+
+    private func stealWord(_ word: String, _ space: DesignSpace) -> some View {
+        OutlinedText(string: word,
+                     font: .skranji(space.px(Countdown.stealSize)),
+                     fill: Ink.yellow,
+                     thickness: space.px(Countdown.stealOutline))
     }
 
     private func layer(_ name: String, _ r: CGRect, _ space: DesignSpace) -> some View {
@@ -116,9 +139,12 @@ struct CountdownView: View {
 
 private func runCountdownChecks() {
     #if DEBUG
-    assert(Countdown.vanX(0) == Countdown.firstX, "must open where the \"3\" frame puts the angkot")
-    assert(Countdown.vanX(Countdown.labels.count - 1) == Countdown.lastX, "and end on the \"Start\" one")
-    assert(Countdown.labels.last == "Start")
+    assert(Countdown.vanXs.count == Countdown.labels.count, "one van position per beat")
+    // it only ever drives forwards, and it has stopped by the time Start shows
+    assert(zip(Countdown.vanXs, Countdown.vanXs.dropFirst()).allSatisfy { $0 <= $1 })
+    assert(Countdown.vanXs[Countdown.steal] == Countdown.vanXs[Countdown.steal - 1],
+           "the angkot is already parked when Steal Time comes up")
+    assert(Countdown.labels[Countdown.steal - 1] == "Start")
     #endif
 }
 

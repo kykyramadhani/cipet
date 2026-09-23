@@ -7,6 +7,7 @@ import SwiftUI
     var onStart: () -> Void = {}
 
     var waiting: Bool { step == nil }
+    var stealing: Bool { step == Countdown.steal }
     var label: String { step.map { Countdown.labels[$0] } ?? "Round #1" }
     var labelSize: CGFloat { waiting ? Countdown.roundSize : Countdown.countSize }
     var vanX: CGFloat { step.map(Countdown.vanX) ?? Countdown.readyX }

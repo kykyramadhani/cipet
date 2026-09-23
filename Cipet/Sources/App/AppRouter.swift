@@ -1,7 +1,7 @@
 import SwiftUI
 
 @Observable final class AppRouter {
-    enum Screen { case loading, menu, tutorial, countdown, game }
+    enum Screen { case loading, menu, countdown, pickVictim, game }
 
     private(set) var screen: Screen = .loading
 

@@ -16,6 +16,7 @@
 		3041091DC823BF29C45EC282 /* GameViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1FD6CC95A4588E80A819F704 /* GameViewModel.swift */; };
 		34B59E0D0F83EBC78DC57E88 /* LoadingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3901C1646C63E1A5817F927E /* LoadingView.swift */; };
 		5DD5133CA5A90D4E0EA654E8 /* TutorialScene.swift in Sources */ = {isa = PBXBuildFile; fileRef = A52ABC24E21705EC3BC861AD /* TutorialScene.swift */; };
+		5DDB6EBBAC0B6FC4320A9762 /* PickVictimViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = D7819F7D103822044F1C5D7E /* PickVictimViewModel.swift */; };
 		602DAEC7D585E753EB094ABC /* SettingsPanel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 66FD67C72C2F60401E54C645 /* SettingsPanel.swift */; };
 		654CC9A35E8AA01A82799062 /* DesignSpace.swift in Sources */ = {isa = PBXBuildFile; fileRef = F7FAE859B6EE1CE9CB745C9B /* DesignSpace.swift */; };
 		692F24436C1C86A3DE1E1A7F /* AngkotColored.swift in Sources */ = {isa = PBXBuildFile; fileRef = E3F92620A53FE87F1A099708 /* AngkotColored.swift */; };
@@ -35,10 +36,12 @@
 		D5E70577C969B0D728847722 /* TutorialCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = 311D8E0DE92B834A3AF18B28 /* TutorialCard.swift */; };
 		D8F0B930633D32994FC97950 /* Style.swift in Sources */ = {isa = PBXBuildFile; fileRef = C20DF2E63C5C6002203D6554 /* Style.swift */; };
 		D9779B2CA17D523B797FB203 /* Skranji-Bold.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 0BD4E2CE4CB25CC20849989A /* Skranji-Bold.ttf */; };
+		E8C052F4A336FAAABE020ADB /* Flags.swift in Sources */ = {isa = PBXBuildFile; fileRef = F4C2FCA0469E53200B0E0514 /* Flags.swift */; };
 		E9998734B151A07A777BCE23 /* GameConfig.swift in Sources */ = {isa = PBXBuildFile; fileRef = 94954D9E0D38FCE75BF36C97 /* GameConfig.swift */; };
 		EAAA4F29B9FF4AA3EECA1CC8 /* MainMenuView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 56F7736B85287133F703BD8D /* MainMenuView.swift */; };
 		EAF1A6912AF24D08F82091E9 /* CountdownViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9E92104BD60E272ABE1CFCC4 /* CountdownViewModel.swift */; };
 		F1B7C75963251606A10822AD /* sfx_move.wav in Resources */ = {isa = PBXBuildFile; fileRef = 07D768DD3D692C31A92FEE6D /* sfx_move.wav */; };
+		F31F4897A7C2DA2AB730694B /* PickVictimView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2448BFCB9C70629DA59E3DF8 /* PickVictimView.swift */; };
 		F46AD60375B6C91AF1F2F26F /* AppRouter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9F3F71BAAB6EE7A3D52D39B8 /* AppRouter.swift */; };
 		F60BFFACC808BDE0414412AD /* OFL.txt in Resources */ = {isa = PBXBuildFile; fileRef = 7459590FE74685AB56D80CAC /* OFL.txt */; };
 /* End PBXBuildFile section */
@@ -51,6 +54,7 @@
 		19589152E040AEFFB69B629C /* HUD.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HUD.swift; sourceTree = "<group>"; };
 		1BADC6514D09AF7FB943808F /* CipetApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CipetApp.swift; sourceTree = "<group>"; };
 		1FD6CC95A4588E80A819F704 /* GameViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GameViewModel.swift; sourceTree = "<group>"; };
+		2448BFCB9C70629DA59E3DF8 /* PickVictimView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PickVictimView.swift; sourceTree = "<group>"; };
 		311D8E0DE92B834A3AF18B28 /* TutorialCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TutorialCard.swift; sourceTree = "<group>"; };
 		33662D0196552CE89E4D18B0 /* TutorialViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TutorialViewModel.swift; sourceTree = "<group>"; };
 		33D150E2E6B732590284F8A9 /* Skranji-Regular.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = "Skranji-Regular.ttf"; sourceTree = "<group>"; };
@@ -73,10 +77,12 @@
 		CE1136A6FD1298FAD6C3F9F7 /* TutorialView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TutorialView.swift; sourceTree = "<group>"; };
 		D30742D5E5331C53F6C15EDD /* LoadingViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LoadingViewModel.swift; sourceTree = "<group>"; };
 		D644D353640FE3488EC24BB5 /* sfx_win.wav */ = {isa = PBXFileReference; lastKnownFileType = audio.wav; path = sfx_win.wav; sourceTree = "<group>"; };
+		D7819F7D103822044F1C5D7E /* PickVictimViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PickVictimViewModel.swift; sourceTree = "<group>"; };
 		DD459AEDA9224F7CE96C4A97 /* SettingsViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsViewModel.swift; sourceTree = "<group>"; };
 		E3F92620A53FE87F1A099708 /* AngkotColored.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AngkotColored.swift; sourceTree = "<group>"; };
 		EF2CF9F6218964EBA3489818 /* GameView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GameView.swift; sourceTree = "<group>"; };
 		EF2D8FBFB6DD16DC8A046A7B /* Game.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Game.swift; sourceTree = "<group>"; };
+		F4C2FCA0469E53200B0E0514 /* Flags.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Flags.swift; sourceTree = "<group>"; };
 		F4EEA8D0003B1A9CD325EBDD /* TutorialStep.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TutorialStep.swift; sourceTree = "<group>"; };
 		F7FAE859B6EE1CE9CB745C9B /* DesignSpace.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DesignSpace.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
@@ -109,11 +115,21 @@
 			path = Loading;
 			sourceTree = "<group>";
 		};
+		6553A0E3D64CC2FD803EAE5F /* PickVictim */ = {
+			isa = PBXGroup;
+			children = (
+				2448BFCB9C70629DA59E3DF8 /* PickVictimView.swift */,
+				D7819F7D103822044F1C5D7E /* PickVictimViewModel.swift */,
+			);
+			path = PickVictim;
+			sourceTree = "<group>";
+		};
 		8FD10FF3D41B6FC008BF6A04 /* Shared */ = {
 			isa = PBXGroup;
 			children = (
 				E3F92620A53FE87F1A099708 /* AngkotColored.swift */,
 				F7FAE859B6EE1CE9CB745C9B /* DesignSpace.swift */,
+				F4C2FCA0469E53200B0E0514 /* Flags.swift */,
 				C20DF2E63C5C6002203D6554 /* Style.swift */,
 			);
 			path = Shared;
@@ -211,6 +227,7 @@
 				D7825C40ACE6D9122F8535C7 /* Game */,
 				54CC3EFE9704F63E89E13A6D /* Loading */,
 				DDDBCFED1B78ED16B276BE09 /* Menu */,
+				6553A0E3D64CC2FD803EAE5F /* PickVictim */,
 				8FD10FF3D41B6FC008BF6A04 /* Shared */,
 				D7406D7F8E54535E078C4BC4 /* Tutorial */,
 			);
@@ -312,6 +329,7 @@
 				72B2C0A4B8415CA3A471C74B /* CountdownView.swift in Sources */,
 				EAF1A6912AF24D08F82091E9 /* CountdownViewModel.swift in Sources */,
 				654CC9A35E8AA01A82799062 /* DesignSpace.swift in Sources */,
+				E8C052F4A336FAAABE020ADB /* Flags.swift in Sources */,
 				7FD38EF5E50705D7D511A6C1 /* Game.swift in Sources */,
 				E9998734B151A07A777BCE23 /* GameConfig.swift in Sources */,
 				1BAA7B6FC8083153CA8141C6 /* GameView.swift in Sources */,
@@ -320,6 +338,8 @@
 				34B59E0D0F83EBC78DC57E88 /* LoadingView.swift in Sources */,
 				CE58F9A04B9A5703CA027646 /* LoadingViewModel.swift in Sources */,
 				EAAA4F29B9FF4AA3EECA1CC8 /* MainMenuView.swift in Sources */,
+				F31F4897A7C2DA2AB730694B /* PickVictimView.swift in Sources */,
+				5DDB6EBBAC0B6FC4320A9762 /* PickVictimViewModel.swift in Sources */,
 				602DAEC7D585E753EB094ABC /* SettingsPanel.swift in Sources */,
 				95910762639F831BFBACEEF2 /* SettingsViewModel.swift in Sources */,
 				D8F0B930633D32994FC97950 /* Style.swift in Sources */,

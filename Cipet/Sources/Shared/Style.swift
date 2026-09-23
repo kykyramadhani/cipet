@@ -53,6 +53,7 @@ struct OutlinedText: View {
             }
             word.foregroundStyle(fill)
         }
+        .fixedSize()
         .padding(thickness * 1.6)   // drawingGroup clips to the bounds, leave room for the ring
         .drawingGroup()
     }

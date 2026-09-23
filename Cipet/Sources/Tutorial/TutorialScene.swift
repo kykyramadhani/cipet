@@ -4,6 +4,9 @@ import SwiftUI
 struct TutorialAngkot: View {
     let show: TutorialStep.Show
     let space: DesignSpace
+    /// pick-victim reuses this with its own spots, the tutorial just takes the defaults
+    var ghostSeats: [CGRect] = Tut.ghosts
+    var thiefAt: CGRect = Tut.seated
 
     var body: some View {
         Group {
@@ -19,8 +22,8 @@ struct TutorialAngkot: View {
         art("tut_kiri_a", Tut.kiriA)
 
         if show.contains(.seatGhosts) {
-            ForEach(Tut.ghosts.indices, id: \.self) { i in
-                art("loading_pencipet", Tut.ghosts[i]).opacity(Tut.ghostFade)
+            ForEach(ghostSeats.indices, id: \.self) { i in
+                art("loading_pencipet", ghostSeats[i]).opacity(Tut.ghostFade)
             }
         }
 
@@ -28,7 +31,7 @@ struct TutorialAngkot: View {
         art("tut_sopir", Tut.sopir)
         art(show.contains(.hotKanan) ? "tut_kanan_hot" : "tut_kanan", Tut.kanan)
 
-        if show.contains(.onBoard) { art("loading_pencipet", Tut.seated) }
+        if show.contains(.onBoard) { art("loading_pencipet", thiefAt) }
         if show.contains(.awareness) {
             ForEach(Tut.aware.indices, id: \.self) { i in
                 AwarenessBar(index: i, space: space)

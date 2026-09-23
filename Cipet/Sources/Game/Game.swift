@@ -1,14 +1,12 @@
 import SwiftUI
 
-// MARK: - Passenger
-
 enum PState { case busy, waking, alert, shock }
 
 struct Passenger {
     let kind: Kind
     var state: PState = .busy
     var timer: Double                // time left in the current state
-    var rideLeft: Double             // time left before getting off
+    var rideLeft: Double             // time left before they get off
     var awareness: Double = 0
     var loot: Loot?
 
@@ -38,8 +36,6 @@ struct Passenger {
     }
 }
 
-// MARK: - Round
-
 enum Phase { case play, paused, win, caught }
 
 struct Flash { var seat: Int; var text: String; var loot: String; var life: Double }
@@ -49,8 +45,8 @@ struct Game {
     var thief = 0
     var facing = 1                        // -1 left, +1 right
     var slide  = 0.0
-    var steals: [Int: Double] = [:]       // seat -> progress 0...1, more than one at a time is fine
-    var boardIn: [Int: Double] = [:]      // empty seat -> time left before somebody boards
+    var steals: [Int: Double] = [:]       // seat -> progress 0...1, more than one at once is fine
+    var boardIn: [Int: Double] = [:]      // empty seat -> time left before somebody gets on
     var score  = 0
     var taken  = 0
     var time   = Tune.round
@@ -62,9 +58,9 @@ struct Game {
     static func new() -> Game {
         var g = Game()
         g.seats = [Passenger?](repeating: nil, count: Layout.seats.count)
-        g.thief = Int.random(in: 0..<3)                 // start on the far bench, facing the camera
+        g.thief = Int.random(in: 0..<3)                 // start on the far bench so we can see him
 
-        // make sure there is a neighbour to rob straight away
+        // make sure theres somebody to rob right away
         if let n = Layout.seats.indices.filter({ Layout.adjacent($0, g.thief) }).randomElement() {
             g.seats[n] = Passenger(g.pick(for: n))
         }
@@ -74,12 +70,10 @@ struct Game {
         return g
     }
 
-    // MARK: Rules
-
     var passengerCount: Int { seats.compactMap { $0 }.count }
     func freeSeats() -> [Int] { seats.indices.filter { seats[$0] == nil && $0 != thief } }
 
-    /// Any empty seat is fair game for the thief, near bench included.
+    /// any empty seat is fair game, near bench included
     func isEmpty(_ i: Int) -> Bool { seats.indices.contains(i) && seats[i] == nil && i != thief }
     func canMove(_ i: Int) -> Bool { phase == .play && isEmpty(i) }
 
@@ -90,14 +84,12 @@ struct Game {
 
     var reachable: [Int] { seats.indices.filter { Layout.adjacent($0, thief) && seats[$0] != nil } }
 
-    /// New passenger: random, but never a twin of the person sitting next to them.
+    /// random, but never a twin of whoevers sitting next to them
     private func pick(for seat: Int) -> Kind {
         let taken = seats.indices.filter { Layout.adjacent($0, seat) }.compactMap { seats[$0]?.kind }
         let pool = Kind.allCases.filter { !taken.contains($0) }
         return pool.randomElement() ?? .sleeper
     }
-
-    // MARK: Actions
 
     mutating func move(to i: Int) {
         guard canMove(i) else { return }
@@ -106,7 +98,7 @@ struct Game {
         thief = i
         slide = Tune.slideTime
         steals.removeAll()
-        boardIn[i] = nil                                     // nobody boards the seat we just took
+        boardIn[i] = nil                                     // nobody gets the seat we just took
         if seats[old] == nil { boardIn[old] = Double.random(in: Tune.boardWait) }
         for n in seats.indices where Layout.adjacent(n, i) {
             if var p = seats[n], p.state == .alert {
@@ -133,8 +125,6 @@ struct Game {
         default:      break
         }
     }
-
-    // MARK: Loop
 
     mutating func tick(_ dt: Double) {
         guard phase == .play else { return }
@@ -163,7 +153,7 @@ struct Game {
         for i in steals.keys.sorted() {
             guard let progress = steals[i], var p = seats[i] else { steals[i] = nil; continue }
 
-            if p.awareness >= 1 {                       // spotted -> round over
+            if p.awareness >= 1 {                       // spotted, round over
                 p.state = .shock; p.timer = 99
                 seats[i] = p
                 phase = .caught; steals.removeAll()
@@ -171,11 +161,11 @@ struct Game {
             }
 
             let next = progress + dt / p.kind.config.stealTime
-            if next >= 1 {                              // lifted it
+            if next >= 1 {                              // got it
                 let loot = p.loot
                 score += loot?.value ?? 0
                 taken += 1
-                p.loot = nil                            // nothing left to take, but they stay seated
+                p.loot = nil                            // nothing left on them but they stay put
                 seats[i] = p
                 flash = Flash(seat: i, text: "+\(loot?.value ?? 0)k",
                               loot: loot?.art ?? "wallet", life: 1.0)
@@ -186,8 +176,8 @@ struct Game {
         }
     }
 
-    /// Passengers get off when their ride is up — robbed or not, it makes no difference.
-    /// The seat they leave sits empty for a moment, then somebody new boards.
+    /// people get off when their ride is up, robbed or not. the seat sits empty a moment
+    /// and then somebody new gets on.
     private mutating func turnover(_ dt: Double) {
         for i in seats.indices {
             if var p = seats[i] {
@@ -206,37 +196,37 @@ struct Game {
                     seats[i] = Passenger(pick(for: i))
                     boardIn[i] = nil
                 } else {
-                    boardIn[i] = max(wait, 0)            // bus full? wait at 0 until a slot frees up
+                    boardIn[i] = max(wait, 0)            // full? sit at 0 until a slot frees up
                 }
             }
         }
     }
 }
 
-// MARK: - Self check (runs on every launch in DEBUG)
+// runs on every launch in debug
 
 func runGameChecks() {
     #if DEBUG
     var g = Game.new()
-    assert(g.seats.count == 7, "3 seats on the far bench + 4 on the near bench")
+    assert(g.seats.count == 7, "3 far + 4 near")
     assert(g.seats[g.thief] == nil)
     assert(g.passengerCount <= Tune.maxPassengers)
-    assert(!g.reachable.isEmpty, "a round must open with somebody within reach")
+    assert(!g.reachable.isEmpty, "a round has to open with somebody in reach")
 
-    // the two benches cannot reach each other
+    // the two benches cant reach each other
     assert(Layout.adjacent(0, 1) && Layout.adjacent(3, 4))
-    assert(!Layout.adjacent(2, 3), "far bench and near bench are on opposite sides")
+    assert(!Layout.adjacent(2, 3), "far and near are opposite sides")
 
-    // the thief may move into any empty seat, near bench included
+    // he can move into any empty seat, near bench included
     var m = Game.new()
     if let taken = m.seats.indices.first(where: { m.seats[$0] != nil }) {
         let was = m.thief
         m.move(to: taken)
-        assert(m.thief == was, "an occupied seat must be refused")
+        assert(m.thief == was, "an occupied seat has to be refused")
     }
     if let empty = m.freeSeats().first(where: { Layout.seats[$0].bench == .near }) {
         m.move(to: empty)
-        assert(m.thief == empty, "the thief must be able to sit on the near bench")
+        assert(m.thief == empty, "he has to be able to sit on the near bench")
     }
 
     // robbing two people at once
@@ -253,8 +243,8 @@ func runGameChecks() {
     assert(a.steals.count == 2)
     for _ in 0..<600 where !a.steals.isEmpty { a.tick(1.0 / 60) }
     assert(a.taken == 2 && a.score == 100)
-    assert(!a.canSteal(3), "a passenger can only be robbed once")
-    assert(a.seats[3] != nil, "a robbed passenger stays seated until their ride is up")
+    assert(!a.canSteal(3), "you only get one go at each person")
+    assert(a.seats[3] != nil, "a robbed passenger stays put until their ride is up")
 
     // getting off because the ride is up, not because of the robbery
     var t = Game()
@@ -262,13 +252,13 @@ func runGameChecks() {
     t.thief = 0
     var p = Passenger(.sleeper); p.rideLeft = 0.5; p.timer = 99
     t.seats[1] = p
-    for i in t.seats.indices where i != 1 { t.boardIn[i] = 999 }   // freeze the rest, only seat 1 is under test
+    for i in t.seats.indices where i != 1 { t.boardIn[i] = 999 }   // freeze the rest, seat 1 is the one under test
     for _ in 0..<60 { t.tick(1.0 / 60) }
-    assert(t.seats[1] == nil, "a passenger must get off even if nobody robbed them")
+    assert(t.seats[1] == nil, "they get off even if nobody robbed them")
     for _ in 0..<Int(Tune.boardWait.upperBound * 60) + 120 { t.tick(1.0 / 60) }
-    assert(t.seats[1] != nil, "somebody new must board")
+    assert(t.seats[1] != nil, "somebody new gets on")
 
-    // failure: awareness fills up first
+    // losing: awareness fills up first
     var b = Game.new()
     if let v = b.reachable.first {
         b.seats[v]!.state = .alert; b.seats[v]!.timer = 99; b.seats[v]!.rideLeft = 99
@@ -284,19 +274,19 @@ func runGameChecks() {
     c.tick(1.0 / 60)
     assert(c.phase == .win && c.time == 0)
 
-    // pause: the clock and everything else stops
+    // pause stops the clock and everything else
     var z = Game.new()
     if let v = z.reachable.first { z.beginSteal(v) }
     z.togglePause()
-    assert(z.phase == .paused && z.steals.isEmpty, "pausing must cancel any attempt in progress")
+    assert(z.phase == .paused && z.steals.isEmpty, "pausing cancels whatever was in progress")
     let frozen = (z.time, z.roadX, z.clock)
     for _ in 0..<120 { z.tick(1.0 / 60) }
-    assert((z.time, z.roadX, z.clock) == frozen, "nothing may advance while paused")
+    assert((z.time, z.roadX, z.clock) == frozen, "nothing moves while paused")
     z.togglePause()
     z.tick(1.0 / 60)
     assert(z.phase == .play && z.time < frozen.0)
     z.phase = .win
     z.togglePause()
-    assert(z.phase == .win, "the end screen cannot be paused")
+    assert(z.phase == .win, "you cant pause the end screen")
     #endif
 }

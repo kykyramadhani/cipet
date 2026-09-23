@@ -1,41 +1,36 @@
 import SwiftUI
 
-// MARK: - Layout
-//
-// Everything is measured in the pixel space of the placeholder art: Jalan.png and Benchmark.png
-// are both 2622x1206, and Benchmark.png is the composition reference the whole scene is rebuilt
-// from. Angkot.png, the seats and the characters are all placed at their native size, so the
-// numbers below are literally the coordinates the sprites sit at in Benchmark.png.
+// everything is measured in the placeholder art's own pixel space, 2622x1206. the seats and
+// characters are placed at native size so these numbers are literally where the sprites sit.
 
 enum Bench {
-    case far     // bench across the aisle: passengers face the camera (victim_far)
-    case near    // bench on our side: we see their backs (victim_near)
+    case far     // across the aisle, they face us
+    case near    // our side, we see their backs
 }
 
 struct SeatSpec {
     let bench: Bench
-    let seat: CGRect      // where the seat sprite is drawn, in scene coordinates
-    let sitY: CGFloat     // baseline the seated character's feet rest on
+    let seat: CGRect      // where the seat sprite goes
+    let sitY: CGFloat     // baseline the feet rest on
 }
 
 enum Layout {
     static let scene  = CGSize(width: 2622, height: 1206)
     static let angkot = CGRect(x: 620, y: 87, width: 1307, height: 1036)
 
-    // One road tile covers the whole screen. The drawing is hand-made and not periodic, so the
-    // tile is cut at x = 2557 (the end of the last dark kerb block): there the pavement carries
-    // on dark -> light and the dashed centre line lines up with the one on the left edge.
+    // one tile covers the screen. the drawing is hand made and not periodic so the tile is cut
+    // at 2557, the end of the last dark kerb block, where the pavement carries on dark -> light
+    // and the dashed centre line matches the one on the left edge.
     static let roadTile   = scene
     static let roadPeriod: CGFloat = 2557
     static let roadX0:     CGFloat = 0
 
-    // Scenery: neither of these is playable, they just fill the cabin the way Benchmark.png does.
+    // scenery, neither is playable, they just fill out the cabin
     static let foldingSeat = CGRect(x: 1304, y: 427, width: 160, height: 202)
     static let kid         = CGRect(x: 1270, y: 338, width: 182, height: 232)
     static let driver      = CGRect(x: 1516, y: 532, width: 216, height: 289)
 
-    /// 7 seats a passenger can use: 3 on the far bench, 4 on the near bench.
-    /// The folding seat by the door is taken by the kid, so it is scenery, not a seat.
+    /// 7 usable seats, 3 far and 4 near. the folding one by the door is the kid's so it doesnt count.
     static let seats: [SeatSpec] = [
         .init(bench: .far,  seat: CGRect(x:  678, y: 258, width: 215, height: 262), sitY: 511),
         .init(bench: .far,  seat: CGRect(x:  864, y: 258, width: 215, height: 262), sitY: 511),
@@ -46,19 +41,19 @@ enum Layout {
         .init(bench: .near, seat: CGRect(x: 1242, y: 666, width: 235, height: 188), sitY: 784),
     ]
 
-    /// Within reach = same bench and next seat along. You cannot reach across the aisle.
+    /// in reach means same bench, next seat along. no reaching across the aisle.
     static func adjacent(_ a: Int, _ b: Int) -> Bool {
         abs(a - b) == 1 && seats[a].bench == seats[b].bench
     }
 }
 
-/// Character sprites, at their native size so nothing gets stretched away from the reference art.
+/// character sprites at native size so nothing gets stretched
 enum Art {
     struct Sprite {
         let name: String
         let size: CGSize
-        /// The drawn pixels inside `size`. The placeholder PNGs have uneven transparent margins,
-        /// so badges and tap targets follow this rather than the bitmap's edges.
+        /// the pixels actually drawn inside `size`. the placeholder pngs have uneven transparent
+        /// margins so badges and tap targets follow this, not the bitmap edges.
         let ink: CGRect
     }
 
@@ -75,24 +70,21 @@ enum Art {
     static func victim(_ bench: Bench) -> Sprite { bench == .far ? victimFar : victimNear }
 }
 
-// MARK: - Balancing
-// Every number that gets touched during playtesting lives here.
+// every number we'd touch during playtesting lives here
 
 enum Tune {
-    static let round: Double = 90          // round length (seconds)
+    static let round: Double = 90          // seconds
     static let roadSpeed: Double = 300     // scene units per second
-    static let slideTime: Double = 0.3     // seat-change animation
-    static let awareDecay: Double = 0.40   // awareness lost per second while nobody is stealing
+    static let slideTime: Double = 0.3     // seat change animation
+    static let awareDecay: Double = 0.40   // awareness lost per second when nobodys stealing
     static let moveSuspicion: Double = 0.20
     static let warnAwareness: Double = 0.30
-    static let reach: CGFloat = 14         // how far the thief leans towards the seat being robbed
+    static let reach: CGFloat = 14         // how far he leans towards the seat hes robbing
 
-    static let rideTime:  ClosedRange<Double> = 10...24   // how long a passenger rides before getting off
-    static let boardWait: ClosedRange<Double> = 1.5...5.0 // how long an empty seat stays empty
-    static let maxPassengers = 4                          // leaves the thief at least two seats to move to
+    static let rideTime:  ClosedRange<Double> = 10...24   // how long somebody rides before getting off
+    static let boardWait: ClosedRange<Double> = 1.5...5.0 // how long a seat stays empty
+    static let maxPassengers = 4                          // leaves him at least two seats to move to
 }
-
-// MARK: - Archetype (data-driven)
 
 enum Kind: CaseIterable {
     case sleeper, doomscroller, chatterA, chatterB
@@ -108,7 +100,7 @@ enum Kind: CaseIterable {
                           awareBusy: 0.22, awareAlert: 0.95, stealTime: 1.9,
                           tint: Color(red: 1.00, green: 0.72, blue: 0.72), busySymbol: "iphone")
         case .chatterA, .chatterB:
-            // Fixed (not random) timings so the two of them stop chatting at the same moment.
+            // fixed timings, not random, so the two of them stop chatting at the same moment
             return Config(busyTime: 6.0...6.0, alertTime: 3.0...3.0, wakeTime: 0.4,
                           awareBusy: 0.30, awareAlert: 1.05, stealTime: 2.6,
                           tint: self == .chatterA ? Color(red: 1.00, green: 0.90, blue: 0.64)
@@ -125,8 +117,8 @@ struct Config {
     let awareBusy: Double
     let awareAlert: Double
     let stealTime: Double
-    /// The placeholder passengers are one blank sprite per bench, so the archetype is carried by
-    /// a colour wash and the state by the badge above the head.
+    /// placeholder passengers are one blank sprite per bench, so the type is carried by a colour
+    /// wash and the state by the badge over their head
     let tint: Color
     let busySymbol: String
 }

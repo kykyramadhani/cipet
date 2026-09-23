@@ -3,10 +3,19 @@ import SwiftUI
 struct HUD: View {
     @Binding var game: Game
 
+    // 140x60 frame, 60x60 pause button, 40x40 icons. the hud_frame art is really 145x65 and
+    // gets squeezed, the difference is too small to see. the text is what gives way:
+    // minimumScaleFactor shrinks it when a number runs long.
+    private static let top:    CGFloat = 20
+    private static let side:   CGFloat = 24
+    private static let frameW: CGFloat = 140
+    private static let frameH: CGFloat = 60
+    private static let pauseW: CGFloat = 60
+    private static let icon:   CGFloat = 40
+    private static let number: CGFloat = 40
+
     var body: some View {
         ZStack {
-            // Straight from the design (874x402 canvas): 140x60 frame at top 20, wallet at left 24,
-            // clock at left 367 (dead centre), 60x60 pause pinned right with the same margin.
             loot.padding(.top, Self.top).padding(.leading, Self.side)
                 .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
             timer.padding(.top, Self.top)
@@ -26,40 +35,25 @@ struct HUD: View {
         }
     }
 
-    // MARK: Top bar
-    //
-    // Sizes follow the design: 140x60 frame, 60x60 pause button, 40x40 icons. The `hud_frame` art
-    // is really 145x65 and gets squeezed to 140x60 — the aspect difference is too small to see.
-    // The text is what gives way: `minimumScaleFactor` shrinks it when a number runs long.
-
-    private static let top:    CGFloat = 20
-    private static let side:   CGFloat = 24
-    private static let frameW: CGFloat = 140
-    private static let frameH: CGFloat = 60
-    private static let pauseW: CGFloat = 60
-    private static let icon:   CGFloat = 40
-    private static let number: CGFloat = 40                      // the number inside the frame, Skranji Regular
-
     private var loot: some View {
         panel {
             Image("hud_wallet").resizable().frame(width: Self.icon, height: Self.icon)
-            // How many items were lifted, always two digits ("00", "07") so the width stays put.
+            // always two digits so the width stays put
             Text(String(format: "%02d", game.taken))
                 .font(.skranji(Self.number, bold: false)).monospacedDigit()
                 .lineLimit(1).minimumScaleFactor(0.6)
                 .contentTransition(.identity)
-                .transaction { $0.animation = nil }              // never animate the number itself
+                .transaction { $0.animation = nil }
         }
-        .scaleEffect(game.flash != nil ? 1.1 : 1)                // pops when something is lifted
+        .scaleEffect(game.flash != nil ? 1.1 : 1)   // pops when something is lifted
         .animation(.spring(response: 0.3, dampingFraction: 0.55), value: game.flash != nil)
     }
 
     private var timer: some View {
         let left = max(0, Int(game.time.rounded(.up)))
-        // Over a minute it reads m:ss, under that just plain seconds.
         let label = left >= 60 ? String(format: "%d:%02d", left / 60, left % 60) : "\(left)s"
-        // Never animate a number that changes every second — SwiftUI then shows the old and the
-        // new value at once, which is what made the timer look doubled.
+        // never animate a number that changes every second, swiftui shows the old and the new
+        // value at once and the timer looks doubled
         return panel {
             Image("hud_clock").resizable().frame(width: Self.icon, height: Self.icon)
             Text(label)
@@ -74,13 +68,11 @@ struct HUD: View {
 
     private var pauseButton: some View {
         Button { game.togglePause() } label: {
-            Image("hud_pause").resizable()
-                .frame(width: Self.pauseW, height: Self.frameH)
+            Image("hud_pause").resizable().frame(width: Self.pauseW, height: Self.frameH)
         }
         .buttonStyle(.plain)
     }
 
-    /// Hand-drawn white frame with its contents centred inside.
     private func panel<C: View>(@ViewBuilder _ content: () -> C) -> some View {
         HStack(spacing: 6) { content() }
             .foregroundStyle(.black)
@@ -99,12 +91,9 @@ struct HUD: View {
             .animation(.easeOut(duration: 0.4), value: game.taken)
     }
 
-    // MARK: Overlay screens
-
     private var pausedCard: some View {
         card {
-            Text("PAUSED").font(.skranji(34))
-                .foregroundStyle(.white)
+            Text("PAUSED").font(.skranji(34)).foregroundStyle(.white)
             Text("The angkot is waiting for you.")
                 .font(.skranji(14, bold: false))
                 .foregroundStyle(.white.opacity(0.8))
@@ -125,9 +114,7 @@ struct HUD: View {
             Text(won ? "Clean getaway — you made it off the angkot." : "Somebody caught you in the act.")
                 .font(.skranji(14, bold: false))
                 .foregroundStyle(.white.opacity(0.8))
-            Text("Rp \(game.score)k")
-                .font(.skranji(28))
-                .foregroundStyle(.yellow)
+            Text("Rp \(game.score)k").font(.skranji(28)).foregroundStyle(.yellow)
             Text(game.taken == 1 ? "1 item lifted" : "\(game.taken) items lifted")
                 .font(.skranji(14, bold: false))
                 .foregroundStyle(.white.opacity(0.8))
@@ -148,7 +135,8 @@ struct HUD: View {
         }
     }
 
-    private func pill(_ title: String, _ bg: Color, fg: Color = .black, action: @escaping () -> Void) -> some View {
+    private func pill(_ title: String, _ bg: Color, fg: Color = .black,
+                      action: @escaping () -> Void) -> some View {
         Button(action: action) {
             Text(title)
                 .font(.skranji(18))
@@ -156,16 +144,5 @@ struct HUD: View {
                 .padding(.horizontal, 28).padding(.vertical, 10)
                 .background(bg, in: Capsule())
         }
-    }
-}
-
-// MARK: - Font
-
-extension Font {
-    /// Skranji (Resources/Fonts, OFL) — the handwritten face used for every bit of HUD text.
-    /// Its PostScript names are `Skranji` (regular, NOT "Skranji-Regular") and `Skranji-Bold`,
-    /// registered through `UIAppFonts`. Get the name wrong and it silently falls back to system.
-    static func skranji(_ size: CGFloat, bold: Bool = true) -> Font {
-        .custom(bold ? "Skranji-Bold" : "Skranji", size: size)
     }
 }

@@ -1,74 +1,58 @@
 import SwiftUI
 
 struct GameView: View {
-    @State private var game = Game.new()
+    @State private var vm = GameViewModel()
     private let clock = Timer.publish(every: 1.0 / 60, on: .main, in: .common).autoconnect()
 
     var body: some View {
-        GeometryReader { geo in
-            // The scene is drawn in the placeholder art's own pixel space (2622x1206, the size of
-            // Jalan.png and Benchmark.png) and then scaled once to cover the screen.
-            let s  = max(geo.size.width / Layout.scene.width, geo.size.height / Layout.scene.height)
-            let ox = (geo.size.width  - Layout.scene.width  * s) / 2
-            let oy = (geo.size.height - Layout.scene.height * s) / 2
+        @Bindable var vm = vm
+        return GeometryReader { geo in
+            // the scene is drawn in the art's own pixel space and scaled once to cover
+            let space = DesignSpace(geo.size, canvas: Layout.scene)
 
             ZStack {
-                RoadLayer(size: geo.size, s: s, ox: ox, oy: oy, roadX: game.roadX)
-                CabinLayer(game: $game, s: s, ox: ox, oy: oy)
-                HUD(game: $game)
+                RoadLayer(size: geo.size, space: space, roadX: vm.game.roadX)
+                CabinLayer(game: $vm.game, space: space)
+                HUD(game: $vm.game)
             }
             .background(.black)
         }
-        .ignoresSafeArea()
-        .statusBarHidden()
-        .persistentSystemOverlays(.hidden)
-        .onReceive(clock) { _ in game.tick(1.0 / 60) }
-        // The model stays audio-free; the view is what fires SFX when its state changes.
-        .onChange(of: game.taken) { _, n in if n > 0 { Audio.shared.play(.success) } }
-        .onChange(of: game.thief) { _, _ in Audio.shared.play(.move, volume: 0.55) }
-        .onChange(of: game.phase) { _, p in
-            if p == .caught { Audio.shared.play(.caught) }
-            if p == .win    { Audio.shared.play(.win) }
-        }
+        .fullBleed()
+        .onReceive(clock) { _ in vm.tick(1.0 / 60) }
         .task { runGameChecks() }
     }
 }
 
-// MARK: - Scrolling road
-
 struct RoadLayer: View {
     let size: CGSize
-    let s: CGFloat, ox: CGFloat, oy: CGFloat
+    let space: DesignSpace
     let roadX: Double
 
     var body: some View {
-        let tile   = CGSize(width: Layout.roadTile.width * s, height: Layout.roadTile.height * s)
-        let period = Layout.roadPeriod * s
-        let shift  = CGFloat(roadX.truncatingRemainder(dividingBy: Double(Layout.roadPeriod))) * s
+        let tile   = CGSize(width: space.px(Layout.roadTile.width),
+                            height: space.px(Layout.roadTile.height))
+        let period = space.px(Layout.roadPeriod)
+        let shift  = space.px(CGFloat(roadX.truncatingRemainder(dividingBy: Double(Layout.roadPeriod))))
         let count  = Int(ceil(size.width / period)) + 3
 
         ZStack(alignment: .topLeading) {
-            Color(white: 163.0 / 255)                            // the base grey of Jalan.png
-            HStack(spacing: -(tile.width - period)) {            // tiles deliberately overlap a little
+            Color(white: 163.0 / 255)                    // the base grey of the road art
+            HStack(spacing: -(tile.width - period)) {    // tiles deliberately overlap a little
                 ForEach(0..<count, id: \.self) { _ in
                     Image("road").resizable().frame(width: tile.width, height: tile.height)
                 }
             }
-            .offset(x: ox + Layout.roadX0 * s - shift - period, y: oy)
+            .offset(x: space.ox + space.px(Layout.roadX0) - shift - period, y: space.oy)
         }
         .frame(width: size.width, height: size.height)
         .clipped()
     }
 }
 
-// MARK: - Cabin: bus body, scenery, seats, people, then the seat UI
-//
-// Draw order is the one Benchmark.png is built in: far seats, far passengers, folding seat and
-// the kid on it, near seats, near passengers, driver.
-
+// far seats, far passengers, folding seat and the kid on it, near seats, near passengers, driver
 struct CabinLayer: View {
     @Binding var game: Game
-    let s: CGFloat, ox: CGFloat, oy: CGFloat
+    let space: DesignSpace
 
     var body: some View {
         ZStack {
@@ -88,48 +72,46 @@ struct CabinLayer: View {
             thief
             ForEach(Layout.seats.indices, id: \.self) { seatUI($0) }
         }
-        .frame(width: Layout.scene.width * s, height: Layout.scene.height * s)
-        .position(x: ox + Layout.scene.width * s / 2, y: oy + Layout.scene.height * s / 2)
+        .frame(width: space.px(Layout.scene.width), height: space.px(Layout.scene.height))
+        .position(x: space.x(Layout.scene.width / 2), y: space.y(Layout.scene.height / 2))
     }
 
     private var farSeats:  [Int] { Layout.seats.indices.filter { Layout.seats[$0].bench == .far } }
     private var nearSeats: [Int] { Layout.seats.indices.filter { Layout.seats[$0].bench == .near } }
 
-    /// Places a sprite at its scene rect, at native size — no stretching anywhere.
+    private var s: CGFloat { space.scale }
+
+    /// native size, no stretching anywhere
     private func sprite(_ name: String, _ r: CGRect) -> some View {
         Image(name).resizable()
             .frame(width: r.width * s, height: r.height * s)
             .position(x: r.midX * s, y: r.midY * s)
     }
 
-    /// Where a seated character's sprite sits: centred on the seat, feet on `sitY`.
+    /// centred on the seat with the feet on sitY
     private func charRect(_ i: Int, _ a: Art.Sprite) -> CGRect {
         let spec = Layout.seats[i]
         return CGRect(x: spec.seat.midX - a.size.width / 2, y: spec.sitY - a.size.height,
                       width: a.size.width, height: a.size.height)
     }
 
-    /// Same, but only the pixels that are actually drawn — what badges and tap targets hang off.
+    /// same but only the pixels actually drawn, which is what badges and tap targets hang off
     private func inkRect(_ i: Int, _ a: Art.Sprite) -> CGRect {
         let r = charRect(i, a)
         return CGRect(x: r.minX + a.ink.minX, y: r.minY + a.ink.minY,
                       width: a.ink.width, height: a.ink.height)
     }
 
-    // MARK: Sprites
-
     @ViewBuilder private func passenger(_ i: Int) -> some View {
         if i != game.thief, let p = game.seats[i] {
             let art = Art.victim(Layout.seats[i].bench)
             sprite(art.name, charRect(i, art))
-                // One blank sprite per bench, so the archetype is carried by a colour wash.
-                .colorMultiply(p.kind.config.tint)
+                .colorMultiply(p.kind.config.tint)   // one blank sprite per bench, tint carries the type
                 .saturation(p.state == .shock ? 0 : 1)
         }
     }
 
-    /// Only one thief sprite exists, so it is drawn once and slid between seats. The lean towards
-    /// the seat being robbed is what replaces the old reaching pose.
+    /// one thief sprite, slid between seats. the lean is what replaces the old reaching pose.
     private var thief: some View {
         let r = charRect(game.thief, Art.thief)
         let lean = game.steals.isEmpty ? 0 : CGFloat(game.facing) * Tune.reach
@@ -138,13 +120,11 @@ struct CabinLayer: View {
             .animation(.easeOut(duration: 0.12), value: game.steals.isEmpty)
     }
 
-    // MARK: Per-seat UI and tap targets
-
     @ViewBuilder private func seatUI(_ i: Int) -> some View {
         let spec = Layout.seats[i]
         let art  = Art.victim(spec.bench)
         let body = inkRect(i, art)
-        let hit  = spec.seat.union(body)                 // the near bench sits below its passenger
+        let hit  = spec.seat.union(body)   // the near bench sits below its passenger
 
         ZStack {
             if game.isEmpty(i) {
@@ -168,7 +148,6 @@ struct CabinLayer: View {
 
     @ViewBuilder private func badges(_ p: Passenger, i: Int, cx: CGFloat, headY: CGFloat,
                                      barW: CGFloat, bodyH: CGFloat) -> some View {
-        // The placeholder passengers have no per-state drawing, so the state is spelled out here.
         Image(systemName: stateSymbol(p))
             .font(.system(size: 13, weight: .bold))
             .foregroundStyle(stateColor(p))
@@ -179,7 +158,7 @@ struct CabinLayer: View {
             .offset(y: p.state == .busy ? CGFloat(sin(game.clock * 2.2)) * 3 : 0)
             .position(x: cx + barW * 0.5, y: headY + 8)
 
-        if let progress = game.steals[i] {                        // both bars only show mid-robbery
+        if let progress = game.steals[i] {   // both bars only show mid robbery
             VStack(spacing: 3) {
                 Bar(value: progress,    tint: .green, width: barW)
                 Bar(value: p.awareness, tint: .red,   width: barW)
@@ -192,7 +171,7 @@ struct CabinLayer: View {
                 .position(x: cx, y: headY - 10)
         }
 
-        if p.loot == nil {                                        // already cleaned out
+        if p.loot == nil {   // already cleaned out
             Text("✓").font(.system(size: 15, weight: .bold))
                 .foregroundStyle(.white).padding(3)
                 .background(.green.opacity(0.85), in: Circle())
@@ -200,20 +179,25 @@ struct CabinLayer: View {
         }
 
         if let f = game.flash, f.seat == i {
-            let t = CGFloat(1 - f.life)                       // 0 -> 1 across the animation
-            let h = bodyH
+            lootFlash(f, cx: cx, headY: headY, barW: barW, bodyH: bodyH)
+        }
+    }
 
-            Circle()                                          // ring bursting off the victim
+    private func lootFlash(_ f: Flash, cx: CGFloat, headY: CGFloat,
+                           barW: CGFloat, bodyH: CGFloat) -> some View {
+        let t = CGFloat(1 - f.life)   // 0 -> 1 across the animation
+        return Group {
+            Circle()
                 .stroke(.white.opacity(Double(1 - t) * 0.85), lineWidth: 4 * (1 - t) + 1)
                 .frame(width: barW * (0.6 + t * 1.9), height: barW * (0.6 + t * 1.9))
-                .position(x: cx, y: headY + h * 0.45)
+                .position(x: cx, y: headY + bodyH * 0.45)
 
-            Image(f.loot).resizable().scaledToFit()           // the item floating away
-                .frame(height: h * 0.46)
+            Image(f.loot).resizable().scaledToFit()
+                .frame(height: bodyH * 0.46)
                 .scaleEffect(0.6 + (1 - t) * 0.65)
                 .rotationEffect(.degrees(Double(t) * 22))
                 .shadow(color: .black.opacity(0.45), radius: 3)
-                .position(x: cx, y: headY + h * 0.45 - t * h * 0.85)
+                .position(x: cx, y: headY + bodyH * 0.45 - t * bodyH * 0.85)
                 .opacity(Double(1 - t * t))
 
             Text(f.text).font(.system(size: 18, weight: .black, design: .rounded))
@@ -242,7 +226,7 @@ struct CabinLayer: View {
     }
 }
 
-/// Empty seat = tap to move there. Occupied seat = hold to rob, let go to abort.
+/// empty seat, tap to move there. occupied, hold to rob and let go to bail out.
 struct SeatInput: ViewModifier {
     @Binding var game: Game
     let seat: Int
@@ -251,7 +235,7 @@ struct SeatInput: ViewModifier {
         if game.isEmpty(seat) {
             content.onTapGesture { game.move(to: seat) }
         } else if game.seats[seat] != nil {
-            // simultaneousGesture, not gesture: so two seats can be held at the same time
+            // simultaneousGesture so two seats can be held at once
             content.simultaneousGesture(
                 DragGesture(minimumDistance: 0)
                     .onChanged { _ in game.beginSteal(seat) }
@@ -265,6 +249,7 @@ struct SeatInput: ViewModifier {
 
 struct Bar: View {
     let value: Double, tint: Color, width: CGFloat
+
     var body: some View {
         Capsule().fill(.black.opacity(0.55))
             .frame(width: width, height: 7)

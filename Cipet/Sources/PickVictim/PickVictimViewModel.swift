@@ -16,8 +16,9 @@ import SwiftUI
     var prompt: String { stage == .victim ? "Pick your\nvictim\nfirst" : "Now, pick\nthe seat!" }
     var canConfirm: Bool { stage == .ready }
 
-    /// he's only out on the pavement until he's picked somewhere to sit
-    var onPavement: Bool { stage != .ready }
+    /// he stands outside only until a victim is picked. after that he's the ghost inside
+    /// the angkot showing where he'd sit, so he cant also be on the kerb.
+    var onPavement: Bool { stage == .victim }
 
     func pick(_ v: Victim) {
         guard !tutorialUp, stage == .victim else { return }

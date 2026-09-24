@@ -10,7 +10,13 @@ import SwiftUI
     /// set by the router, which is the only thing that arms it
     var tutorialUp = false
 
-    var prompt: String { stage == .victim ? "Pick your\ntarget\nfirst" : "Now, pick\nthe seat!" }
+    var prompt: String {
+        switch stage {
+        case .victim: return "Choose your target"
+        case .seat:   return "Now, pick the seat!"
+        case .ready:  return "Confirm if you\u{2019}re ready!"
+        }
+    }
     var canConfirm: Bool { stage == .ready }
 
     /// he stands outside only until a victim is picked. after that he's the ghost inside

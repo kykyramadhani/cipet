@@ -107,6 +107,14 @@ func runSeatingChecks() {
     pick.pick(.kid)
     assert(pick.victim == nil && pick.stage == .victim, "tapping the kid does nothing")
 
+    // the tab hangs straight off the timer, centred under it, and each line of it is the
+    // width the design has it at (centred text, so 138 and 170 wide)
+    assert(Pick.tab.minY == Tut.clockPanel.maxY && Pick.tab.midX == Tut.clockPanel.midX)
+    assert(abs(GlyphLine("Choose your target", size: Pick.tabSize).box.width - 138) < 1.5)
+    assert(abs(GlyphLine("Confirm if you\u{2019}re ready!", size: Pick.tabSize).box.width - 170) < 1.5)
+    assert(abs(GlyphLine("x", size: Pick.tabSize).box.height - Pick.tabText.height) < 0.01,
+           "the text box is skranji's own line height")
+
     // the kid has no seat beside him to take, which is why he isnt on the list
     assert(Seating.seats(beside: .kid).isEmpty)
 

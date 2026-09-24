@@ -39,6 +39,8 @@ final class Audio {
     private var pool: [SFX: [AVAudioPlayer]] = [:]
     private var next: [SFX: Int] = [:]
     private var bgm: AVAudioPlayer?
+    /// music was asked for before the track finished loading, so start it when it lands
+    private var wantsMusic = false
     private var lastPlayed: [SFX: TimeInterval] = [:]
 
     private static let voices = 3   // so the same sound can overlap itself
@@ -49,40 +51,67 @@ final class Audio {
         // ambient means we respect the silent switch and dont cut whatever the player
         // already has going. switch to .playback if we ever want sound on silent.
         try? AVAudioSession.sharedInstance().setCategory(.ambient, options: [.mixWithOthers])
-        try? AVAudioSession.sharedInstance().setActive(true)
 
+        // activating the session is a round trip to the audio daemon that blocks until it
+        // answers, and so does every player's prepareToPlay (51 of them for the sfx), so all
+        // of it happens off the main thread and the players are handed back when ready.
+        // ponytail: ios 27's activate(options:completionHandler:) does this job, switch to it
+        // once the deployment target reaches 27
+        DispatchQueue.global(qos: .userInitiated).async {
+            try? AVAudioSession.sharedInstance().setActive(true)
+            let sounds = Self.sfxPool()
+            let track = Self.track("bgm")
+            DispatchQueue.main.async {
+                self.pool = sounds
+                self.bgm = track
+                if self.wantsMusic { self.music() }
+            }
+        }
+    }
+
+    private static func sfxPool() -> [SFX: [AVAudioPlayer]] {
+        var pool: [SFX: [AVAudioPlayer]] = [:]
         for sfx in SFX.allCases {
             guard let url = Bundle.main.url(forResource: sfx.rawValue, withExtension: "wav") else {
                 assertionFailure("\(sfx.rawValue).wav is not in the bundle")
                 continue
             }
-            pool[sfx] = (0..<Self.voices).compactMap { _ in
+            pool[sfx] = (0..<voices).compactMap { _ in
                 let p = try? AVAudioPlayer(contentsOf: url)
                 p?.prepareToPlay()
                 return p
             }
-            next[sfx] = 0
         }
+        return pool
+    }
 
-        assert(Bundle.main.url(forResource: "bgm", withExtension: "m4a") != nil, "bgm.m4a is not in the bundle")
-        if let url = Bundle.main.url(forResource: "bgm", withExtension: "m4a") {
-            bgm = try? AVAudioPlayer(contentsOf: url)
-            bgm?.numberOfLoops = -1
-            bgm?.prepareToPlay()
-        }
+    /// the bgm by name, whichever format it was dropped in as. there has to be exactly one,
+    /// or which one plays is anyone's guess.
+    private static func track(_ name: String) -> AVAudioPlayer? {
+        let found = ["wav", "m4a", "mp3", "caf", "aac"]
+            .compactMap { Bundle.main.url(forResource: name, withExtension: $0) }
+        assert(found.count == 1, "want one \(name) file in the bundle, found \(found.map(\.lastPathComponent))")
+        guard let url = found.first, let p = try? AVAudioPlayer(contentsOf: url) else { return nil }
+        p.numberOfLoops = -1
+        p.prepareToPlay()
+        return p
     }
 
     static var sfxVolume: Float   { saved("sfxVolume") }
     static var musicVolume: Float { saved("musicVolume") }
 
+    /// what both sliders sit at before anyone touches them
+    static let defaultVolume = 0.667
+
     private static func saved(_ key: String) -> Float {
-        Float(UserDefaults.standard.object(forKey: key) as? Double ?? 1)
+        Float(UserDefaults.standard.object(forKey: key) as? Double ?? defaultVolume)
     }
 
     /// starts the loop if it isnt running and sets the volume. no argument means use the
     /// saved one, so this doubles as the settings slider's hook.
     func music(volume: Double? = nil) {
-        guard let bgm else { return }
+        wantsMusic = true
+        guard let bgm else { return }   // still loading, it starts itself when it lands
         bgm.volume = volume.map(Float.init) ?? Self.musicVolume
         if !bgm.isPlaying { bgm.play() }
     }

@@ -43,7 +43,6 @@
 		A3079B7704D92EA18FE22F0C /* whistle.wav in Resources */ = {isa = PBXBuildFile; fileRef = 5839C1664DD22F0E6419304F /* whistle.wav */; };
 		A48AA3E4A0BC9E9B9E42839E /* TutorialView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CE1136A6FD1298FAD6C3F9F7 /* TutorialView.swift */; };
 		A4A35914E58DB2D5DFBEAF14 /* TutorialStep.swift in Sources */ = {isa = PBXBuildFile; fileRef = F4EEA8D0003B1A9CD325EBDD /* TutorialStep.swift */; };
-		A50BA60E55F1C7E455162DF4 /* bgm.m4a in Resources */ = {isa = PBXBuildFile; fileRef = 05CA60A7E136AF432B14C41F /* bgm.m4a */; };
 		A6BD2364E45680F0D46A7225 /* succeed_stealing.wav in Resources */ = {isa = PBXBuildFile; fileRef = 894CC8C509B92FBF0FEB310E /* succeed_stealing.wav */; };
 		AC811FDE155C96CC2A8336C6 /* HUD.swift in Sources */ = {isa = PBXBuildFile; fileRef = 19589152E040AEFFB69B629C /* HUD.swift */; };
 		ADEF42381DC9012B571E1B05 /* TutorialBars.swift in Sources */ = {isa = PBXBuildFile; fileRef = 708C431B2E2E2DAAEE788E1E /* TutorialBars.swift */; };
@@ -57,6 +56,7 @@
 		D5E70577C969B0D728847722 /* TutorialCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = 311D8E0DE92B834A3AF18B28 /* TutorialCard.swift */; };
 		D8F0B930633D32994FC97950 /* Style.swift in Sources */ = {isa = PBXBuildFile; fileRef = C20DF2E63C5C6002203D6554 /* Style.swift */; };
 		D9779B2CA17D523B797FB203 /* Skranji-Bold.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 0BD4E2CE4CB25CC20849989A /* Skranji-Bold.ttf */; };
+		DD6EC47F568A857B583B5D7D /* bgm.wav in Resources */ = {isa = PBXBuildFile; fileRef = 2DAD8F637BA4104C091299CA /* bgm.wav */; };
 		E5AD7E2E529C74E776570E3E /* EndGameView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 350F6C791C14DC04AB4DD02C /* EndGameView.swift */; };
 		E8C052F4A336FAAABE020ADB /* Flags.swift in Sources */ = {isa = PBXBuildFile; fileRef = F4C2FCA0469E53200B0E0514 /* Flags.swift */; };
 		E9998734B151A07A777BCE23 /* GameConfig.swift in Sources */ = {isa = PBXBuildFile; fileRef = 94954D9E0D38FCE75BF36C97 /* GameConfig.swift */; };
@@ -70,7 +70,6 @@
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
-		05CA60A7E136AF432B14C41F /* bgm.m4a */ = {isa = PBXFileReference; path = bgm.m4a; sourceTree = "<group>"; };
 		07D768DD3D692C31A92FEE6D /* sfx_move.wav */ = {isa = PBXFileReference; lastKnownFileType = audio.wav; path = sfx_move.wav; sourceTree = "<group>"; };
 		0BD4E2CE4CB25CC20849989A /* Skranji-Bold.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = "Skranji-Bold.ttf"; sourceTree = "<group>"; };
 		0D4C933B9B456D41B4F00939 /* Audio.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Audio.swift; sourceTree = "<group>"; };
@@ -82,6 +81,7 @@
 		2448BFCB9C70629DA59E3DF8 /* PickVictimView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PickVictimView.swift; sourceTree = "<group>"; };
 		257D7FC03440C178EC0A6D99 /* post_game.wav */ = {isa = PBXFileReference; lastKnownFileType = audio.wav; path = post_game.wav; sourceTree = "<group>"; };
 		27A697DE017BA2531F3F3116 /* failed_stealing.wav */ = {isa = PBXFileReference; lastKnownFileType = audio.wav; path = failed_stealing.wav; sourceTree = "<group>"; };
+		2DAD8F637BA4104C091299CA /* bgm.wav */ = {isa = PBXFileReference; lastKnownFileType = audio.wav; path = bgm.wav; sourceTree = "<group>"; };
 		311D8E0DE92B834A3AF18B28 /* TutorialCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TutorialCard.swift; sourceTree = "<group>"; };
 		33662D0196552CE89E4D18B0 /* TutorialViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TutorialViewModel.swift; sourceTree = "<group>"; };
 		33D150E2E6B732590284F8A9 /* Skranji-Regular.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = "Skranji-Regular.ttf"; sourceTree = "<group>"; };
@@ -244,7 +244,7 @@
 			isa = PBXGroup;
 			children = (
 				E99CE633D7A1F2E73496AADB /* alert_warning.wav */,
-				05CA60A7E136AF432B14C41F /* bgm.m4a */,
+				2DAD8F637BA4104C091299CA /* bgm.wav */,
 				F7E18A126F7201197202287B /* button_clicked.wav */,
 				FB5E98792403682FF412DAF7 /* character_seated.wav */,
 				27A697DE017BA2531F3F3116 /* failed_stealing.wav */,
@@ -393,7 +393,7 @@
 				D9779B2CA17D523B797FB203 /* Skranji-Bold.ttf in Resources */,
 				C52D8123F3037B7E30D0AB4D /* Skranji-Regular.ttf in Resources */,
 				460D5053033BF00FB4251370 /* alert_warning.wav in Resources */,
-				A50BA60E55F1C7E455162DF4 /* bgm.m4a in Resources */,
+				DD6EC47F568A857B583B5D7D /* bgm.wav in Resources */,
 				59E9F3CB63E473D0BC9B456D /* button_clicked.wav in Resources */,
 				9685EA733D0A2859F057AF76 /* character_seated.wav in Resources */,
 				6E7FF44208DABB3AE25E09D6 /* failed_stealing.wav in Resources */,

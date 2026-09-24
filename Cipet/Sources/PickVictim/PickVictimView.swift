@@ -1,8 +1,16 @@
 import SwiftUI
 
 enum Pick {
-    static let prompt      = CGRect(x: 32, y: 178, width: 164, height: 130)
-    static let promptSize:  CGFloat = 36
+    // the instruction is a yellow tab hung off the bottom of the timer: the hold-to-fill
+    // tab's shape turned upside down. the art bleeds past its 200x32 box like the others.
+    static let tab     = CGRect(x: 337, y: Tut.clockPanel.maxY, width: 200, height: 32)
+    static let tabArt  = CGSize(width: 199.094, height: 36.0456)
+    static let tabLift: CGFloat = 2.3466       // how far the flipped art pokes above the box
+    static let tabText  = CGRect(x: 337, y: Tut.clockPanel.maxY + 5.35, width: 200, height: 21.262)
+    static let tabSize: CGFloat = 15.652
+
+    /// the angkot sits this much lower here than on the other screens, to make room for the tab
+    static let drop: CGFloat = 20
 
     static let pause    = CGRect(x: 790, y: 24, width: 60, height: 60)
     static let pauseArt = CGRect(x: 787.498, y: 22.254, width: 65.4371, height: 64.7477)
@@ -53,10 +61,11 @@ struct PickVictimView: View {
             TutorialAngkot(show: show, space: space,
                            ghostSeats: vm.seatsOnOffer, thiefAt: thiefSpot,
                            hot: vm.victim, cast: cast, dimFixed: true)
+                .offset(y: space.px(Pick.drop))
             if vm.onPavement { TutorialPavement(space: space) }
             TutorialHUD(show: [], clock: "1:30", space: space)
 
-            prompt(space)
+            instruction(space)
             pauseButton(space)
             confirmButton(space)
             targets(space)
@@ -92,21 +101,30 @@ struct PickVictimView: View {
 
     private func hit(_ r: CGRect, _ space: DesignSpace,
                      _ action: @escaping () -> Void) -> some View {
-        place(Tut.inAngkot(r), space) {
+        place(Tut.inAngkot(r).offsetBy(dx: 0, dy: Pick.drop), space) {
             Rectangle().fill(.clear).contentShape(Rectangle()).onTapGesture(perform: action)
         }
     }
 
     // MARK: chrome
 
-    private func prompt(_ space: DesignSpace) -> some View {
-        place(Pick.prompt, space) {
-            Text(vm.prompt)
-                .font(.skranji(space.px(Pick.promptSize), bold: false))
-                .foregroundStyle(Ink.soft)
-                .lineSpacing(space.px(Pick.promptSize * 0.2))
-                .fixedSize()
-                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+    private func instruction(_ space: DesignSpace) -> some View {
+        Group {
+            place(CGRect(x: Pick.tab.minX, y: Pick.tab.minY - Pick.tabLift,
+                         width: Pick.tabArt.width, height: Pick.tabArt.height), space) {
+                Image("pv_tab").resizable().scaleEffect(x: 1, y: -1)
+            }
+            // centred on the line's typographic width like the design does it. swiftui's
+            // own Text frame runs a few points wider, so centring that drifts the words left.
+            let width = GlyphLine(vm.prompt, size: Pick.tabSize).box.width
+            place(CGRect(x: Pick.tabText.midX - width / 2, y: Pick.tabText.minY,
+                         width: width, height: Pick.tabText.height), space) {
+                Text(vm.prompt)
+                    .font(.skranji(space.px(Pick.tabSize), bold: false))
+                    .foregroundStyle(Ink.black)
+                    .fixedSize()
+                    .frame(width: space.px(width), alignment: .leading)
+            }
         }
     }
 

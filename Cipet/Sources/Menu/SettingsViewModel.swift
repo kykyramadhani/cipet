@@ -13,7 +13,7 @@ import SwiftUI
     }
 
     init() {
-        sfx   = UserDefaults.standard.object(forKey: "sfxVolume")   as? Double ?? 0.667
-        music = UserDefaults.standard.object(forKey: "musicVolume") as? Double ?? 0.667
+        sfx   = Double(Audio.sfxVolume)
+        music = Double(Audio.musicVolume)
     }
 }

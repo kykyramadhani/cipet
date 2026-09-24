@@ -1,10 +1,12 @@
 import SwiftUI
 
+// two stages, and only Confirm moves between them. until then the target (and then the
+// seat) can be changed as often as you like.
 @Observable final class PickVictimViewModel {
-    enum Stage { case victim, seat, ready }
+    enum Stage { case target, seat }
 
-    private(set) var stage: Stage = .victim
-    private(set) var victim: Seating.Person?
+    private(set) var stage: Stage = .target
+    private(set) var target: Seating.Person?
     private(set) var seat: CGRect?
 
     /// set by the router, which is the only thing that arms it
@@ -12,37 +14,110 @@ import SwiftUI
 
     var prompt: String {
         switch stage {
-        case .victim: return "Choose your target"
-        case .seat:   return "Now, pick the seat!"
-        case .ready:  return "Confirm if you\u{2019}re ready!"
+        case .target: return "Choose your target"
+        case .seat:   return seat == nil ? "Now, pick the seat!" : "Confirm if you\u{2019}re ready!"
         }
     }
-    var canConfirm: Bool { stage == .ready }
 
-    /// he stands outside only until a victim is picked. after that he's the ghost inside
-    /// the angkot showing where he'd sit, so he cant also be on the kerb.
-    var onPavement: Bool { stage == .victim }
+    /// he waits on the kerb while you're still browsing targets
+    var onPavement: Bool { stage == .target }
 
-    /// how many empty seats get offered depends on where the victim is sitting
-    var seatsOnOffer: [CGRect] {
-        guard let victim, stage == .seat else { return [] }
-        return Seating.seats(beside: victim)
+    /// the empty seats beside whoever is picked, recalculated every time the pick changes
+    var seatsOnOffer: [CGRect] { target.map(Seating.seats(beside:)) ?? [] }
+
+    /// the faded markers: every seat on offer except the one he's already sat in
+    var ghosts: [CGRect] { seatsOnOffer.filter { $0 != seat } }
+
+    var canConfirm: Bool {
+        switch stage {
+        case .target: return !seatsOnOffer.isEmpty   // nowhere to sit, nothing to confirm
+        case .seat:   return seat != nil
+        }
     }
 
+    /// switching targets drops the old one and its seats. only before the first Confirm.
     func pick(_ v: Seating.Person) {
         // the kid and the driver are on screen but off limits, whatever gets tapped
-        guard !tutorialUp, stage == .victim, Seating.victims.contains(v) else { return }
-        victim = v
-        stage = .seat
+        guard !tutorialUp, stage == .target, Seating.victims.contains(v), v != target else { return }
+        target = v
+        seat = nil
         Audio.shared.play(.click)
     }
 
+    /// and the same for seats, once the target is locked
     func take(seat spot: CGRect) {
-        guard !tutorialUp, stage == .seat, seatsOnOffer.contains(spot) else { return }
+        guard !tutorialUp, stage == .seat, seatsOnOffer.contains(spot), spot != seat else { return }
         seat = spot
-        stage = .ready
         Audio.shared.play(.seated)
     }
 
+    /// the first press locks the target. one seat beside them and he just takes it, so this
+    /// hands back the finished choice straight away; two and it waits for you to pick one.
+    func confirm() -> (target: Seating.Person, seat: CGRect)? {
+        guard !tutorialUp, canConfirm, let target else { return nil }
+        switch stage {
+        case .target:
+            let seats = seatsOnOffer
+            guard seats.count == 1 else {
+                stage = .seat
+                return nil
+            }
+            seat = seats[0]
+            Audio.shared.play(.seated)
+            return (target, seats[0])
+        case .seat:
+            return seat.map { (target, $0) }
+        }
+    }
+
     func tutorialFinished() { tutorialUp = false }
+}
+
+func runPickChecks() {
+    #if DEBUG
+    let near = Seating.seats(beside: .near)
+    assert(near.count == 2 && Seating.seats(beside: .farLeft).count == 1,
+           "the checks below need one two-seat target and one one-seat target")
+
+    // browsing: nothing to confirm yet, then every tap swaps the target and its seats
+    let vm = PickVictimViewModel()
+    assert(!vm.canConfirm && vm.seatsOnOffer.isEmpty)
+    vm.pick(.kid)
+    assert(vm.target == nil, "the kid cant be picked")
+    vm.pick(.near)
+    assert(vm.target == .near && vm.seatsOnOffer == near && vm.canConfirm)
+    vm.pick(.farLeft)
+    assert(vm.target == .farLeft && vm.seatsOnOffer == Seating.seats(beside: .farLeft),
+           "switching drops the old target's seats")
+    vm.pick(.near)
+    assert(vm.target == .near && vm.stage == .target, "and you can go back, nothing's locked")
+
+    // two seats: the first Confirm locks the target and asks for a seat
+    assert(vm.confirm() == nil && vm.stage == .seat, "two seats means choosing one")
+    assert(!vm.canConfirm && vm.prompt == "Now, pick the seat!")
+    vm.pick(.farLeft)
+    assert(vm.target == .near, "the target is locked now")
+    vm.take(seat: Seating.seats(beside: .farLeft)[0])
+    assert(vm.seat == nil || near.contains(vm.seat!), "only seats beside the target count")
+    vm.take(seat: near[0])
+    vm.take(seat: near[1])
+    assert(vm.seat == near[1] && vm.ghosts == [near[0]], "the seat can change, the other stays offered")
+    vm.take(seat: near[0])
+    assert(vm.seat == near[0], "and change back")
+    let done = vm.confirm()
+    assert(done?.target == .near && done?.seat == near[0], "the second Confirm hands it over")
+
+    // one seat: Confirm sits him straight down, no seat stage at all
+    let one = PickVictimViewModel()
+    one.pick(.farRight)
+    let straight = one.confirm()
+    assert(straight?.target == .farRight && straight?.seat == Seating.seats(beside: .farRight)[0])
+    assert(one.stage == .target, "never went through picking a seat")
+
+    // nothing happens while the tutorial is up
+    let busy = PickVictimViewModel()
+    busy.tutorialUp = true
+    busy.pick(.near)
+    assert(busy.target == nil && busy.confirm() == nil)
+    #endif
 }

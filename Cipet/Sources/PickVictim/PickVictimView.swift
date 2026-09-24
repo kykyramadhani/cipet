@@ -47,7 +47,7 @@ struct PickVictimView: View {
             .clipped()
         }
         .fullBleed()
-        .task { runSeatingChecks(); vm.tutorialUp = showTutorial }
+        .task { runSeatingChecks(); runPickChecks(); vm.tutorialUp = showTutorial }
     }
 
     private func scene(_ space: DesignSpace) -> some View {
@@ -59,8 +59,8 @@ struct PickVictimView: View {
                           y: space.y(DesignSpace.screen.height / 2))
 
             TutorialAngkot(show: show, space: space,
-                           ghostSeats: vm.seatsOnOffer, thiefAt: thiefSpot,
-                           hot: vm.victim, cast: cast, dimFixed: true)
+                           ghostSeats: vm.ghosts, thiefAt: vm.seat ?? Tut.seated,
+                           hot: vm.target, cast: cast, dimFixed: true)
                 .offset(y: space.px(Pick.drop))
             if vm.onPavement { TutorialPavement(space: space) }
             TutorialHUD(show: [], clock: "1:30", space: space)
@@ -74,19 +74,20 @@ struct PickVictimView: View {
 
     // MARK: what the angkot is showing right now
 
+    // the kid is sat there from the start, same as the driver. picking someone shows where
+    // you could sit next to them; choosing one of those sits him down in it.
     private var show: TutorialStep.Show {
-        // the kid is sat there from the start, same as the driver
-        guard vm.victim != nil else { return [.onPavement, .kid] }
-        return vm.stage == .ready ? [.kid, .onBoard] : [.kid, .seatGhosts]
+        var show: TutorialStep.Show = [.kid]
+        if !vm.ghosts.isEmpty { show.insert(.seatGhosts) }
+        if vm.seat != nil { show.insert(.onBoard) }
+        return show
     }
-
-    private var thiefSpot: CGRect { vm.seat ?? Tut.seated }
 
     // MARK: tap targets, only live once the tutorial is out of the way
 
     @ViewBuilder private func targets(_ space: DesignSpace) -> some View {
         switch vm.stage {
-        case .victim:
+        case .target:
             ForEach(Seating.victims, id: \.self) { who in
                 hit(Seating.spot(who), space) { vm.pick(who) }
             }
@@ -94,8 +95,6 @@ struct PickVictimView: View {
             ForEach(vm.seatsOnOffer, id: \.self) { spot in
                 hit(spot, space) { vm.take(seat: spot) }
             }
-        case .ready:
-            EmptyView()
         }
     }
 
@@ -134,7 +133,7 @@ struct PickVictimView: View {
 
     private func confirmButton(_ space: DesignSpace) -> some View {
         place(Pick.confirmArt, space) {
-            Button { if let v = vm.victim, let seat = vm.seat { onStart(v, seat) } } label: {
+            Button { if let done = vm.confirm() { onStart(done.target, done.seat) } } label: {
                 ZStack {
                     Image(vm.canConfirm ? "menu_play_button" : "pv_confirm_off").resizable()
                     Text("Confirm")

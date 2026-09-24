@@ -105,7 +105,7 @@ func runSeatingChecks() {
     }
     let pick = PickVictimViewModel()
     pick.pick(.kid)
-    assert(pick.victim == nil && pick.stage == .victim, "tapping the kid does nothing")
+    assert(pick.target == nil && pick.stage == .target, "tapping the kid does nothing")
 
     // the tab hangs straight off the timer, centred under it, and each line of it is the
     // width the design has it at (centred text, so 138 and 170 wide)

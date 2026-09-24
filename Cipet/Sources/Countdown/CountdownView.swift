@@ -43,6 +43,7 @@ enum Countdown {
 }
 
 struct CountdownView: View {
+    let round: Int
     let onStart: () -> Void
 
     @State private var vm = CountdownViewModel()
@@ -61,7 +62,7 @@ struct CountdownView: View {
             .clipped()
         }
         .fullBleed()
-        .onAppear { vm.onStart = onStart }
+        .onAppear { vm.onStart = onStart; vm.round = round }
         .task { runCountdownChecks() }
     }
 
@@ -116,7 +117,6 @@ struct CountdownView: View {
     }
 
     private func label(_ space: DesignSpace) -> some View {
-        // one round for now so the number is literal. pass it in when rounds stack up.
         Text(vm.label)
             .font(.skranji(space.px(vm.labelSize)))
             .foregroundStyle(Countdown.labelInk)
@@ -151,4 +151,4 @@ private func runCountdownChecks() {
     #endif
 }
 
-#Preview(traits: .landscapeLeft) { CountdownView {} }
+#Preview(traits: .landscapeLeft) { CountdownView(round: 1) {} }

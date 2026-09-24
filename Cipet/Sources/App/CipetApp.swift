@@ -16,25 +16,27 @@ struct RootView: View {
         ZStack {
             switch router.screen {
             case .loading:    LoadingView    { router.go(.menu) }.transition(.opacity)
-            case .menu:       MainMenuView   { router.startRun() }.transition(.opacity)
-            case .countdown:  CountdownView  { router.go(.pickVictim) }.transition(.opacity)
+            case .menu:       MainMenuView   { router.startGame() }.transition(.opacity)
+            case .countdown:
+                CountdownView(round: router.session.round) { router.go(.pickVictim) }
+                    .transition(.opacity)
             case .pickVictim:
-                PickVictimView(showTutorial: router.tutorialPending,
-                               onTutorialDone: router.tutorialFinished) { who, seat in
+                PickVictimView(cast: router.session.arrangement,
+                               showTutorial: router.session.tutorialPending,
+                               onTutorialDone: router.session.tutorialFinished) { who, seat in
                     router.go(.steal(who, seat))
                 }
                 .transition(.opacity)
             case let .steal(who, seat):
-                StealView(victim: who, thiefSeat: seat) { exit in
-                    // a new round goes back to the pick stage, and the tutorial stays gone
+                StealView(victim: who, thiefSeat: seat, cast: router.session.arrangement) { exit in
                     switch exit {
-                    case .nextRound: router.go(.pickVictim)
+                    case .nextRound: router.nextRound(banking: Steal.itemValue)
                     case .home:      router.go(.menu)
                     }
                 }
                 .transition(.opacity)
             }
         }
-        .task { Audio.shared.music(); runRouterChecks() }   // bgm runs across every screen
+        .task { Audio.shared.music(); runRouterChecks(); runSessionChecks() }   // bgm runs across every screen
     }
 }

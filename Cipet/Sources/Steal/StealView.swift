@@ -3,17 +3,23 @@ import SwiftUI
 struct StealView: View {
     let victim: Seating.Person
     let thiefSeat: CGRect
+    let cast: Arrangement
     /// the round is over and the player has chosen where to go. the round never leaves on
     /// its own — winning or getting caught shows a result here, it does not pop the screen.
     enum Exit { case nextRound, home }
     let onDone: (Exit) -> Void
 
     @State private var vm: StealViewModel
+    @State private var beat: ThiefActor.Beat = .sitting
+    /// held back until the thief has finished reacting, so the endings dont cut him off
+    @State private var showEnding = false
     private let clock = Timer.publish(every: 1.0 / 60, on: .main, in: .common).autoconnect()
 
-    init(victim: Seating.Person, thiefSeat: CGRect, onDone: @escaping (Exit) -> Void) {
+    init(victim: Seating.Person, thiefSeat: CGRect, cast: Arrangement,
+         onDone: @escaping (Exit) -> Void) {
         self.victim = victim
         self.thiefSeat = thiefSeat
+        self.cast = cast
         self.onDone = onDone
         _vm = State(initialValue: StealViewModel(victim: victim, thiefSeat: thiefSeat))
     }
@@ -29,12 +35,12 @@ struct StealView: View {
                 if vm.phase == .paused {
                     PausedCard(space: space, onResume: vm.resume) { onDone(.home) }
                 }
-                if vm.phase == .succeeded {
+                if vm.phase == .succeeded && showEnding {
                     SucceedCard(remaining: vm.clock, value: Steal.itemValue, space: space,
                                 onNext: { onDone(.nextRound) }, onEnd: { onDone(.home) })
                         .transition(.opacity)
                 }
-                if vm.phase == .caught {
+                if vm.phase == .caught && showEnding {
                     JailScreen(space: space) { onDone(.home) }.transition(.opacity)
                 }
             }
@@ -43,7 +49,31 @@ struct StealView: View {
         }
         .fullBleed()
         .onReceive(clock) { _ in vm.tick(1.0 / 60) }
-        .task { runStealChecks(); runJailChecks() }
+        .onChange(of: vm.holding) { _, down in
+            guard vm.running else { return }
+            beat = down ? .reaching : .returning
+        }
+        .onChange(of: vm.phase) { _, p in
+            // getting caught or getting away is the thief's moment, not the screen's:
+            // the ending waits for his animation to land
+            if p == .caught    { beat = .caught }
+            if p == .succeeded { beat = .standing }
+        }
+        .task { runStealChecks(); runJailChecks(); runThiefChecks(); runClipChecks() }
+    }
+
+    /// he reaches towards whoever he's robbing
+    private var reachingLeft: Bool { Seating.spot(victim).midX < thiefSeat.midX }
+
+    /// one beat hands over to the next, so nothing overlaps
+    private func finished(_ done: ThiefActor.Beat) {
+        switch done {
+        case .reaching:  if vm.holding { beat = .stealing }
+        case .returning: beat = .sitting
+        case .caught, .standing:
+            withAnimation(.easeInOut(duration: 0.25)) { showEnding = true }
+        default: break
+        }
     }
 
     private func scene(_ space: DesignSpace) -> some View {
@@ -54,8 +84,10 @@ struct StealView: View {
                 .position(x: space.x(DesignSpace.screen.width / 2),
                           y: space.y(DesignSpace.screen.height / 2))
 
-            TutorialAngkot(show: [.kid, .onBoard], space: space,
-                           thiefAt: thiefSeat, hot: victim, aware: vm.aware)
+            TutorialAngkot(show: [.kid], space: space, hot: victim,
+                           cast: cast, aware: vm.aware)
+            ThiefActor(beat: beat, seat: thiefSeat, reachingLeft: reachingLeft,
+                       space: space, paused: vm.phase == .paused, onFinish: finished)
             TutorialHUD(show: [], clock: vm.clock, space: space)
             pauseButton(space)
 

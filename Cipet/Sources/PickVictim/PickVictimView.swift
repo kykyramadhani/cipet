@@ -14,6 +14,7 @@ enum Pick {
 }
 
 struct PickVictimView: View {
+    let cast: Arrangement
     let showTutorial: Bool
     let onTutorialDone: () -> Void
     let onStart: (Seating.Person, CGRect) -> Void
@@ -50,7 +51,8 @@ struct PickVictimView: View {
                           y: space.y(DesignSpace.screen.height / 2))
 
             TutorialAngkot(show: show, space: space,
-                           ghostSeats: vm.seatsOnOffer, thiefAt: thiefSpot, hot: vm.victim)
+                           ghostSeats: vm.seatsOnOffer, thiefAt: thiefSpot,
+                           hot: vm.victim, cast: cast)
             if vm.onPavement { TutorialPavement(space: space) }
             TutorialHUD(show: [], clock: "1:30", space: space)
 
@@ -127,4 +129,6 @@ struct PickVictimView: View {
     }
 }
 
-#Preview(traits: .landscapeLeft) { PickVictimView(showTutorial: false, onTutorialDone: {}) { _, _ in } }
+#Preview(traits: .landscapeLeft) {
+    PickVictimView(cast: .random(avoiding: nil), showTutorial: false, onTutorialDone: {}) { _, _ in }
+}

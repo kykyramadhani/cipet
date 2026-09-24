@@ -24,6 +24,7 @@
 		654CC9A35E8AA01A82799062 /* DesignSpace.swift in Sources */ = {isa = PBXBuildFile; fileRef = F7FAE859B6EE1CE9CB745C9B /* DesignSpace.swift */; };
 		692F24436C1C86A3DE1E1A7F /* AngkotColored.swift in Sources */ = {isa = PBXBuildFile; fileRef = E3F92620A53FE87F1A099708 /* AngkotColored.swift */; };
 		72B2C0A4B8415CA3A471C74B /* CountdownView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6EAFCD0CB7023EA42070789D /* CountdownView.swift */; };
+		73E6AA90A0C7306536FEE286 /* GameSession.swift in Sources */ = {isa = PBXBuildFile; fileRef = 629E75CE177641A4356A8FF1 /* GameSession.swift */; };
 		76DBD4A90F8DE5C67636373C /* TutorialViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 33662D0196552CE89E4D18B0 /* TutorialViewModel.swift */; };
 		7FD38EF5E50705D7D511A6C1 /* Game.swift in Sources */ = {isa = PBXBuildFile; fileRef = EF2D8FBFB6DD16DC8A046A7B /* Game.swift */; };
 		90793055D7A7BE203F6E1970 /* StealOverlays.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1961A911386E97028DE8F72E /* StealOverlays.swift */; };
@@ -37,6 +38,7 @@
 		C52D8123F3037B7E30D0AB4D /* Skranji-Regular.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 33D150E2E6B732590284F8A9 /* Skranji-Regular.ttf */; };
 		C8B338EFC427FEE7705A2468 /* sfx_caught.wav in Resources */ = {isa = PBXBuildFile; fileRef = 7575ACA1CC181AFCA3311EDC /* sfx_caught.wav */; };
 		CE58F9A04B9A5703CA027646 /* LoadingViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = D30742D5E5331C53F6C15EDD /* LoadingViewModel.swift */; };
+		D4BC0C3C54AE54D00DD32018 /* FrameAnimation.swift in Sources */ = {isa = PBXBuildFile; fileRef = D95D0CD4E93F503FC8B3AE3E /* FrameAnimation.swift */; };
 		D5E37FFE91D6D9E5F1E6B338 /* JailScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = 558E82CFB2ABA055CFE9B165 /* JailScreen.swift */; };
 		D5E70577C969B0D728847722 /* TutorialCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = 311D8E0DE92B834A3AF18B28 /* TutorialCard.swift */; };
 		D8F0B930633D32994FC97950 /* Style.swift in Sources */ = {isa = PBXBuildFile; fileRef = C20DF2E63C5C6002203D6554 /* Style.swift */; };
@@ -45,6 +47,7 @@
 		E9998734B151A07A777BCE23 /* GameConfig.swift in Sources */ = {isa = PBXBuildFile; fileRef = 94954D9E0D38FCE75BF36C97 /* GameConfig.swift */; };
 		EAAA4F29B9FF4AA3EECA1CC8 /* MainMenuView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 56F7736B85287133F703BD8D /* MainMenuView.swift */; };
 		EAF1A6912AF24D08F82091E9 /* CountdownViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9E92104BD60E272ABE1CFCC4 /* CountdownViewModel.swift */; };
+		ED78D1B9CD3D697515272F5A /* ThiefActor.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD2A4F0689E7EFEF649E9435 /* ThiefActor.swift */; };
 		F1B7C75963251606A10822AD /* sfx_move.wav in Resources */ = {isa = PBXBuildFile; fileRef = 07D768DD3D692C31A92FEE6D /* sfx_move.wav */; };
 		F31F4897A7C2DA2AB730694B /* PickVictimView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2448BFCB9C70629DA59E3DF8 /* PickVictimView.swift */; };
 		F46AD60375B6C91AF1F2F26F /* AppRouter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9F3F71BAAB6EE7A3D52D39B8 /* AppRouter.swift */; };
@@ -71,6 +74,7 @@
 		558E82CFB2ABA055CFE9B165 /* JailScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = JailScreen.swift; sourceTree = "<group>"; };
 		56F7736B85287133F703BD8D /* MainMenuView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MainMenuView.swift; sourceTree = "<group>"; };
 		5845B202D76EDE17831BD1C2 /* StealViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StealViewModel.swift; sourceTree = "<group>"; };
+		629E75CE177641A4356A8FF1 /* GameSession.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GameSession.swift; sourceTree = "<group>"; };
 		66FD67C72C2F60401E54C645 /* SettingsPanel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsPanel.swift; sourceTree = "<group>"; };
 		6EAFCD0CB7023EA42070789D /* CountdownView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CountdownView.swift; sourceTree = "<group>"; };
 		708C431B2E2E2DAAEE788E1E /* TutorialBars.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TutorialBars.swift; sourceTree = "<group>"; };
@@ -83,10 +87,12 @@
 		BD1C86A0AC1DB821FB8E2526 /* Cipet.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = Cipet.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		BDA1C65B2855C451E50C92AE /* Seating.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Seating.swift; sourceTree = "<group>"; };
 		C20DF2E63C5C6002203D6554 /* Style.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Style.swift; sourceTree = "<group>"; };
+		CD2A4F0689E7EFEF649E9435 /* ThiefActor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ThiefActor.swift; sourceTree = "<group>"; };
 		CE1136A6FD1298FAD6C3F9F7 /* TutorialView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TutorialView.swift; sourceTree = "<group>"; };
 		D30742D5E5331C53F6C15EDD /* LoadingViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LoadingViewModel.swift; sourceTree = "<group>"; };
 		D644D353640FE3488EC24BB5 /* sfx_win.wav */ = {isa = PBXFileReference; lastKnownFileType = audio.wav; path = sfx_win.wav; sourceTree = "<group>"; };
 		D7819F7D103822044F1C5D7E /* PickVictimViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PickVictimViewModel.swift; sourceTree = "<group>"; };
+		D95D0CD4E93F503FC8B3AE3E /* FrameAnimation.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FrameAnimation.swift; sourceTree = "<group>"; };
 		DD459AEDA9224F7CE96C4A97 /* SettingsViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsViewModel.swift; sourceTree = "<group>"; };
 		E0DF8F7C22472B67D151EE7C /* StealView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StealView.swift; sourceTree = "<group>"; };
 		E3F92620A53FE87F1A099708 /* AngkotColored.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AngkotColored.swift; sourceTree = "<group>"; };
@@ -103,6 +109,7 @@
 			children = (
 				9F3F71BAAB6EE7A3D52D39B8 /* AppRouter.swift */,
 				1BADC6514D09AF7FB943808F /* CipetApp.swift */,
+				629E75CE177641A4356A8FF1 /* GameSession.swift */,
 			);
 			path = App;
 			sourceTree = "<group>";
@@ -123,6 +130,7 @@
 				1961A911386E97028DE8F72E /* StealOverlays.swift */,
 				E0DF8F7C22472B67D151EE7C /* StealView.swift */,
 				5845B202D76EDE17831BD1C2 /* StealViewModel.swift */,
+				CD2A4F0689E7EFEF649E9435 /* ThiefActor.swift */,
 			);
 			path = Steal;
 			sourceTree = "<group>";
@@ -152,6 +160,7 @@
 				E3F92620A53FE87F1A099708 /* AngkotColored.swift */,
 				F7FAE859B6EE1CE9CB745C9B /* DesignSpace.swift */,
 				F4C2FCA0469E53200B0E0514 /* Flags.swift */,
+				D95D0CD4E93F503FC8B3AE3E /* FrameAnimation.swift */,
 				C20DF2E63C5C6002203D6554 /* Style.swift */,
 			);
 			path = Shared;
@@ -353,8 +362,10 @@
 				EAF1A6912AF24D08F82091E9 /* CountdownViewModel.swift in Sources */,
 				654CC9A35E8AA01A82799062 /* DesignSpace.swift in Sources */,
 				E8C052F4A336FAAABE020ADB /* Flags.swift in Sources */,
+				D4BC0C3C54AE54D00DD32018 /* FrameAnimation.swift in Sources */,
 				7FD38EF5E50705D7D511A6C1 /* Game.swift in Sources */,
 				E9998734B151A07A777BCE23 /* GameConfig.swift in Sources */,
+				73E6AA90A0C7306536FEE286 /* GameSession.swift in Sources */,
 				1BAA7B6FC8083153CA8141C6 /* GameView.swift in Sources */,
 				3041091DC823BF29C45EC282 /* GameViewModel.swift in Sources */,
 				AC811FDE155C96CC2A8336C6 /* HUD.swift in Sources */,
@@ -371,6 +382,7 @@
 				4051DE16CA829B1A942BBF3E /* StealView.swift in Sources */,
 				106483FFC0398BCB48B8DD1E /* StealViewModel.swift in Sources */,
 				D8F0B930633D32994FC97950 /* Style.swift in Sources */,
+				ED78D1B9CD3D697515272F5A /* ThiefActor.swift in Sources */,
 				ADEF42381DC9012B571E1B05 /* TutorialBars.swift in Sources */,
 				D5E70577C969B0D728847722 /* TutorialCard.swift in Sources */,
 				14FF4DF66F147567E2E42B0D /* TutorialLayout.swift in Sources */,

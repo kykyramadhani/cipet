@@ -1,6 +1,7 @@
 import SwiftUI
 
 @Observable final class CountdownViewModel {
+    var round = 1
     /// nil while the round card is up waiting for its button, 0...3 once we're counting
     private(set) var step: Int?
 
@@ -8,7 +9,7 @@ import SwiftUI
 
     var waiting: Bool { step == nil }
     var stealing: Bool { step == Countdown.steal }
-    var label: String { step.map { Countdown.labels[$0] } ?? "Round #1" }
+    var label: String { step.map { Countdown.labels[$0] } ?? "Round #\(round)" }
     var labelSize: CGFloat { waiting ? Countdown.roundSize : Countdown.countSize }
     var vanX: CGFloat { step.map(Countdown.vanX) ?? Countdown.readyX }
 

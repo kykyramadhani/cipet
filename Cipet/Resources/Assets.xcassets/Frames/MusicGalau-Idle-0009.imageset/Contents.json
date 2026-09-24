@@ -1,0 +1,13 @@
+{
+  "images" : [
+    {
+      "filename" : "MusicGalau-Idle-0009.png",
+      "idiom" : "universal",
+      "scale" : "1x"
+    }
+  ],
+  "info" : {
+    "author" : "xcode",
+    "version" : 1
+  }
+}

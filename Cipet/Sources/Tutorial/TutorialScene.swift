@@ -8,6 +8,7 @@ struct TutorialAngkot: View {
     var ghostSeats: [CGRect] = Tut.ghosts
     var thiefAt: CGRect = Tut.seated
     var hot: Seating.Person? = nil
+    var cast: Arrangement = .random(avoiding: nil)
     /// bars over the idle passengers, keyed by who they belong to
     var aware: [Seating.Person: CGFloat] = [:]
 
@@ -16,11 +17,11 @@ struct TutorialAngkot: View {
             art("loading_angkot_wheel",    Tut.wheel)
             art("tut_angkot_interior",     Tut.interior)
             art("loading_angkot_exterior", Tut.exterior)
-            cast
+            people
         }
     }
 
-    @ViewBuilder private var cast: some View {
+    @ViewBuilder private var people: some View {
         if show.contains(.kid) { passenger(.kid) }
         passenger(.farRight)
 
@@ -45,8 +46,15 @@ struct TutorialAngkot: View {
         }
     }
 
-    private func passenger(_ v: Seating.Person) -> some View {
-        art(hot == v ? Seating.hotArt(v) : Seating.art(v), Seating.spot(v))
+    @ViewBuilder private func passenger(_ v: Seating.Person) -> some View {
+        if cast.who(v).animated, hot != v {
+            // the animated cast members sit in the same box as the flat ones
+            place(Tut.inAngkot(Clips.box(over: Seating.spot(v))), space) {
+                FrameAnimation(clip: Clips.galau)
+            }
+        } else {
+            art(hot == v ? Seating.hotArt(v) : Seating.art(v), Seating.spot(v))
+        }
     }
 
     private func art(_ name: String, _ r: CGRect) -> some View {

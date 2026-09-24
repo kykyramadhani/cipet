@@ -40,10 +40,7 @@ enum Steal {
         for who in Seating.idle(besides: victim) { aware[who] = 0 }
     }
 
-    var clock: String {
-        let left = max(0, Int(timeLeft.rounded(.up)))
-        return String(format: "%d:%02d", left / 60, left % 60)
-    }
+    var clock: String { mmss(timeLeft.rounded(.up)) }
     var running: Bool { phase == .stealing }
     var stopFor: Int { max(1, Int(penaltyLeft.rounded(.up))) }
     var over: Bool { phase == .succeeded || phase == .caught }

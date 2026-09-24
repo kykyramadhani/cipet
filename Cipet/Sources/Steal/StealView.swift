@@ -6,7 +6,7 @@ struct StealView: View {
     let cast: Arrangement
     /// the round is over and the player has chosen where to go. the round never leaves on
     /// its own — winning or getting caught shows a result here, it does not pop the screen.
-    enum Exit { case nextRound, home }
+    enum Exit { case nextRound(RoundResult), endGame(RoundResult), home }
     let onDone: (Exit) -> Void
 
     @State private var vm: StealViewModel
@@ -37,11 +37,12 @@ struct StealView: View {
                 }
                 if vm.phase == .succeeded && showEnding {
                     SucceedCard(remaining: vm.clock, value: Steal.itemValue, space: space,
-                                onNext: { onDone(.nextRound) }, onEnd: { onDone(.home) })
+                                onNext: { onDone(.nextRound(result)) },
+                                onEnd: { onDone(.endGame(result)) })
                         .transition(.opacity)
                 }
                 if vm.phase == .caught && showEnding {
-                    JailScreen(space: space) { onDone(.home) }.transition(.opacity)
+                    JailScreen(space: space) { onDone(.endGame(result)) }.transition(.opacity)
                 }
             }
             .frame(width: geo.size.width, height: geo.size.height)
@@ -54,10 +55,14 @@ struct StealView: View {
             beat = down ? .reaching : .returning
         }
         .onChange(of: vm.phase) { _, p in
-            // getting caught or getting away is the thief's moment, not the screen's:
-            // the ending waits for his animation to land
-            if p == .caught    { beat = .caught }
-            if p == .succeeded { beat = .standing }
+            // getting clocked is the thief's moment, not the screen's. he flinches whether
+            // it's a cooldown or the real thing, and the endings wait for him to land it.
+            switch p {
+            case .penalty, .caught: beat = .caught(midSteal: midSteal)
+            case .stealing:         if isFlinching { beat = .sitting }
+            case .succeeded:        beat = .standing
+            case .paused:           break
+            }
         }
         .task { runStealChecks(); runJailChecks(); runThiefChecks(); runClipChecks() }
     }
@@ -65,11 +70,22 @@ struct StealView: View {
     /// he reaches towards whoever he's robbing
     private var reachingLeft: Bool { Seating.spot(victim).midX < thiefSeat.midX }
 
+    private var midSteal: Bool { beat == .reaching || beat == .stealing }
+    private var isFlinching: Bool { if case .caught = beat { return true }; return false }
+
+    /// what this round was worth, whichever way it ended
+    private var result: RoundResult {
+        RoundResult(value: vm.phase == .succeeded ? Steal.itemValue : 0,
+                    time: Steal.round - vm.timeLeft)
+    }
+
     /// one beat hands over to the next, so nothing overlaps
     private func finished(_ done: ThiefActor.Beat) {
         switch done {
         case .reaching:  if vm.holding { beat = .stealing }
         case .returning: beat = .sitting
+        // the flinch also ends a cooldown, and that one has no ending to show
+        case .caught where vm.phase != .caught: break
         case .caught, .standing:
             withAnimation(.easeInOut(duration: 0.25)) { showEnding = true }
         default: break

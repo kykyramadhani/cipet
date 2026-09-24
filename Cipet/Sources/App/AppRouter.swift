@@ -4,7 +4,7 @@ import SwiftUI
 // the session, latched so nothing downstream can bring it back.
 @Observable final class AppRouter {
     enum Screen {
-        case loading, menu, countdown, pickVictim
+        case loading, menu, countdown, pickVictim, endGame
         case steal(Seating.Person, CGRect)
     }
 
@@ -17,9 +17,14 @@ import SwiftUI
         go(.countdown)
     }
 
-    func nextRound(banking value: Int) {
-        session.nextRound(banking: value)
+    func nextRound(after r: RoundResult) {
+        session.nextRound(after: r)
         go(.countdown)
+    }
+
+    func endGame(after r: RoundResult) {
+        session.endGame(after: r)
+        go(.endGame)
     }
 
     func go(_ next: Screen) {
@@ -44,10 +49,15 @@ func runRouterChecks() {
 
     // Next Round goes through the countdown again, on a new number, tutorial still gone
     let seating = r.session.arrangement
-    r.nextRound(banking: 20)
+    r.nextRound(after: RoundResult(value: 20, time: 40))
     assert(r.session.round == 2)
     assert(!r.session.tutorialPending)
     assert(r.session.arrangement != seating)
     if case .countdown = r.screen {} else { assertionFailure("Next Round has to replay the countdown") }
+
+    // ending it goes to the tally instead, keeping what the last round was worth
+    r.endGame(after: RoundResult(value: 20, time: 20))
+    assert(r.session.takings == 40 && r.session.round == 2)
+    if case .endGame = r.screen {} else { assertionFailure("End Game has its own screen") }
     #endif
 }

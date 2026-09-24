@@ -1,6 +1,7 @@
 import SwiftUI
 
-// the red wash that stops play for a few seconds after somebody clocks you
+// the red wash that stops play for a few seconds after somebody clocks you. it's kept thin
+// on purpose — the thief plays his caught animation underneath and you're meant to see it.
 struct PenaltyOverlay: View {
     let count: Int
     let space: DesignSpace
@@ -14,7 +15,7 @@ struct PenaltyOverlay: View {
 
     var body: some View {
         ZStack {
-            Ink.red.opacity(0.88).ignoresSafeArea()
+            Ink.red.opacity(0.5).ignoresSafeArea()
             line("Stop for", Self.stopSize, Self.stopY)
             line("\(count)", Self.countSize, Self.countY)
             line("You almost get caught!", Self.noteSize, Self.noteY)
@@ -24,10 +25,8 @@ struct PenaltyOverlay: View {
     }
 
     private func line(_ text: String, _ size: CGFloat, _ y: CGFloat) -> some View {
-        Text(text)
-            .font(.skranji(space.px(size)))
-            .foregroundStyle(.white)
-            .contentTransition(.identity)
+        OutlinedText(string: text, font: .skranji(space.px(size)),
+                     fill: .white, thickness: space.px(size * 0.09))
             .transaction { $0.animation = nil }
             .position(x: space.x(DesignSpace.screen.width / 2), y: space.y(y))
     }

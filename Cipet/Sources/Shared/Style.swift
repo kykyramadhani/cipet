@@ -18,6 +18,37 @@ enum Ink {
     static let glow    = Color(red: 255 / 255, green: 228 / 255, blue: 158 / 255)
     static let red     = Color(red: 211 / 255, green:  68 / 255, blue:  53 / 255)
     static let redGlow = Color(red: 232 / 255, green: 112 / 255, blue: 100 / 255)
+    static let snow    = Color(red: 250 / 255, green: 250 / 255, blue: 250 / 255)
+    static let grey    = Color(red: 161 / 255, green: 161 / 255, blue: 161 / 255)
+}
+
+/// m:ss, for the clock and the end screen
+func mmss(_ seconds: Double) -> String {
+    let s = max(0, Int(seconds.rounded()))
+    return String(format: "%d:%02d", s / 60, s % 60)
+}
+
+// a sprite with an optional thin ring round its silhouette. thats how the picked passenger
+// is marked when theres no yellow version of their artwork to swap in — they keep their own
+// drawing and just get outlined.
+struct Sprite: View {
+    let name: String
+    var ring: Color? = nil
+    var ringWidth: CGFloat = 0
+
+    var body: some View {
+        ZStack {
+            if let ring, ringWidth > 0 {
+                ForEach(0..<12, id: \.self) { i in
+                    let a = Double(i) / 12 * 2 * .pi
+                    Image(name).resizable().renderingMode(.template)
+                        .foregroundStyle(ring)
+                        .offset(x: ringWidth * CGFloat(cos(a)), y: ringWidth * CGFloat(sin(a)))
+                }
+            }
+            Image(name).resizable()
+        }
+    }
 }
 
 struct PressStyle: ButtonStyle {

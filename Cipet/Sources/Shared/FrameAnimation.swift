@@ -70,14 +70,16 @@ enum Clips {
 struct FrameAnimation: View {
     let clip: Clip
     var paused = false
+    /// marks this one as picked without touching its frames
+    var ring: Color? = nil
+    var ringWidth: CGFloat = 0
     var onFinish: (() -> Void)?
 
     @State private var index = 0
     @State private var ticker: Timer?
 
     var body: some View {
-        Image(clip.frame(index))
-            .resizable()
+        Sprite(name: clip.frame(index), ring: ring, ringWidth: ringWidth)
             .onAppear { restart() }
             .onDisappear { stop() }
             .onChange(of: clip) { _, _ in restart() }

@@ -8,7 +8,9 @@ struct TutorialAngkot: View {
     var ghostSeats: [CGRect] = Tut.ghosts
     var thiefAt: CGRect = Tut.seated
     var hot: Seating.Person? = nil
-    var cast: Arrangement = .random(avoiding: nil)
+    /// a constant, not a fresh deal — this view rebuilds every tick and re-rolling here
+    /// swapped the cast about 60 times a second, which is what made a scene flicker.
+    var cast: Arrangement = .fixed
     /// bars over the idle passengers, keyed by who they belong to
     var aware: [Seating.Person: CGFloat] = [:]
 
@@ -46,11 +48,13 @@ struct TutorialAngkot: View {
         }
     }
 
+    // picking somebody never changes who they are. the flat cast have a yellow version of
+    // their own drawing to swap to, the animated ones keep their frames and get a ring.
     @ViewBuilder private func passenger(_ v: Seating.Person) -> some View {
-        if cast.who(v).animated, hot != v {
-            // the animated cast members sit in the same box as the flat ones
+        let ring: Color? = hot == v ? Ink.yellow : nil
+        if cast.who(v).animated {
             place(Tut.inAngkot(Clips.box(over: Seating.spot(v))), space) {
-                FrameAnimation(clip: Clips.galau)
+                FrameAnimation(clip: Clips.galau, ring: ring, ringWidth: space.px(2))
             }
         } else {
             art(hot == v ? Seating.hotArt(v) : Seating.art(v), Seating.spot(v))

@@ -33,8 +33,10 @@ enum Countdown {
     static let tick: Double = 1.0   // seconds per number
     static let hold: Double = 0.7   // how long Steal Time sits there before the round starts
 
-    // the "Steal Time!" lettering, centred on the angkot group's own coordinates
-    static let stealCentre  = CGPoint(x: 229, y: 212)
+    // the last beat: a halftone starburst over the parked angkot with the words on top.
+    // the star is bigger than the screen, so it bleeds off the top and bottom.
+    static let star         = CGRect(x: 37, y: -79, width: 800, height: 560)
+    static let stealCentre  = CGPoint(x: 436.61, y: 201.26)
     static let stealSize:    CGFloat = 120
     static let stealOutline: CGFloat = 9
     static let stealGap:     CGFloat = -77.8   // stacked words, pulled back over skranjis own line box
@@ -55,6 +57,7 @@ struct CountdownView: View {
             ZStack(alignment: .topLeading) {
                 place(Countdown.road, space) { Image("menu_road").resizable() }
                 angkot(space)
+                if vm.stealing { stealSign(space) }
                 if !vm.stealing { place(Countdown.banner, space) { banner(space) } }
                 if vm.waiting { startButton(space) }
             }
@@ -76,23 +79,25 @@ struct CountdownView: View {
             }
             .frame(width: space.px(Countdown.group.width),
                    height: space.px(Countdown.group.height), alignment: .topLeading)
-            .overlay(alignment: .topLeading) { if vm.stealing { stealSign(space) } }
         }
         .animation(.linear(duration: Countdown.tick), value: vm.step)
     }
 
     private func stealSign(_ space: DesignSpace) -> some View {
-        VStack(spacing: space.px(Countdown.stealGap)) {
-            stealWord("Steal", space)
-            stealWord("Time!", space)
+        Group {
+            place(Countdown.star, space) { Image("star_burst").resizable() }
+            VStack(spacing: space.px(Countdown.stealGap)) {
+                stealWord("STEAL", space)
+                stealWord("TIME", space)
+            }
+            .position(x: space.x(Countdown.stealCentre.x), y: space.y(Countdown.stealCentre.y))
         }
-        .position(x: space.px(Countdown.stealCentre.x), y: space.px(Countdown.stealCentre.y))
     }
 
     private func stealWord(_ word: String, _ space: DesignSpace) -> some View {
         OutlinedText(string: word,
                      font: .skranji(space.px(Countdown.stealSize)),
-                     fill: Ink.yellow,
+                     fill: Ink.snow,
                      thickness: space.px(Countdown.stealOutline))
     }
 
@@ -148,6 +153,12 @@ private func runCountdownChecks() {
     assert(Countdown.vanXs[Countdown.steal] == Countdown.vanXs[Countdown.steal - 1],
            "the angkot is already parked when Steal Time comes up")
     assert(Countdown.labels[Countdown.steal - 1] == "Start")
+
+    // the starburst is centred on the screen and hangs off it top and bottom
+    assert(abs(Countdown.star.midX - DesignSpace.screen.width / 2) < 0.5)
+    assert(abs(Countdown.star.midY - DesignSpace.screen.height / 2) < 0.5)
+    assert(Countdown.star.minY < 0 && Countdown.star.maxY > DesignSpace.screen.height)
+    assert(abs(Countdown.stealCentre.y - DesignSpace.screen.height / 2) < 1, "words sit dead centre")
     #endif
 }
 

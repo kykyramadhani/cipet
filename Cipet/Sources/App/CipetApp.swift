@@ -30,13 +30,16 @@ struct RootView: View {
             case let .steal(who, seat):
                 StealView(victim: who, thiefSeat: seat, cast: router.session.arrangement) { exit in
                     switch exit {
-                    case .nextRound: router.nextRound(banking: Steal.itemValue)
-                    case .home:      router.go(.menu)
+                    case let .nextRound(r): router.nextRound(after: r)
+                    case let .endGame(r):   router.endGame(after: r)
+                    case .home:             router.go(.menu)
                     }
                 }
                 .transition(.opacity)
+            case .endGame:
+                EndGameView(session: router.session) { router.go(.menu) }.transition(.opacity)
             }
         }
-        .task { Audio.shared.music(); runRouterChecks(); runSessionChecks() }   // bgm runs across every screen
+        .task { Audio.shared.music(); runRouterChecks(); runSessionChecks(); runEndChecks() }
     }
 }

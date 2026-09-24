@@ -4,7 +4,12 @@ import SwiftUI
 // or plays once and hands over, which is what keeps stand-up and getting-caught from being
 // cut short by the screen changing underneath them.
 struct ThiefActor: View {
-    enum Beat: Equatable { case sitting, reaching, stealing, returning, caught, standing }
+    /// `caught` runs twice over: once as the flinch during an almost-caught cooldown, and
+    /// once for real before the cage comes down. `midSteal` picks which drawing of it.
+    enum Beat: Equatable {
+        case sitting, reaching, stealing, returning, standing
+        case caught(midSteal: Bool)
+    }
 
     let beat: Beat
     let seat: CGRect
@@ -26,7 +31,8 @@ struct ThiefActor: View {
         case .reaching:  return Clips.sitToSteal(reachingLeft: reachingLeft)
         case .stealing:  return Clips.steal(reachingLeft: reachingLeft)
         case .returning: return Clips.stealToSit(reachingLeft: reachingLeft)
-        case .caught:    return Clips.caughtMidSteal(reachingLeft: reachingLeft)
+        case let .caught(mid):
+            return mid ? Clips.caughtMidSteal(reachingLeft: reachingLeft) : Clips.caughtSitting
         case .standing:  return Clips.standUp
         }
     }
@@ -43,5 +49,7 @@ func runThiefChecks() {
     // only the mid-action pose loops; everything else has to end so the next beat can start
     assert(Clips.steal(reachingLeft: true).loops && Clips.steal(reachingLeft: false).loops)
     assert(!Clips.standUp.loops && !Clips.caughtMidSteal(reachingLeft: false).loops)
+    // both flavours of caught have to exist, the cooldown flinch uses the sitting one
+    assert(Clips.caughtSitting.frames > 1 && !Clips.caughtSitting.loops)
     #endif
 }

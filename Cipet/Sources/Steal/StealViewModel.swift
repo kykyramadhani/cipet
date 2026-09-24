@@ -14,6 +14,10 @@ enum Steal {
     static let strikes = 3               // full aware bars before you're caught
 
     static let itemValue = 20            // thousands of rupiah
+
+    /// seconds for the road to scroll one screen width. the angkot itself never moves —
+    /// the road going past underneath is the whole effect.
+    static let roadLoop: Double = 4
 }
 
 @Observable final class StealViewModel {
@@ -28,6 +32,8 @@ enum Steal {
     private(set) var suspicion = 0
     private(set) var timeLeft = Steal.round
     private(set) var penaltyLeft = 0.0
+    /// how far the road has scrolled, 0..<1 of one screen width
+    private(set) var road: CGFloat = 0
 
     /// finger is down on the bar
     var holding = false
@@ -47,6 +53,9 @@ enum Steal {
 
     func tick(_ dt: Double) {
         guard phase != .paused, !over else { return }
+
+        // we're driving the whole time we're aboard, cooldown included
+        road = (road + CGFloat(dt / Steal.roadLoop)).truncatingRemainder(dividingBy: 1)
 
         // the clock keeps running through the penalty, only the stealing stops
         timeLeft -= dt
@@ -145,12 +154,36 @@ func runStealChecks() {
     var p = StealViewModel(victim: .near, thiefSeat: Seating.seats(beside: .near)[0])
     p.holding = true
     for _ in 0..<60 { p.tick(1.0 / 60) }
-    let held = (p.grab, p.timeLeft, p.aware)
+    let held = (p.grab, p.timeLeft, p.aware, p.road)
+    assert(p.road > 0, "the road should be moving while he's stealing")
     p.pause()
     for _ in 0..<120 { p.tick(1.0 / 60) }
     assert(p.grab == held.0 && p.timeLeft == held.1 && p.aware == held.2, "pause freezes the lot")
+    assert(p.road == held.3, "including the road")
     p.resume()
     assert(p.phase == .stealing)
+    p.tick(1.0 / 60)
+    assert(p.road > held.3, "and it picks up where it left off rather than starting over")
+
+    // it drives through a cooldown, wraps cleanly, and stops once the round is over
+    var r = StealViewModel(victim: .farLeft, thiefSeat: seat)
+    r.holding = true
+    while r.phase == .stealing { r.tick(1.0 / 60) }
+    let mid = r.road
+    for _ in 0..<30 { r.tick(1.0 / 60) }
+    // it can lap while we watch, so measure the gap the way the scroll wraps
+    let moved = (r.road - mid + 1).truncatingRemainder(dividingBy: 1)
+    assert(r.phase == .penalty && moved > 0, "still driving while you're told to stop")
+    var laps = StealViewModel(victim: .near, thiefSeat: seat)
+    for _ in 0..<Int(Steal.roadLoop * 60 * 3) {
+        laps.tick(1.0 / 60)
+        assert(laps.road >= 0 && laps.road < 1, "the scroll has to stay inside one tile")
+    }
+    var done = StealViewModel(victim: .near, thiefSeat: seat)
+    while done.timeLeft > 0 { done.tick(1) }
+    let parked = done.road
+    for _ in 0..<60 { done.tick(1.0 / 60) }
+    assert(done.road == parked, "once the round is over the angkot has stopped")
 
     // three strikes and you're caught
     var c = StealViewModel(victim: .farRight, thiefSeat: seat)

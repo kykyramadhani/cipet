@@ -101,11 +101,7 @@ struct StealView: View {
 
     private func scene(_ space: DesignSpace) -> some View {
         ZStack(alignment: .topLeading) {
-            Image("menu_road").resizable().scaledToFill()
-                .frame(width: space.px(DesignSpace.screen.width),
-                       height: space.px(DesignSpace.screen.height))
-                .position(x: space.x(DesignSpace.screen.width / 2),
-                          y: space.y(DesignSpace.screen.height / 2))
+            road(space)
 
             TutorialAngkot(show: [.kid], space: space, hot: victim,
                            cast: cast, aware: vm.aware)
@@ -117,6 +113,21 @@ struct StealView: View {
             StealBar(progress: vm.grab, space: space)
             SuspicionBar(lit: vm.suspicion, space: space)
         }
+    }
+
+    /// two copies of the road side by side, slid along. the seam lands off screen because
+    /// the art tiles, so it reads as one continuous road going past.
+    private func road(_ space: DesignSpace) -> some View {
+        let w = DesignSpace.screen.width
+        let h = DesignSpace.screen.height
+        return HStack(spacing: 0) {
+            ForEach(0..<2, id: \.self) { _ in
+                Image("menu_road").resizable().scaledToFill()
+                    .frame(width: space.px(w), height: space.px(h))
+            }
+        }
+        .frame(width: space.px(w * 2), height: space.px(h), alignment: .leading)
+        .position(x: space.x(w - vm.road * w), y: space.y(h / 2))
     }
 
     /// hold anywhere over the bar to fill it. letting go, or getting spotted, drops it.

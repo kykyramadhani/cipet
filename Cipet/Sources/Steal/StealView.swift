@@ -29,9 +29,15 @@ struct StealView: View {
             let space = DesignSpace(geo.size)
 
             ZStack(alignment: .topLeading) {
+                // flattened first, or each sprite gets blurred inside its own box
                 scene(space)
+                    .compositingGroup()
+                    .blur(radius: vm.phase == .penalty ? space.px(Cooldown.blur) : 0, opaque: true)
                 grabArea(space)
-                if vm.phase == .penalty { PenaltyOverlay(count: vm.stopFor, space: space) }
+                if vm.phase == .penalty {
+                    PenaltyOverlay(count: vm.stopFor, space: space)
+                    TutorialHUD(show: [], clock: vm.clock, space: space, clockOnly: true)
+                }
                 if vm.phase == .paused {
                     PausedCard(space: space, onResume: vm.resume) { onDone(.home) }
                 }
@@ -67,7 +73,7 @@ struct StealView: View {
             case .paused:    break
             }
         }
-        .task { runStealChecks(); runJailChecks(); runThiefChecks(); runClipChecks() }
+        .task { runStealChecks(); runJailChecks(); runThiefChecks(); runClipChecks(); runCooldownChecks() }
     }
 
     /// he reaches towards whoever he's robbing

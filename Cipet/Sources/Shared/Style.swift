@@ -95,6 +95,66 @@ struct OutlinedText: View {
     }
 }
 
+// the design's text outlines are real strokes on the outside of each letter with mitred
+// corners, which is where skranji's little spikes come from. OutlinedText's offset copies
+// round those off, so this strokes the actual glyph outlines instead.
+struct StrokedText: View {
+    let string: String
+    let size: CGFloat        // design points
+    let fill: Color
+    let rim: Color
+    let width: CGFloat       // design points, all of it outside the letter
+    let scale: CGFloat
+    var bold = false
+
+    var body: some View {
+        let line = GlyphLine(string, size: size, bold: bold)
+        let path = line.path.applying(CGAffineTransform(scaleX: scale, y: scale))
+        ZStack(alignment: .topLeading) {
+            // a stroke is centred on the outline, so twice the width and the fill on top
+            // leaves exactly `width` showing outside
+            path.stroke(rim, style: StrokeStyle(lineWidth: width * 2 * scale,
+                                                lineJoin: .miter, miterLimit: 4))
+            path.fill(fill)
+        }
+        .frame(width: line.box.width * scale, height: line.box.height * scale,
+               alignment: .topLeading)
+    }
+}
+
+/// one line of skranji as a path, laid out in the same box the design uses: its advance
+/// wide, ascent + descent tall, baseline at the ascent
+struct GlyphLine {
+    let path: Path
+    let box: CGSize
+
+    init(_ string: String, size: CGFloat, bold: Bool = false) {
+        let font = (UIFont(name: bold ? "Skranji-Bold" : "Skranji", size: size)
+                    ?? .systemFont(ofSize: size)) as CTFont
+        let line = CTLineCreateWithAttributedString(
+            NSAttributedString(string: string, attributes: [.font: font]))
+        var ascent: CGFloat = 0, descent: CGFloat = 0, leading: CGFloat = 0
+        let width = CTLineGetTypographicBounds(line, &ascent, &descent, &leading)
+
+        let out = CGMutablePath()
+        for run in CTLineGetGlyphRuns(line) as? [CTRun] ?? [] {
+            let n = CTRunGetGlyphCount(run)
+            var glyphs = [CGGlyph](repeating: 0, count: n)
+            var at = [CGPoint](repeating: .zero, count: n)
+            CTRunGetGlyphs(run, CFRange(), &glyphs)
+            CTRunGetPositions(run, CFRange(), &at)
+            for i in 0..<n {
+                guard let g = CTFontCreatePathForGlyph(font, glyphs[i], nil) else { continue }
+                // coretext is y-up from the baseline, flip it into a top-down box
+                out.addPath(g, transform: CGAffineTransform(translationX: at[i].x, y: ascent)
+                    .scaledBy(x: 1, y: -1))
+            }
+        }
+        path = Path(out)
+        box = CGSize(width: width, height: ascent + descent)
+    }
+}
+
 // a filled bar with a lighter rim, used for the steal bar and the suspicion bars
 struct TwoToneBar: View {
     let core: Color

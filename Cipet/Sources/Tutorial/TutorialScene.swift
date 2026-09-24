@@ -95,14 +95,18 @@ struct TutorialHUD: View {
     let show: TutorialStep.Show
     let clock: String
     let space: DesignSpace
+    /// the cooldown draws the clock again over its red wash, without the wallet
+    var clockOnly = false
 
     var body: some View {
         Group {
-            panel("tut_panel_wallet", Tut.walletPanel) {
-                Image("tut_wallet").resizable()
-                    .frame(width: space.px(Tut.walletIcon), height: space.px(Tut.walletIcon))
-                Text("00").font(.skranji(space.px(Tut.hudSize), bold: false))
-                    .foregroundStyle(.black)
+            if !clockOnly {
+                panel("tut_panel_wallet", Tut.walletPanel) {
+                    Image("tut_wallet").resizable()
+                        .frame(width: space.px(Tut.walletIcon), height: space.px(Tut.walletIcon))
+                    Text("00").font(.skranji(space.px(Tut.hudSize), bold: false))
+                        .foregroundStyle(.black)
+                }
             }
             panel(show.contains(.alarm) ? "tut_panel_alert" : "tut_panel_clock", Tut.clockPanel) {
                 Image("tut_clock").resizable()

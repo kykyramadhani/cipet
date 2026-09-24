@@ -1,109 +1,111 @@
 import SwiftUI
 
-// who is sat where, which empty spots that leaves, and where their aware bar hangs.
-// the driver is scenery. the kid on the fold-down seat by the door cant be robbed either,
-// but he still watches you, so he still gets a bar.
+// where people can sit in the back and where everything about them is drawn. who is
+// actually sat where changes every round and lives in Arrangement. the driver is scenery,
+// and the kid on the fold-down seat by the door cant be robbed but does watch you.
 enum Seating {
-    enum Person: CaseIterable {
-        case farLeft, farRight, near, kid
+    /// three on the far bench facing you, three on the near one with their backs to you,
+    /// and the kid's seat
+    enum Person: CaseIterable, Hashable {
+        case farLeft, farMid, farRight, nearLeft, nearMid, nearRight, kid
     }
 
     /// which way a seat's occupant is drawn, which is what decides who can sit there
     enum Facing { case front, back, fixed }
 
+    /// each bench left to right. neighbours on a bench are who you can sit beside.
+    static let benches: [[Person]] = [[.farLeft, .farMid, .farRight],
+                                      [.nearLeft, .nearMid, .nearRight]]
+
+    /// the seats a round deals passengers into. the kid is fixed, and the driver isnt back here.
+    static let dealt = benches.flatMap { $0 }
+
     static func facing(_ p: Person) -> Facing {
-        switch p {
-        case .farLeft, .farRight: return .front   // far bench, facing you
-        case .near:               return .back    // near bench, seen from behind
-        case .kid:                return .fixed   // the fold-down seat by the door
-        }
+        if p == .kid { return .fixed }
+        return benches[0].contains(p) ? .front : .back
     }
 
-    /// the seats a new round is allowed to reshuffle. the driver isnt even in here, and the
-    /// kid by the door is fixed art, so neither can ever be dealt.
-    static let dealt: [Person] = [.farLeft, .farRight, .near]
-
-    /// the ones you're allowed to pick
-    static let victims: [Person] = [.farLeft, .farRight, .near]
-
+    /// where a passenger's drawing goes. the far ends and the near middle are straight off
+    /// the design; the rest are the same drawings centred over the thief's seat there.
     static func spot(_ p: Person) -> CGRect {
         switch p {
-        case .farLeft:  return Tut.kiriB
-        case .farRight: return Tut.kiriA
-        case .near:     return Tut.kanan
-        case .kid:      return Tut.bocah
+        case .farLeft:   return Tut.kiriB
+        case .farRight:  return Tut.kiriA
+        case .farMid:    return centred(Tut.kiriB.size, on: thiefSpot(p).midX, y: Tut.kiriB.minY)
+        case .nearMid:   return Tut.kanan
+        case .nearLeft, .nearRight:
+            return centred(Tut.kanan.size, on: thiefSpot(p).midX, y: Tut.kanan.minY)
+        case .kid:       return Tut.bocah
         }
     }
 
-    static func art(_ p: Person) -> String {
+    /// where the thief is drawn when he sits there: the far middle and the near ends are off
+    /// the design, the others line up under whoever normally sits in that seat
+    static func thiefSpot(_ p: Person) -> CGRect {
         switch p {
-        case .farLeft:  return "tut_kiri_b"
-        case .farRight: return "tut_kiri_a"
-        case .near:     return "tut_kanan"
-        case .kid:      return "tut_bocah"
+        case .farMid:    return Tut.seated
+        case .nearLeft:  return Tut.ghosts[0]
+        case .nearRight: return Tut.ghosts[1]
+        case .farLeft, .farRight:
+            return centred(Tut.seated.size, on: spot(p).midX, y: Tut.seated.minY)
+        case .nearMid:
+            return centred(Tut.ghosts[0].size, on: spot(p).midX, y: Tut.ghosts[0].minY)
+        case .kid:       return .zero
         }
     }
 
-    /// the same drawing in Yellow/50, for whoever is being watched
-    static func hotArt(_ p: Person) -> String { art(p) + "_hot" }
-
-    /// where the bar sits, measured off the design rather than derived — the sprites have
-    /// uneven transparent margins so a formula puts them in the wrong place.
+    /// where their bar hangs. the offsets from the drawing are measured off the design, the
+    /// sprites have uneven transparent margins so centring them puts the bar in the wrong place.
     static func awareSlot(_ p: Person) -> CGRect {
-        let box = Tut.awareBox
-        switch p {
-        case .farLeft:  return CGRect(x:  35.15, y: 100, width: box.width, height: box.height)
-        case .farRight: return CGRect(x: 158,    y: 100, width: box.width, height: box.height)
-        case .near:     return CGRect(x: 101,    y: 192, width: box.width, height: box.height)
-        case .kid:      return CGRect(x: 232,    y: 108, width: box.width, height: box.height)
+        let box = Tut.awareBox, s = spot(p)
+        switch facing(p) {
+        case .front: return CGRect(x: s.minX - 8.5,  y: 100, width: box.width, height: box.height)
+        case .back:  return CGRect(x: s.minX - 4.63, y: 192, width: box.width, height: box.height)
+        case .fixed: return CGRect(x: 232,           y: 108, width: box.width, height: box.height)
         }
     }
 
-    /// each bench left to right, nil meaning a spot the thief could take
-    private static let benches: [[Person?]] = [[.farLeft, nil, .farRight],
-                                               [nil, .near, nil]]
-    private static let spots: [[CGRect]] = [[Tut.kiriB, Tut.seated, Tut.kiriA],
-                                            [Tut.ghosts[0], Tut.kanan, Tut.ghosts[1]]]
-
-    /// the empty seats either side of a victim. someone on the end of a bench only has one,
-    /// someone in the middle has two, which is what decides how many spots you get offered.
-    static func seats(beside victim: Person) -> [CGRect] {
-        for (b, bench) in benches.enumerated() {
-            guard let i = bench.firstIndex(of: victim) else { continue }
-            return [i - 1, i + 1]
-                .filter { bench.indices.contains($0) && bench[$0] == nil }
-                .map { spots[b][$0] }
-        }
-        return []
-    }
-
-    /// everyone still minding their own business, which is everyone but the mark
-    static func idle(besides victim: Person) -> [Person] {
-        Person.allCases.filter { $0 != victim }
+    private static func centred(_ size: CGSize, on midX: CGFloat, y: CGFloat) -> CGRect {
+        CGRect(x: midX - size.width / 2, y: y, width: size.width, height: size.height)
     }
 }
 
 func runSeatingChecks() {
     #if DEBUG
-    assert(Seating.seats(beside: .farLeft).count == 1, "sat on the end, one seat beside them")
-    assert(Seating.seats(beside: .farRight).count == 1)
-    assert(Seating.seats(beside: .near).count == 2, "sat in the middle, two seats beside them")
-    assert(Seating.seats(beside: .farLeft) == Seating.seats(beside: .farRight),
-           "the far bench only has the one gap, whichever end you pick")
+    // the design's own seats come out exactly where they were
+    let fixed = Arrangement.fixed
+    assert(fixed.seats(beside: .farLeft) == [Tut.seated] && fixed.seats(beside: .farRight) == [Tut.seated],
+           "on the end of the far bench, the one gap is the middle")
+    assert(fixed.seats(beside: .nearMid) == Tut.ghosts, "in the middle, both ends of the near bench")
+    assert(Seating.awareSlot(.farLeft).minX == 35.15 && Seating.awareSlot(.farRight).minX == 158)
+    assert(abs(Seating.awareSlot(.nearMid).minX - 101) < 0.001)
 
-    assert(Seating.victims.count == 3, "three you can rob, the kid and the driver are off limits")
-    assert(!Seating.victims.contains(.kid))
-    for v in Seating.victims {
-        assert(!Seating.seats(beside: v).isEmpty, "every victim has somewhere to sit next to them")
-        assert(!Seating.seats(beside: v).contains(Seating.spot(v)))
+    // only people on the benches can be robbed, and only into an empty seat
+    assert(!fixed.targets.contains(.kid) && fixed.seats(beside: .kid).isEmpty)
+    for v in fixed.targets {
+        for seat in fixed.seats(beside: v) {
+            assert(!fixed.targets.map(Seating.thiefSpot).contains(seat), "that seat's taken")
+        }
+    }
+    // a full bench leaves nobody on it a seat
+    let packed = Arrangement(cast: [.farLeft: .frontA, .farMid: .frontB, .farRight: .frontA])
+    assert(packed.seats(beside: .farMid).isEmpty && !packed.playable)
+
+    // the drawings line up with the thief's seats and sit on their own bench
+    for p in Seating.dealt {
+        assert(abs(Seating.spot(p).midX - Seating.thiefSpot(p).midX) < 0.01, "\(p) is off its seat")
+        assert(Seating.awareSlot(p).maxY <= Seating.spot(p).midY, "\(p)'s bar should be over their head")
+        // nothing you can tap to pick a target reaches the driver, and barely the kid
+        assert(!Seating.spot(p).intersects(Tut.sopir), "\(p) overlaps the driver")
+        assert(!Seating.spot(p).insetBy(dx: 1, dy: 1).intersects(Tut.bocah), "\(p) overlaps the kid")
+    }
+    for bench in Seating.benches {
+        for (a, b) in zip(bench, bench.dropFirst()) {
+            assert(Seating.thiefSpot(a).midX < Seating.thiefSpot(b).midX, "the bench runs left to right")
+        }
     }
 
-    // nothing you can tap to pick a target overlaps the kid or the driver
-    for v in Seating.victims {
-        assert(!Seating.spot(v).intersects(Tut.bocah), "\(v) overlaps the kid")
-        assert(!Seating.spot(v).intersects(Tut.sopir), "\(v) overlaps the driver")
-    }
-    let pick = PickVictimViewModel()
+    let pick = PickVictimViewModel(cast: fixed)
     pick.pick(.kid)
     assert(pick.target == nil && pick.stage == .target, "tapping the kid does nothing")
 
@@ -114,24 +116,5 @@ func runSeatingChecks() {
     assert(abs(GlyphLine("Confirm if you\u{2019}re ready!", size: Pick.tabSize).box.width - 170) < 1.5)
     assert(abs(GlyphLine("x", size: Pick.tabSize).box.height - Pick.tabText.height) < 0.01,
            "the text box is skranji's own line height")
-
-    // the kid has no seat beside him to take, which is why he isnt on the list
-    assert(Seating.seats(beside: .kid).isEmpty)
-
-    // everybody who isnt the mark gets a bar, kid included
-    assert(Seating.idle(besides: .farLeft).count == 3)
-    assert(Seating.idle(besides: .farLeft).contains(.kid))
-
-    // the two fixed spots are out of the shuffle, everyone you can rob is in it
-    assert(!Seating.dealt.contains(.kid), "the front door passenger never gets reshuffled")
-    assert(Seating.dealt.sorted(by: { "\($0)" < "\($1)" })
-        == Seating.victims.sorted(by: { "\($0)" < "\($1)" }), "you can rob every dealt seat")
-    assert(Seating.facing(.near) == .back && Seating.facing(.farLeft) == .front)
-
-    // the bars sit above their owner and dont land on top of each other
-    for p in Seating.Person.allCases {
-        let slot = Seating.awareSlot(p)
-        assert(slot.maxY <= Seating.spot(p).midY, "\(p)'s bar should be over their head")
-    }
     #endif
 }

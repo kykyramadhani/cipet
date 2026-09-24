@@ -51,37 +51,56 @@ struct RoundResult {
     }
 }
 
-// who is sitting in which passenger spot this round. the spots never move — they're where
-// the seats are drawn — so a round is shuffled by dealing a new face into each one.
+// who is sitting where this round. how many there are, which seats they're in, who they
+// are and what mood the animated ones start in are all dealt fresh each round; only the
+// driver and the kid never change, and neither is in here.
 struct Arrangement: Equatable {
-    /// spot -> who's in it. anything missing falls back to the design's own cast.
+    /// seat -> who's in it. a seat that isnt here is empty.
     let cast: [Seating.Person: Rider]
+    /// how each animated passenger starts: headphones on or off, asleep or awake
+    var start: [Seating.Person: Mood] = [:]
 
-    /// everybody on their default artwork. the tutorial uses this so its scenes always
-    /// look the same as the design.
-    static let fixed = Arrangement(cast: [:])
+    /// the tutorial's cast, straight off the design
+    static let fixed = Arrangement(cast: [.farLeft: .frontB, .farRight: .frontA, .nearMid: .backA])
 
-    func who(_ spot: Seating.Person) -> Rider { cast[spot] ?? .fixed(at: spot) }
+    /// a round has at least two to choose between and always leaves a seat free
+    static let headcount = 2...5
 
-    /// deal every reshufflable seat from the pool that matches which way it faces, then
-    /// reject the draw if it came out the same as last round.
+    func who(_ seat: Seating.Person) -> Rider? { cast[seat] }
+
+    /// anyone on a bench. the kid and the driver never are.
+    var targets: [Seating.Person] { Seating.dealt.filter { cast[$0] != nil } }
+
+    /// everyone who can catch you at it: every passenger, whoever you're robbing too, and the kid
+    var watchers: [Seating.Person] { targets + [.kid] }
+
+    /// the empty seats either side of someone on their bench. the ends of a bench only have
+    /// one neighbour, and a neighbour who's already sat there isnt a seat.
+    func seats(beside p: Seating.Person) -> [CGRect] {
+        guard let bench = Seating.benches.first(where: { $0.contains(p) }),
+              let i = bench.firstIndex(of: p) else { return [] }
+        return [i - 1, i + 1]
+            .filter { bench.indices.contains($0) && cast[bench[$0]] == nil }
+            .map { Seating.thiefSpot(bench[$0]) }
+    }
+
+    /// somebody has somewhere to sit next to them, or there's no round to play
+    var playable: Bool { targets.contains { !seats(beside: $0).isEmpty } }
+
     static func random(avoiding previous: Arrangement?) -> Arrangement {
-        for _ in 0..<20 {
+        for _ in 0..<50 {
+            let seats = Seating.dealt.shuffled().prefix(Int.random(in: headcount))
             var cast: [Seating.Person: Rider] = [:]
-            // one of each animated face per angkot, so you never get twins
-            var taken: Set<Rider> = []
-
-            for spot in Seating.dealt {
-                let pool = Rider.pool(Seating.facing(spot)).filter {
-                    !($0.animated && taken.contains($0))
-                }
-                let pick = pool.randomElement() ?? .fixed(at: spot)
-                if pick.animated { taken.insert(pick) }
-                cast[spot] = pick
+            var taken: Set<Rider> = []   // one of each animated face per angkot, no twins
+            for seat in seats {
+                let pool = Rider.pool(Seating.facing(seat)).filter { !($0.animated && taken.contains($0)) }
+                guard let rider = pool.randomElement() else { continue }
+                if rider.animated { taken.insert(rider) }
+                cast[seat] = rider
             }
-
-            let next = Arrangement(cast: cast)
-            if next != previous { return next }
+            let start = cast.filter(\.value.animated).mapValues { _ in Bool.random() ? Mood.calm : .alert }
+            let next = Arrangement(cast: cast, start: start)
+            if next != previous && next.playable { return next }
         }
         return .fixed
     }
@@ -103,40 +122,39 @@ func runSessionChecks() {
     assert(s.items == 1, "a round you came away empty from isnt an item")
     assert(s.avgTime == "0:40", "60 seconds over 3 rounds")
 
-    // it keeps dealing something new round after round
+    // deal a lot of rounds and make sure everything that's meant to change does
     var seen = [s.arrangement]
-    for _ in 0..<40 {
+    for _ in 0..<80 {
         s.nextRound(after: RoundResult(value: 0, time: 0))
         assert(s.arrangement != seen.last!, "two rounds running with the same seating is a bug")
         seen.append(s.arrangement)
     }
-
-    // every seat with a choice has to actually move about, not just one of them shuffling
-    // along. the near bench only has the one drawing so far, so it sits this check out.
-    for spot in Seating.dealt where Rider.pool(Seating.facing(spot)).count > 1 {
-        assert(Set(seen.map { $0.who(spot) }).count > 1, "\(spot) got the same face every round")
+    assert(Set(seen.map(\.cast.count)).count >= 3, "the number of passengers has to vary")
+    assert(Set(seen.map { Set($0.cast.keys) }).count > 10, "and which seats they're in")
+    for seat in Seating.dealt {
+        assert(seen.contains { $0.cast[seat] != nil } && seen.contains { $0.cast[seat] == nil },
+               "\(seat) should be sat in some rounds and empty in others")
     }
-    // both animated faces turn up, and in more than one seat each
     for face in [Rider.music, .sleepy] {
         let seats = Set(seen.flatMap { a in a.cast.filter { $0.value == face }.map(\.key) })
         assert(seats.count > 1, "\(face) is always in the same seat, or never dealt at all")
+        let moods = Set(seen.flatMap { a in a.cast.filter { $0.value == face }.compactMap { a.start[$0.key] } })
+        assert(moods == [.calm, .alert], "\(face) should start both ways round")
     }
-    // and it shouldnt settle into an A-B-A-B flip either
-    assert(Set(seen.map(\.cast)).count > 2, "the shuffle is only alternating between two")
 
     for a in seen {
-        for (spot, p) in a.cast {
-            assert(Seating.dealt.contains(spot), "\(spot) is fixed art, it cant be dealt")
-            assert(p.facing == Seating.facing(spot), "\(p) is facing the wrong way for \(spot)")
+        assert(Arrangement.headcount.contains(a.cast.count))
+        assert(a.playable, "every round leaves someone you can sit next to")
+        assert(a.cast[.kid] == nil, "the kid is fixed, he's never dealt")
+        for (seat, rider) in a.cast {
+            assert(rider.facing == Seating.facing(seat), "\(rider) is facing the wrong way for \(seat)")
         }
-        assert(a.who(.kid) == .kid, "the front door passenger never changes")
-        assert(!a.who(.near).animated, "the near bench has no animated art yet")
-        // music and sleepy together is fine, two of the same animated face isnt
         let faces = a.cast.values.filter(\.animated)
         assert(faces.count == Set(faces).count, "no twins")
-        // whoever ends up where, the picking rules are untouched
-        for v in Seating.victims { assert(!Seating.seats(beside: v).isEmpty) }
+        assert(Set(a.start.keys) == Set(a.cast.filter(\.value.animated).keys),
+               "only the animated ones have a mood")
     }
-    assert(Arrangement.fixed.cast.isEmpty, "the tutorial cast comes straight off the design")
+    assert(Arrangement.fixed.cast.count == 3 && Arrangement.fixed.start.isEmpty,
+           "the tutorial cast comes straight off the design")
     #endif
 }

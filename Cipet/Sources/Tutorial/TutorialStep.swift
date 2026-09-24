@@ -32,7 +32,7 @@ struct TutorialStep {
               show: [.onPavement]),
         .init(text: "Pick a seat to make your move",
               labelY: 200, cardY: 199, clock: "1:23",
-              show: [.seatGhosts, .kid], hot: .near),
+              show: [.seatGhosts, .kid], hot: .nearMid),
         .init(text: "Grab the item and keep your hand steady while stealing.",
               labelY: 196, cardY: 152, clock: "1:10",
               show: [.onBoard, .kid, .stealBar], hot: .farLeft),

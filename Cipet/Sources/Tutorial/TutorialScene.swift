@@ -15,6 +15,9 @@ struct TutorialAngkot: View {
     var aware: [Seating.Person: CGFloat] = [:]
     /// greys out the driver and the kid, for when you're picking a target and they're off limits
     var dimFixed = false
+    /// what the animated passengers are up to, which picks their animation
+    var moods: [Seating.Person: Mood] = [:]
+    var paused = false
 
     var body: some View {
         Group {
@@ -26,8 +29,8 @@ struct TutorialAngkot: View {
     }
 
     @ViewBuilder private var people: some View {
-        if show.contains(.kid) { passenger(.kid).colorMultiply(fixedTint) }
-        passenger(.farRight)
+        if show.contains(.kid) { art("tut_bocah", Tut.bocah).colorMultiply(fixedTint) }
+        ForEach(Seating.benches[0], id: \.self) { passenger($0) }
 
         if show.contains(.seatGhosts) {
             ForEach(ghostSeats.indices, id: \.self) { i in
@@ -35,9 +38,8 @@ struct TutorialAngkot: View {
             }
         }
 
-        passenger(.farLeft)
         art("tut_sopir", Tut.sopir).colorMultiply(fixedTint)
-        passenger(.near)
+        ForEach(Seating.benches[1], id: \.self) { passenger($0) }
 
         if show.contains(.onBoard) { art("loading_pencipet", thiefAt) }
         if show.contains(.awareness) {
@@ -55,18 +57,20 @@ struct TutorialAngkot: View {
     // picking somebody never changes who they are. the flat cast have a yellow version of
     // their own drawing to swap to, the animated ones keep their frames and get a ring.
     @ViewBuilder private func passenger(_ v: Seating.Person) -> some View {
-        let who = cast.who(v)
-        let ring: Color? = hot == v ? Ink.yellow : nil
+        if let who = cast.who(v) {
+            let ring: Color? = hot == v ? Ink.yellow : nil
 
-        if let clip = who.clip {
-            place(Tut.inAngkot(Clips.box(over: Seating.spot(v))), space) {
-                FrameAnimation(clip: clip, ring: ring, ringWidth: space.px(2))
-            }
-        } else if ring != nil, let yellow = who.hotArt {
-            art(yellow, Seating.spot(v))
-        } else {
-            place(Tut.inAngkot(Seating.spot(v)), space) {
-                Sprite(name: who.art, ring: ring, ringWidth: space.px(2))
+            if let moves = who.moves {
+                place(Tut.inAngkot(Clips.box(over: Seating.spot(v))), space) {
+                    RiderActor(moves: moves, mood: moods[v] ?? .calm, paused: paused,
+                               ring: ring, ringWidth: space.px(2))
+                }
+            } else if ring != nil, let yellow = who.hotArt {
+                art(yellow, Seating.spot(v))
+            } else {
+                place(Tut.inAngkot(Seating.spot(v)), space) {
+                    Sprite(name: who.art, ring: ring, ringWidth: space.px(2))
+                }
             }
         }
     }

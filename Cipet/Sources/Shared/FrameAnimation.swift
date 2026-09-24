@@ -1,27 +1,52 @@
 import SwiftUI
 
 // the animated art comes as numbered png sequences, all 300x300 with the character padded
-// the same way, so every frame of every clip can be drawn on one rect and stay registered.
+// the same way. a set is everything sharing a name, "MusicGalau-Idle-0000" to "-0035" is one
+// animation of 36 frames, and how many there are is counted off the catalog rather than
+// typed in, so a set that gains or loses frames just works.
 struct Clip: Equatable {
     let name: String
-    let frames: Int
-    var fps: Double = 24
     var loops = false
     /// played backwards. a few transitions only exist one way round and the reverse is the
     /// other half of the move, so this saves shipping the same drawings twice.
     var reversed = false
+    /// only this many frames, and starting this far in. length 1 is a still of one frame.
+    var length: Int? = nil
+    var offset = 0
 
+    init(_ name: String, loops: Bool = false, reversed: Bool = false,
+         length: Int? = nil, offset: Int = 0) {
+        self.name = name
+        self.loops = loops
+        self.reversed = reversed
+        self.length = length
+        self.offset = offset
+    }
+
+    var fps: Double { 24 }
+    var frames: Int { length ?? max(0, Clip.count(name) - offset) }
+    var exists: Bool { Clip.count(name) > 0 }
     var duration: Double { Double(frames) / fps }
 
     func frame(_ i: Int) -> String {
-        let n = min(max(0, i), frames - 1)
-        return String(format: "%@-%04d", name, reversed ? frames - 1 - n : n)
+        let n = min(max(0, i), max(0, frames - 1))
+        return String(format: "%@-%04d", name, offset + (reversed ? frames - 1 - n : n))
     }
 
     var last: String { frame(frames - 1) }
+
+    /// -0000, -0001, ... until the next one isnt there. counted once per set.
+    private static var counts: [String: Int] = [:]
+    static func count(_ name: String) -> Int {
+        if let n = counts[name] { return n }
+        var n = 0
+        while UIImage(named: String(format: "%@-%04d", name, n)) != nil { n += 1 }
+        counts[name] = n
+        return n
+    }
 }
 
-/// the whole cast, at their native 300x300 with the same padding
+/// the thief's sets. the passengers' are found through their Moves instead.
 enum Clips {
     static let size = CGSize(width: 300, height: 300)
 
@@ -37,32 +62,18 @@ enum Clips {
     }
 
     // the thief, reaching right
-    static let sitToSteal  = Clip(name: "CipetIdle-Nyopet", frames: 24)
-    static let stealing    = Clip(name: "CipetNyopet", frames: 12, loops: true)
-    static let stealToSit  = Clip(name: "CipetNyopet-Idle", frames: 21)
-    static let caughtMidSteal = Clip(name: "CipetNyopet-Caught", frames: 12)
-    static let caughtSitting  = Clip(name: "CipetCaught", frames: 12)
-    static let standUp     = Clip(name: "CipetIdle-Standup", frames: 13)
+    static let sitToSteal     = Clip("CipetIdle-Nyopet")
+    static let stealing       = Clip("CipetNyopet", loops: true)
+    static let stealToSit     = Clip("CipetNyopet-Idle")
+    static let caughtMidSteal = Clip("CipetNyopet-Caught")
+    static let caughtSitting  = Clip("CipetCaught")
+    static let standUp        = Clip("CipetIdle-Standup")
 
     // reaching left. there's no left "sit to steal", so the return trip runs backwards.
-    static let sitToStealL = Clip(name: "LeftCipetNyopet-Idle", frames: 21, reversed: true)
-    static let stealingL   = Clip(name: "LeftCipetNyopet", frames: 12, loops: true)
-    static let stealToSitL = Clip(name: "LeftCipetNyopet-Idle", frames: 21)
-    static let caughtMidStealL = Clip(name: "LeftCipetNyopet-Caught", frames: 12)
-
-    // the passenger with the headphones
-    static let musicToGalau = Clip(name: "MusicIdle-Galau", frames: 36)
-    // the dozy one. idle loops by itself; the rest chain idle -> nodding off -> asleep ->
-    // waking back up, plus the same angry reaction music has
-    static let sleepy       = Clip(name: "SleepyIdle", frames: 70, loops: true)
-    static let sleepyDozing = Clip(name: "SleepyIdle-Sleep", frames: 15)
-    static let sleepyAsleep = Clip(name: "SleepySleep", frames: 30, loops: true)
-    static let sleepyWaking = Clip(name: "SleepySleep-Idle", frames: 44)
-    static let sleepyAngry  = Clip(name: "SleepyIdle-Angry", frames: 18)
-    static let galau        = Clip(name: "MusicGalau", frames: 15, loops: true)
-    static let galauToMusic = Clip(name: "MusicGalau-Idle", frames: 36)
-    static let musicToAngry = Clip(name: "MusicIdle-Angry", frames: 18)
-    static let galauToAngry = Clip(name: "MusicGalau-Marah", frames: 18)
+    static let sitToStealL     = Clip("LeftCipetNyopet-Idle", reversed: true)
+    static let stealingL       = Clip("LeftCipetNyopet", loops: true)
+    static let stealToSitL     = Clip("LeftCipetNyopet-Idle")
+    static let caughtMidStealL = Clip("LeftCipetNyopet-Caught")
 
     static func steal(reachingLeft: Bool) -> Clip { reachingLeft ? stealingL : stealing }
     static func sitToSteal(reachingLeft: Bool) -> Clip { reachingLeft ? sitToStealL : sitToSteal }
@@ -127,7 +138,14 @@ struct FrameAnimation: View {
 
 func runClipChecks() {
     #if DEBUG
-    // frame names have to line up with what was installed, and both ends must exist
+    // frame counts come off the catalog, so check the counter against sets we know
+    let known = ["CipetNyopet": 12, "CipetIdle-Nyopet": 24, "MusicGalau": 15, "MusicGalau-Idle": 36,
+                 "MusicGalau-Marah": 18, "MusicIdle-Angry": 18, "MusicIdle-Galau": 36,
+                 "SleepyIdle": 70, "SleepyIdle-Sleep": 15, "SleepySleep": 30,
+                 "SleepySleep-Idle": 44, "SleepyIdle-Angry": 18]
+    for (name, n) in known { assert(Clip.count(name) == n, "\(name) should have \(n) frames") }
+    assert(!Clip("NoSuchSet").exists && Clip("NoSuchSet").frames == 0)
+
     let c = Clips.stealing
     assert(c.frame(0) == "CipetNyopet-0000")
     assert(c.last == "CipetNyopet-0011")
@@ -138,6 +156,10 @@ func runClipChecks() {
     assert(fwd.name == back.name && back.reversed && !fwd.reversed)
     assert(back.frame(0) == fwd.last && back.last == fwd.frame(0))
 
+    // a still is one frame of a set, held
+    let still = Clip("MusicGalau-Idle", length: 1, offset: 35)
+    assert(still.frames == 1 && still.frame(0) == "MusicGalau-Idle-0035")
+
     // a clip lands on the sprite it replaces
     let box = Clips.box(over: Tut.kanan)
     assert(abs(box.width - box.height) < 0.01, "the frames are square")
@@ -145,14 +167,8 @@ func runClipChecks() {
     assert(box.maxX > Tut.kanan.maxX && box.maxY > Tut.kanan.maxY)
 
     // only the hold-this-pose clips loop; the transitions have to end so the next beat starts
-    assert(Clips.stealing.loops && Clips.galau.loops && Clips.sleepy.loops)
-    // sleepy's frames really are in the catalog, both ends of every clip
-    for c in [Clips.sleepy, Clips.sleepyDozing, Clips.sleepyAsleep, Clips.sleepyWaking,
-              Clips.sleepyAngry] {
-        assert(UIImage(named: c.frame(0)) != nil && UIImage(named: c.last) != nil,
-               "\(c.name) is missing frames")
-    }
-    for once in [Clips.sitToSteal, Clips.standUp, Clips.caughtSitting, Clips.musicToAngry] {
+    assert(Clips.stealing.loops)
+    for once in [Clips.sitToSteal, Clips.standUp, Clips.caughtSitting, Clip("MusicIdle-Angry")] {
         assert(!once.loops, "\(once.name) has to finish")
         assert(once.duration > 0.2 && once.duration < 2.5, "\(once.name) should feel snappy")
     }

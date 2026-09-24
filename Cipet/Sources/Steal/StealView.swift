@@ -21,7 +21,7 @@ struct StealView: View {
         self.thiefSeat = thiefSeat
         self.cast = cast
         self.onDone = onDone
-        _vm = State(initialValue: StealViewModel(victim: victim, thiefSeat: thiefSeat))
+        _vm = State(initialValue: StealViewModel(victim: victim, thiefSeat: thiefSeat, cast: cast))
     }
 
     var body: some View {
@@ -110,7 +110,8 @@ struct StealView: View {
             road(space)
 
             TutorialAngkot(show: [.kid], space: space, hot: victim,
-                           cast: cast, aware: vm.aware)
+                           cast: cast, aware: vm.aware, moods: vm.moods,
+                           paused: vm.phase == .paused)
             ThiefActor(beat: beat, seat: thiefSeat, reachingLeft: reachingLeft,
                        space: space, paused: vm.phase == .paused, onFinish: finished)
             TutorialHUD(show: [], clock: vm.clock, space: space)

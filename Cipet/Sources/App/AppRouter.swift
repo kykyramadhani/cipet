@@ -43,7 +43,7 @@ func runRouterChecks() {
     assert(r.session.tutorialPending == armed, "moving between screens doesnt change it")
 
     r.session.tutorialFinished()
-    r.go(.steal(.farLeft, Seating.seats(beside: .farLeft)[0]))
+    r.go(.steal(.farLeft, Arrangement.fixed.seats(beside: .farLeft)[0]))
     r.go(.pickVictim)
     assert(!r.session.tutorialPending, "coming back to the pick stage must not re-arm it")
 

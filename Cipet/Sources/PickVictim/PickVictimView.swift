@@ -27,7 +27,16 @@ struct PickVictimView: View {
     let onTutorialDone: () -> Void
     let onStart: (Seating.Person, CGRect) -> Void
 
-    @State private var vm = PickVictimViewModel()
+    @State private var vm: PickVictimViewModel
+
+    init(cast: Arrangement, showTutorial: Bool, onTutorialDone: @escaping () -> Void,
+         onStart: @escaping (Seating.Person, CGRect) -> Void) {
+        self.cast = cast
+        self.showTutorial = showTutorial
+        self.onTutorialDone = onTutorialDone
+        self.onStart = onStart
+        _vm = State(initialValue: PickVictimViewModel(cast: cast))
+    }
 
     var body: some View {
         GeometryReader { geo in
@@ -60,7 +69,9 @@ struct PickVictimView: View {
 
             TutorialAngkot(show: show, space: space,
                            ghostSeats: vm.ghosts, thiefAt: vm.seat ?? Tut.seated,
-                           hot: vm.target, cast: cast, dimFixed: true)
+                           hot: vm.target, cast: cast,
+                           aware: vm.target.map { [$0: 0] } ?? [:],   // the target's bar, empty for now
+                           dimFixed: true, moods: cast.start)
                 .offset(y: space.px(Pick.drop))
             if vm.onPavement { TutorialPavement(space: space) }
             TutorialHUD(show: [], clock: "1:30", space: space)
@@ -88,7 +99,7 @@ struct PickVictimView: View {
     @ViewBuilder private func targets(_ space: DesignSpace) -> some View {
         switch vm.stage {
         case .target:
-            ForEach(Seating.victims, id: \.self) { who in
+            ForEach(cast.targets, id: \.self) { who in
                 hit(Seating.spot(who), space) { vm.pick(who) }
             }
         case .seat:

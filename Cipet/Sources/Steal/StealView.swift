@@ -73,7 +73,7 @@ struct StealView: View {
             case .paused:    break
             }
         }
-        .task { runStealChecks(); runJailChecks(); runThiefChecks(); runClipChecks(); runCooldownChecks() }
+        .task { runStealChecks(); runJailChecks(); runThiefChecks(); runClipChecks(); runCooldownChecks(); runBarChecks() }
     }
 
     /// he reaches towards whoever he's robbing

@@ -98,6 +98,15 @@ func runSeatingChecks() {
         assert(!Seating.seats(beside: v).contains(Seating.spot(v)))
     }
 
+    // nothing you can tap to pick a target overlaps the kid or the driver
+    for v in Seating.victims {
+        assert(!Seating.spot(v).intersects(Tut.bocah), "\(v) overlaps the kid")
+        assert(!Seating.spot(v).intersects(Tut.sopir), "\(v) overlaps the driver")
+    }
+    let pick = PickVictimViewModel()
+    pick.pick(.kid)
+    assert(pick.victim == nil && pick.stage == .victim, "tapping the kid does nothing")
+
     // the kid has no seat beside him to take, which is why he isnt on the list
     assert(Seating.seats(beside: .kid).isEmpty)
 

@@ -13,6 +13,8 @@ struct TutorialAngkot: View {
     var cast: Arrangement = .fixed
     /// bars over the idle passengers, keyed by who they belong to
     var aware: [Seating.Person: CGFloat] = [:]
+    /// greys out the driver and the kid, for when you're picking a target and they're off limits
+    var dimFixed = false
 
     var body: some View {
         Group {
@@ -24,7 +26,7 @@ struct TutorialAngkot: View {
     }
 
     @ViewBuilder private var people: some View {
-        if show.contains(.kid) { passenger(.kid) }
+        if show.contains(.kid) { passenger(.kid).colorMultiply(fixedTint) }
         passenger(.farRight)
 
         if show.contains(.seatGhosts) {
@@ -34,7 +36,7 @@ struct TutorialAngkot: View {
         }
 
         passenger(.farLeft)
-        art("tut_sopir", Tut.sopir)
+        art("tut_sopir", Tut.sopir).colorMultiply(fixedTint)
         passenger(.near)
 
         if show.contains(.onBoard) { art("loading_pencipet", thiefAt) }
@@ -47,6 +49,8 @@ struct TutorialAngkot: View {
             AwarenessBar(box: Seating.awareSlot(who), level: aware[who] ?? 0, space: space)
         }
     }
+
+    private var fixedTint: Color { dimFixed ? Ink.grey : .white }
 
     // picking somebody never changes who they are. the flat cast have a yellow version of
     // their own drawing to swap to, the animated ones keep their frames and get a ring.

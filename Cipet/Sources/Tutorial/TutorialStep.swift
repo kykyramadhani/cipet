@@ -27,7 +27,7 @@ struct TutorialStep {
     var countsSuspicion: Bool { show.contains(.counting) }
 
     static let all: [TutorialStep] = [
-        .init(text: "Choose your victim",
+        .init(text: "Choose your target",
               labelY: 202, cardY: 199, clock: "1:30",
               show: [.onPavement]),
         .init(text: "Pick a seat to make your move",

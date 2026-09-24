@@ -10,7 +10,7 @@ import SwiftUI
     /// set by the router, which is the only thing that arms it
     var tutorialUp = false
 
-    var prompt: String { stage == .victim ? "Pick your\nvictim\nfirst" : "Now, pick\nthe seat!" }
+    var prompt: String { stage == .victim ? "Pick your\ntarget\nfirst" : "Now, pick\nthe seat!" }
     var canConfirm: Bool { stage == .ready }
 
     /// he stands outside only until a victim is picked. after that he's the ghost inside
@@ -24,7 +24,8 @@ import SwiftUI
     }
 
     func pick(_ v: Seating.Person) {
-        guard !tutorialUp, stage == .victim else { return }
+        // the kid and the driver are on screen but off limits, whatever gets tapped
+        guard !tutorialUp, stage == .victim, Seating.victims.contains(v) else { return }
         victim = v
         stage = .seat
         Audio.shared.play(.click)

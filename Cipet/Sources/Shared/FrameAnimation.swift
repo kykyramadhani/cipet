@@ -52,8 +52,13 @@ enum Clips {
 
     // the passenger with the headphones
     static let musicToGalau = Clip(name: "MusicIdle-Galau", frames: 36)
-    // the dozing one. no frames shipped yet, so Rider.installed keeps him out of the pool.
-    static let sleepy       = Clip(name: "Sleepy", frames: 15, loops: true)
+    // the dozy one. idle loops by itself; the rest chain idle -> nodding off -> asleep ->
+    // waking back up, plus the same angry reaction music has
+    static let sleepy       = Clip(name: "SleepyIdle", frames: 70, loops: true)
+    static let sleepyDozing = Clip(name: "SleepyIdle-Sleep", frames: 15)
+    static let sleepyAsleep = Clip(name: "SleepySleep", frames: 30, loops: true)
+    static let sleepyWaking = Clip(name: "SleepySleep-Idle", frames: 44)
+    static let sleepyAngry  = Clip(name: "SleepyIdle-Angry", frames: 18)
     static let galau        = Clip(name: "MusicGalau", frames: 15, loops: true)
     static let galauToMusic = Clip(name: "MusicGalau-Idle", frames: 36)
     static let musicToAngry = Clip(name: "MusicIdle-Angry", frames: 18)
@@ -140,7 +145,13 @@ func runClipChecks() {
     assert(box.maxX > Tut.kanan.maxX && box.maxY > Tut.kanan.maxY)
 
     // only the hold-this-pose clips loop; the transitions have to end so the next beat starts
-    assert(Clips.stealing.loops && Clips.galau.loops)
+    assert(Clips.stealing.loops && Clips.galau.loops && Clips.sleepy.loops)
+    // sleepy's frames really are in the catalog, both ends of every clip
+    for c in [Clips.sleepy, Clips.sleepyDozing, Clips.sleepyAsleep, Clips.sleepyWaking,
+              Clips.sleepyAngry] {
+        assert(UIImage(named: c.frame(0)) != nil && UIImage(named: c.last) != nil,
+               "\(c.name) is missing frames")
+    }
     for once in [Clips.sitToSteal, Clips.standUp, Clips.caughtSitting, Clips.musicToAngry] {
         assert(!once.loops, "\(once.name) has to finish")
         assert(once.duration > 0.2 && once.duration < 2.5, "\(once.name) should feel snappy")

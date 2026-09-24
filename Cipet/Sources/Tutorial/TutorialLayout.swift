@@ -83,6 +83,12 @@ enum Tut {
     static let hand  = CGSize(width: 56.3478, height: 56.3478)
     static let handY: CGFloat = 18.652
 
+    /// where the hand's centre sits for a given fill. it runs from the start of the bar to
+    /// the middle of the wallet, so full means the hand is on top of it rather than past it.
+    static func handX(_ progress: CGFloat) -> CGFloat {
+        fill.minX + (coin.midX - fill.minX) * min(1, max(0, progress))
+    }
+
     static let suspOutline = CGRect(x: 137.146, y: 73.269, width: 163.866, height: 43.9332)
     static let suspBadge   = CGRect(x: 113.569, y: 72.569, width: 44.432, height: 44.432)
     static let slot   = CGSize(width: 40, height: 23.2)

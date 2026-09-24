@@ -116,6 +116,11 @@ func runSessionChecks() {
     for spot in Seating.dealt where Rider.pool(Seating.facing(spot)).count > 1 {
         assert(Set(seen.map { $0.who(spot) }).count > 1, "\(spot) got the same face every round")
     }
+    // both animated faces turn up, and in more than one seat each
+    for face in [Rider.music, .sleepy] {
+        let seats = Set(seen.flatMap { a in a.cast.filter { $0.value == face }.map(\.key) })
+        assert(seats.count > 1, "\(face) is always in the same seat, or never dealt at all")
+    }
     // and it shouldnt settle into an A-B-A-B flip either
     assert(Set(seen.map(\.cast)).count > 2, "the shuffle is only alternating between two")
 
@@ -126,7 +131,9 @@ func runSessionChecks() {
         }
         assert(a.who(.kid) == .kid, "the front door passenger never changes")
         assert(!a.who(.near).animated, "the near bench has no animated art yet")
-        assert(a.cast.values.filter(\.animated).count <= 1, "no twins")
+        // music and sleepy together is fine, two of the same animated face isnt
+        let faces = a.cast.values.filter(\.animated)
+        assert(faces.count == Set(faces).count, "no twins")
         // whoever ends up where, the picking rules are untouched
         for v in Seating.victims { assert(!Seating.seats(beside: v).isEmpty) }
     }

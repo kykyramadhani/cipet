@@ -76,6 +76,8 @@ func runRiderChecks() {
         assert(pool.allSatisfy { $0.facing == f })
         assert(!pool.contains(.kid), "the kid is fixed art, he's never dealt")
     }
+    assert(Rider.pool(.front).contains(.sleepy) && Rider.pool(.front).contains(.music),
+           "both animated faces are in the front pool")
     assert(!Rider.pool(.back).contains { $0.animated },
            "music and sleepy face forwards, they cant sit on the near bench")
 

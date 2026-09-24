@@ -69,12 +69,28 @@ struct StealBar: View {
                            radius: space.px(9), edge: space.px(2.2))
             }
             place(Tut.inBar(Tut.coin), space) { Image("tut_steal_wallet").resizable() }
-            place(Tut.inBar(CGRect(x: Tut.fill.minX + width - Tut.hand.width / 2, y: Tut.handY,
+            place(Tut.inBar(CGRect(x: Tut.handX(progress) - Tut.hand.width / 2, y: Tut.handY,
                                    width: Tut.hand.width, height: Tut.hand.height)), space) {
                 Image("tut_hand").resizable()
             }
         }
     }
+}
+
+func runBarChecks() {
+    #if DEBUG
+    assert(Tut.handX(0) == Tut.fill.minX, "empty, the hand is at the start of the bar")
+    assert(Tut.handX(1) == Tut.coin.midX, "full, the hand is right on the wallet")
+    assert(Tut.handX(2) == Tut.coin.midX, "and it never runs past it")
+    assert(abs(Tut.handX(0.5) - (Tut.fill.minX + Tut.coin.midX) / 2) < 0.001, "half way, half way")
+    // smooth all the way, no jump at the end
+    var last = Tut.handX(0)
+    for i in 1...100 {
+        let x = Tut.handX(CGFloat(i) / 100)
+        assert(x > last && x - last < 3, "the hand moves a little every step")
+        last = x
+    }
+    #endif
 }
 
 // three strikes. one lights up every time you get spotted, all three and youre caught.

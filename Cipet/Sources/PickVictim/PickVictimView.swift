@@ -52,7 +52,7 @@ struct PickVictimView: View {
 
             TutorialAngkot(show: show, space: space,
                            ghostSeats: vm.seatsOnOffer, thiefAt: thiefSpot,
-                           hot: vm.victim, cast: cast)
+                           hot: vm.victim, cast: cast, dimFixed: true)
             if vm.onPavement { TutorialPavement(space: space) }
             TutorialHUD(show: [], clock: "1:30", space: space)
 
@@ -66,7 +66,8 @@ struct PickVictimView: View {
     // MARK: what the angkot is showing right now
 
     private var show: TutorialStep.Show {
-        guard vm.victim != nil else { return [.onPavement] }
+        // the kid is sat there from the start, same as the driver
+        guard vm.victim != nil else { return [.onPavement, .kid] }
         return vm.stage == .ready ? [.kid, .onBoard] : [.kid, .seatGhosts]
     }
 

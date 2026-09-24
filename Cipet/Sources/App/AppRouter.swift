@@ -1,7 +1,10 @@
 import SwiftUI
 
 @Observable final class AppRouter {
-    enum Screen { case loading, menu, countdown, pickVictim, game }
+    enum Screen {
+        case loading, menu, countdown, pickVictim
+        case steal(Seating.Person, CGRect)
+    }
 
     private(set) var screen: Screen = .loading
 

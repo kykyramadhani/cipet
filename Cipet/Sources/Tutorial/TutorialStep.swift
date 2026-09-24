@@ -11,9 +11,6 @@ struct TutorialStep {
         static let stealBar   = Show(rawValue: 1 << 4)
         static let suspicion  = Show(rawValue: 1 << 5)
         static let awareness  = Show(rawValue: 1 << 6)
-        /// whichever passenger the thief is working on gets drawn in yellow
-        static let hotKanan   = Show(rawValue: 1 << 7)
-        static let hotKiriB   = Show(rawValue: 1 << 8)
         static let alarm      = Show(rawValue: 1 << 9)   // clock goes red when time is nearly up
         /// only the scene that's actually teaching the suspicion bar lets it fill up
         static let counting   = Show(rawValue: 1 << 10)
@@ -24,6 +21,8 @@ struct TutorialStep {
     let cardY: CGFloat
     let clock: String
     let show: Show
+    /// whoever the thief is working on gets drawn in yellow
+    var hot: Seating.Person? = nil
 
     var countsSuspicion: Bool { show.contains(.counting) }
 
@@ -33,15 +32,15 @@ struct TutorialStep {
               show: [.onPavement]),
         .init(text: "Pick a seat to make your move",
               labelY: 200, cardY: 199, clock: "1:23",
-              show: [.seatGhosts, .kid, .hotKanan]),
+              show: [.seatGhosts, .kid], hot: .near),
         .init(text: "Grab the item and keep your hand steady while stealing.",
               labelY: 196, cardY: 152, clock: "1:10",
-              show: [.onBoard, .kid, .hotKiriB, .stealBar]),
+              show: [.onBoard, .kid, .stealBar], hot: .farLeft),
         .init(text: "Watch out for other passengers\u{2019} suspicion bar.",
               labelY: 196, cardY: 153, clock: "1:10",
-              show: [.onBoard, .kid, .hotKiriB, .suspicion, .awareness, .counting]),
+              show: [.onBoard, .kid, .suspicion, .awareness, .counting], hot: .farLeft),
         .init(text: "Grab the item before time runs out !",
               labelY: 196, cardY: 159, clock: "0:10",
-              show: [.onBoard, .kid, .hotKiriB, .alarm, .stealBar, .suspicion, .awareness]),
+              show: [.onBoard, .kid, .alarm, .stealBar, .suspicion, .awareness], hot: .farLeft),
     ]
 }

@@ -11,13 +11,10 @@ enum Pick {
     static let confirmArt = CGRect(x: 324.696, y: 315.984, width: 224.554, height: 65.0165)
     static let confirmSize: CGFloat = 40
 
-    /// the far bench has one spot next to the victim, the near bench has two
-    static let farSeats  = [Tut.seated]
-    static let nearSeats = Tut.ghosts
 }
 
 struct PickVictimView: View {
-    let onStart: () -> Void
+    let onStart: (Seating.Person, CGRect) -> Void
 
     @State private var vm = PickVictimViewModel()
 
@@ -36,6 +33,7 @@ struct PickVictimView: View {
             .clipped()
         }
         .fullBleed()
+        .task { runSeatingChecks() }
     }
 
     private func scene(_ space: DesignSpace) -> some View {
@@ -47,7 +45,7 @@ struct PickVictimView: View {
                           y: space.y(DesignSpace.screen.height / 2))
 
             TutorialAngkot(show: show, space: space,
-                           ghostSeats: seats, thiefAt: thiefSpot)
+                           ghostSeats: vm.seatsOnOffer, thiefAt: thiefSpot, hot: vm.victim)
             if vm.onPavement { TutorialPavement(space: space) }
             TutorialHUD(show: [], clock: "1:30", space: space)
 
@@ -61,35 +59,23 @@ struct PickVictimView: View {
     // MARK: what the angkot is showing right now
 
     private var show: TutorialStep.Show {
-        var s: TutorialStep.Show = [.kid]
-        switch vm.victim {
-        case .farBench:  s.insert(.hotKiriB)
-        case .nearBench: s.insert(.hotKanan)
-        case nil:        return [.onPavement]
-        }
-        s.insert(vm.stage == .ready ? .onBoard : .seatGhosts)
-        return s
+        guard vm.victim != nil else { return [.onPavement] }
+        return vm.stage == .ready ? [.kid, .onBoard] : [.kid, .seatGhosts]
     }
 
-    private var seats: [CGRect] {
-        vm.victim == .farBench ? Pick.farSeats : Pick.nearSeats
-    }
-
-    private var thiefSpot: CGRect {
-        guard let i = vm.seat, seats.indices.contains(i) else { return Tut.seated }
-        return seats[i]
-    }
+    private var thiefSpot: CGRect { vm.seat ?? Tut.seated }
 
     // MARK: tap targets, only live once the tutorial is out of the way
 
     @ViewBuilder private func targets(_ space: DesignSpace) -> some View {
         switch vm.stage {
         case .victim:
-            hit(Tut.kiriB, space) { vm.pick(.farBench) }
-            hit(Tut.kanan, space) { vm.pick(.nearBench) }
+            ForEach(Seating.victims, id: \.self) { who in
+                hit(Seating.spot(who), space) { vm.pick(who) }
+            }
         case .seat:
-            ForEach(seats.indices, id: \.self) { i in
-                hit(seats[i], space) { vm.take(seat: i) }
+            ForEach(vm.seatsOnOffer, id: \.self) { spot in
+                hit(spot, space) { vm.take(seat: spot) }
             }
         case .ready:
             EmptyView()
@@ -122,7 +108,7 @@ struct PickVictimView: View {
 
     private func confirmButton(_ space: DesignSpace) -> some View {
         place(Pick.confirmArt, space) {
-            Button(action: onStart) {
+            Button { if let v = vm.victim, let seat = vm.seat { onStart(v, seat) } } label: {
                 ZStack {
                     Image(vm.canConfirm ? "menu_play_button" : "pv_confirm_off").resizable()
                     Text("Confirm")
@@ -136,4 +122,4 @@ struct PickVictimView: View {
     }
 }
 
-#Preview(traits: .landscapeLeft) { PickVictimView {} }
+#Preview(traits: .landscapeLeft) { PickVictimView { _, _ in } }

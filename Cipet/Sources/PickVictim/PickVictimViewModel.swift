@@ -1,14 +1,11 @@
 import SwiftUI
 
 @Observable final class PickVictimViewModel {
-    /// the two passengers the art gives us a lit version of
-    enum Victim { case farBench, nearBench }
-
     enum Stage { case victim, seat, ready }
 
     private(set) var stage: Stage = .victim
-    private(set) var victim: Victim?
-    private(set) var seat: Int?              // which of the two near-bench spots he took
+    private(set) var victim: Seating.Person?
+    private(set) var seat: CGRect?
 
     /// the tutorial cuts in over this screen before anything can be picked
     var tutorialUp = Seen.shouldShowTutorial
@@ -20,16 +17,21 @@ import SwiftUI
     /// the angkot showing where he'd sit, so he cant also be on the kerb.
     var onPavement: Bool { stage == .victim }
 
-    func pick(_ v: Victim) {
+    /// how many empty seats get offered depends on where the victim is sitting
+    var seatsOnOffer: [CGRect] {
+        guard let victim, stage == .seat else { return [] }
+        return Seating.seats(beside: victim)
+    }
+
+    func pick(_ v: Seating.Person) {
         guard !tutorialUp, stage == .victim else { return }
         victim = v
         stage = .seat
     }
 
-    /// the far bench only has the one spot beside the victim, the near bench has two
-    func take(seat i: Int?) {
-        guard !tutorialUp, stage == .seat else { return }
-        seat = i
+    func take(seat spot: CGRect) {
+        guard !tutorialUp, stage == .seat, seatsOnOffer.contains(spot) else { return }
+        seat = spot
         stage = .ready
     }
 

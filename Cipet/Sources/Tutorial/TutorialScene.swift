@@ -7,6 +7,9 @@ struct TutorialAngkot: View {
     /// pick-victim reuses this with its own spots, the tutorial just takes the defaults
     var ghostSeats: [CGRect] = Tut.ghosts
     var thiefAt: CGRect = Tut.seated
+    var hot: Seating.Person? = nil
+    /// bars over the idle passengers, keyed by who they belong to
+    var aware: [Seating.Person: CGFloat] = [:]
 
     var body: some View {
         Group {
@@ -18,8 +21,8 @@ struct TutorialAngkot: View {
     }
 
     @ViewBuilder private var cast: some View {
-        if show.contains(.kid) { art("tut_bocah", Tut.bocah) }
-        art("tut_kiri_a", Tut.kiriA)
+        if show.contains(.kid) { passenger(.kid) }
+        passenger(.farRight)
 
         if show.contains(.seatGhosts) {
             ForEach(ghostSeats.indices, id: \.self) { i in
@@ -27,16 +30,23 @@ struct TutorialAngkot: View {
             }
         }
 
-        art(show.contains(.hotKiriB) ? "tut_kiri_b_hot" : "tut_kiri_b", Tut.kiriB)
+        passenger(.farLeft)
         art("tut_sopir", Tut.sopir)
-        art(show.contains(.hotKanan) ? "tut_kanan_hot" : "tut_kanan", Tut.kanan)
+        passenger(.near)
 
         if show.contains(.onBoard) { art("loading_pencipet", thiefAt) }
         if show.contains(.awareness) {
             ForEach(Tut.aware.indices, id: \.self) { i in
-                AwarenessBar(index: i, space: space)
+                AwarenessBar(index: i, level: Tut.awareLevel[i], space: space)
             }
         }
+        ForEach(Array(aware.keys), id: \.self) { who in
+            AwarenessBar(box: Seating.awareSlot(who), level: aware[who] ?? 0, space: space)
+        }
+    }
+
+    private func passenger(_ v: Seating.Person) -> some View {
+        art(hot == v ? Seating.hotArt(v) : Seating.art(v), Seating.spot(v))
     }
 
     private func art(_ name: String, _ r: CGRect) -> some View {

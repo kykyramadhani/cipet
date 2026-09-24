@@ -7,7 +7,7 @@ struct CipetApp: App {
     }
 }
 
-// loading -> menu -> countdown -> pick a victim -> round. the tutorial isnt a screen of its
+// loading -> menu -> countdown -> pick a victim -> steal. the tutorial isnt a screen of its
 // own, it interrupts the pick stage, so it lives inside PickVictimView.
 struct RootView: View {
     @State private var router = AppRouter()
@@ -18,8 +18,12 @@ struct RootView: View {
             case .loading:    LoadingView    { router.go(.menu) }.transition(.opacity)
             case .menu:       MainMenuView   { router.go(.countdown) }.transition(.opacity)
             case .countdown:  CountdownView  { router.go(.pickVictim) }.transition(.opacity)
-            case .pickVictim: PickVictimView { router.go(.game) }.transition(.opacity)
-            case .game:       GameView().transition(.opacity)
+            case .pickVictim:
+                PickVictimView { who, seat in router.go(.steal(who, seat)) }
+                    .transition(.opacity)
+            case let .steal(who, seat):
+                StealView(victim: who, thiefSeat: seat) { _ in router.go(.pickVictim) }
+                    .transition(.opacity)
             }
         }
         .task { Audio.shared.music() }   // bgm runs across every screen

@@ -30,7 +30,7 @@ struct TutorialView: View {
     private func scene(_ step: TutorialStep, _ space: DesignSpace) -> some View {
         ZStack(alignment: .topLeading) {
             background(space)
-            TutorialAngkot(show: step.show, space: space)
+            TutorialAngkot(show: step.show, space: space, hot: step.hot)
             if step.show.contains(.onPavement) { TutorialPavement(space: space) }
             TutorialHUD(show: step.show, clock: step.clock, space: space)
             label(step, space)
@@ -87,8 +87,6 @@ private func runTutorialChecks() {
            "last scene shows all three bars")
     assert(!steps.last!.countsSuspicion, "and its suspicion bar stays grey")
     assert(steps.filter(\.countsSuspicion).count == 1, "only one scene fills it")
-    assert(steps.allSatisfy { !$0.show.contains(.hotKanan) || !$0.show.contains(.hotKiriB) },
-           "only one passenger is lit at a time")
     assert(steps.filter { $0.show.contains(.alarm) }.count == 1, "clock only panics once")
 
     // three slots and it wraps, so it can never read past full

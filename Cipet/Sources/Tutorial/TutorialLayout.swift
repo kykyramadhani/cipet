@@ -35,6 +35,8 @@ enum Tut {
                         CGRect(x: 101, y: 192, width: 68, height: 20),
                         CGRect(x: 158, y: 100, width: 68, height: 20)]
     static let awareLevel: [CGFloat] = [34.0 / 50, 45.0 / 50, 16.0 / 50]
+    static let awareBox   = CGSize(width: 68, height: 20)
+    static let awareNudge = CGSize(width: 0, height: -2)   // clears the top of their head
     static let awareTrack = CGRect(x: 8,  y: 3, width: 60, height: 14)
     static let awareArt   = CGSize(width: 60.67, height: 15.7919)
     static let awareFill  = CGRect(x: 13, y: 5, width: 50, height: 10)

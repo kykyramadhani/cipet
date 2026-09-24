@@ -1,12 +1,23 @@
 import SwiftUI
 
-// one passenger's suspicion, sat over their head. these stay at the level the scene shows.
+// one passenger's suspicion, sat over their head
 struct AwarenessBar: View {
-    let index: Int
+    let box: CGRect        // the 68x20 slot the bar sits in, in the angkot's coordinates
+    let level: CGFloat     // 0...1
     let space: DesignSpace
 
+    /// the tutorial's three fixed bars
+    init(index: Int, level: CGFloat, space: DesignSpace) {
+        self.init(box: Tut.aware[index], level: level, space: space)
+    }
+
+    init(box: CGRect, level: CGFloat, space: DesignSpace) {
+        self.box = box
+        self.level = level
+        self.space = space
+    }
+
     var body: some View {
-        let box  = Tut.aware[index]
         let fill = Tut.awareFill
 
         Group {
@@ -15,7 +26,7 @@ struct AwarenessBar: View {
                 Image("tut_aware_track").resizable()
             }
             place(Tut.inAngkot(CGRect(x: box.minX + fill.minX, y: box.minY + fill.minY,
-                                      width: fill.width * Tut.awareLevel[index],
+                                      width: fill.width * min(1, max(0, level)),
                                       height: fill.height)), space) {
                 TwoToneBar(core: Ink.red, rim: Ink.redGlow,
                            radius: space.px(fill.height / 2), edge: space.px(1.4))

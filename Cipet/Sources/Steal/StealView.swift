@@ -37,7 +37,7 @@ struct StealView: View {
                 }
                 if vm.phase == .succeeded && showEnding {
                     SucceedCard(remaining: vm.clock, value: Steal.itemValue, space: space,
-                                onNext: { onDone(.nextRound(result)) },
+                                onNext: { Audio.shared.play(.leave); onDone(.nextRound(result)) },
                                 onEnd: { onDone(.endGame(result)) })
                         .transition(.opacity)
                 }
@@ -53,15 +53,18 @@ struct StealView: View {
         .onChange(of: vm.holding) { _, down in
             guard vm.running else { return }
             beat = down ? .reaching : .returning
+            if down { Audio.shared.play(.grab) }
         }
+        .onChange(of: vm.suspicion) { _, _ in Audio.shared.play(.suspicion) }
         .onChange(of: vm.phase) { _, p in
             // getting clocked is the thief's moment, not the screen's. he flinches whether
             // it's a cooldown or the real thing, and the endings wait for him to land it.
             switch p {
-            case .penalty, .caught: beat = .caught(midSteal: midSteal)
-            case .stealing:         if isFlinching { beat = .sitting }
-            case .succeeded:        beat = .standing
-            case .paused:           break
+            case .penalty:   beat = .caught(midSteal: midSteal); Audio.shared.play(.warning)
+            case .caught:    beat = .caught(midSteal: midSteal); Audio.shared.play(.fight)
+            case .stealing:  if isFlinching { beat = .sitting }
+            case .succeeded: beat = .standing; Audio.shared.play(.stole)
+            case .paused:    break
             }
         }
         .task { runStealChecks(); runJailChecks(); runThiefChecks(); runClipChecks() }
@@ -86,7 +89,11 @@ struct StealView: View {
         case .returning: beat = .sitting
         // the flinch also ends a cooldown, and that one has no ending to show
         case .caught where vm.phase != .caught: break
-        case .caught, .standing:
+        case .standing:
+            // he's up, so the takings land with him
+            Audio.shared.play(.coins)
+            withAnimation(.easeInOut(duration: 0.25)) { showEnding = true }
+        case .caught:
             withAnimation(.easeInOut(duration: 0.25)) { showEnding = true }
         default: break
         }

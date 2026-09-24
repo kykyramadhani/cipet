@@ -8,6 +8,21 @@ enum Seating {
         case farLeft, farRight, near, kid
     }
 
+    /// which way a seat's occupant is drawn, which is what decides who can sit there
+    enum Facing { case front, back, fixed }
+
+    static func facing(_ p: Person) -> Facing {
+        switch p {
+        case .farLeft, .farRight: return .front   // far bench, facing you
+        case .near:               return .back    // near bench, seen from behind
+        case .kid:                return .fixed   // the fold-down seat by the door
+        }
+    }
+
+    /// the seats a new round is allowed to reshuffle. the driver isnt even in here, and the
+    /// kid by the door is fixed art, so neither can ever be dealt.
+    static let dealt: [Person] = [.farLeft, .farRight, .near]
+
     /// the ones you're allowed to pick
     static let victims: [Person] = [.farLeft, .farRight, .near]
 
@@ -89,6 +104,12 @@ func runSeatingChecks() {
     // everybody who isnt the mark gets a bar, kid included
     assert(Seating.idle(besides: .farLeft).count == 3)
     assert(Seating.idle(besides: .farLeft).contains(.kid))
+
+    // the two fixed spots are out of the shuffle, everyone you can rob is in it
+    assert(!Seating.dealt.contains(.kid), "the front door passenger never gets reshuffled")
+    assert(Seating.dealt.sorted(by: { "\($0)" < "\($1)" })
+        == Seating.victims.sorted(by: { "\($0)" < "\($1)" }), "you can rob every dealt seat")
+    assert(Seating.facing(.near) == .back && Seating.facing(.farLeft) == .front)
 
     // the bars sit above their owner and dont land on top of each other
     for p in Seating.Person.allCases {

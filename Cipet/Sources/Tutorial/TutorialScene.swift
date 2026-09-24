@@ -51,13 +51,19 @@ struct TutorialAngkot: View {
     // picking somebody never changes who they are. the flat cast have a yellow version of
     // their own drawing to swap to, the animated ones keep their frames and get a ring.
     @ViewBuilder private func passenger(_ v: Seating.Person) -> some View {
+        let who = cast.who(v)
         let ring: Color? = hot == v ? Ink.yellow : nil
-        if cast.who(v).animated {
+
+        if let clip = who.clip {
             place(Tut.inAngkot(Clips.box(over: Seating.spot(v))), space) {
-                FrameAnimation(clip: Clips.galau, ring: ring, ringWidth: space.px(2))
+                FrameAnimation(clip: clip, ring: ring, ringWidth: space.px(2))
             }
+        } else if ring != nil, let yellow = who.hotArt {
+            art(yellow, Seating.spot(v))
         } else {
-            art(hot == v ? Seating.hotArt(v) : Seating.art(v), Seating.spot(v))
+            place(Tut.inAngkot(Seating.spot(v)), space) {
+                Sprite(name: who.art, ring: ring, ringWidth: space.px(2))
+            }
         }
     }
 

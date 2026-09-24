@@ -27,12 +27,14 @@ import SwiftUI
         guard !tutorialUp, stage == .victim else { return }
         victim = v
         stage = .seat
+        Audio.shared.play(.click)
     }
 
     func take(seat spot: CGRect) {
         guard !tutorialUp, stage == .seat, seatsOnOffer.contains(spot) else { return }
         seat = spot
         stage = .ready
+        Audio.shared.play(.seated)
     }
 
     func tutorialFinished() { tutorialUp = false }

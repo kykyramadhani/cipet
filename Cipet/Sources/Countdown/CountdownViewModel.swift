@@ -16,10 +16,12 @@ import SwiftUI
     func begin() {
         guard step == nil else { return }
         step = 0
+        Audio.shared.play(.engine)
         Task { @MainActor in
             for i in 1..<Countdown.labels.count {
                 try? await Task.sleep(for: .seconds(Countdown.tick))
                 step = i
+                if i == Countdown.steal { Audio.shared.play(.whistle) }
             }
             try? await Task.sleep(for: .seconds(Countdown.hold))
             onStart()

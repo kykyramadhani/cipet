@@ -51,11 +51,16 @@ struct Sprite: View {
     }
 }
 
+// every button in the game uses this, so the click sound only needs wiring up once. it fires
+// on the press going down, not in the body, so a redraw cant retrigger it.
 struct PressStyle: ButtonStyle {
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
             .scaleEffect(configuration.isPressed ? 0.96 : 1)
             .animation(.spring(response: 0.2, dampingFraction: 0.6), value: configuration.isPressed)
+            .onChange(of: configuration.isPressed) { _, down in
+                if down { Audio.shared.play(.click) }
+            }
     }
 }
 

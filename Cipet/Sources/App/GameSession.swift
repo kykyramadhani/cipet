@@ -52,30 +52,38 @@ struct RoundResult {
 }
 
 // who is sitting in which passenger spot this round. the spots never move — they're where
-// the seats are drawn — so a round is shuffled by dealing different people into them.
+// the seats are drawn — so a round is shuffled by dealing a new face into each one.
 struct Arrangement: Equatable {
-    /// spot -> who's in it. anything missing is the plain artwork.
-    let cast: [Seating.Person: Passenger]
+    /// spot -> who's in it. anything missing falls back to the design's own cast.
+    let cast: [Seating.Person: Rider]
 
-    enum Passenger: CaseIterable, Equatable {
-        case plain, music
-        /// only music has a full animation so far; the rest stay on the flat artwork
-        var animated: Bool { self == .music }
-    }
-
-    /// nobody animated. the tutorial uses this so its scenes always look the same.
+    /// everybody on their default artwork. the tutorial uses this so its scenes always
+    /// look the same as the design.
     static let fixed = Arrangement(cast: [:])
 
-    func who(_ spot: Seating.Person) -> Passenger { cast[spot] ?? .plain }
+    func who(_ spot: Seating.Person) -> Rider { cast[spot] ?? .fixed(at: spot) }
 
-    /// music and sleepy are drawn facing forward, so they only fit the upper bench. the
-    /// driver and the kid by the door are fixed art and never get dealt at all.
-    static let dealt: [Seating.Person] = [.farLeft, .farRight]
-
-    /// at most one animated passenger a round, in a different seat to last time
+    /// deal every reshufflable seat from the pool that matches which way it faces, then
+    /// reject the draw if it came out the same as last round.
     static func random(avoiding previous: Arrangement?) -> Arrangement {
-        let options = dealt.map { Arrangement(cast: [$0: .music]) } + [.fixed]
-        return options.filter { $0 != previous }.randomElement() ?? .fixed
+        for _ in 0..<20 {
+            var cast: [Seating.Person: Rider] = [:]
+            // one of each animated face per angkot, so you never get twins
+            var taken: Set<Rider> = []
+
+            for spot in Seating.dealt {
+                let pool = Rider.pool(Seating.facing(spot)).filter {
+                    !($0.animated && taken.contains($0))
+                }
+                let pick = pool.randomElement() ?? .fixed(at: spot)
+                if pick.animated { taken.insert(pick) }
+                cast[spot] = pick
+            }
+
+            let next = Arrangement(cast: cast)
+            if next != previous { return next }
+        }
+        return .fixed
     }
 }
 
@@ -97,28 +105,31 @@ func runSessionChecks() {
 
     // it keeps dealing something new round after round
     var seen = [s.arrangement]
-    for _ in 0..<8 {
+    for _ in 0..<40 {
         s.nextRound(after: RoundResult(value: 0, time: 0))
         assert(s.arrangement != seen.last!, "two rounds running with the same seating is a bug")
         seen.append(s.arrangement)
     }
-    assert(Set(seen.map(\.animatedSpot)).count > 1, "the animated passenger has to move about")
 
-    // the fixed pair are never dealt, and the animated art never lands on a lower seat
+    // every seat with a choice has to actually move about, not just one of them shuffling
+    // along. the near bench only has the one drawing so far, so it sits this check out.
+    for spot in Seating.dealt where Rider.pool(Seating.facing(spot)).count > 1 {
+        assert(Set(seen.map { $0.who(spot) }).count > 1, "\(spot) got the same face every round")
+    }
+    // and it shouldnt settle into an A-B-A-B flip either
+    assert(Set(seen.map(\.cast)).count > 2, "the shuffle is only alternating between two")
+
     for a in seen {
-        for spot in a.cast.keys {
-            assert(Arrangement.dealt.contains(spot), "\(spot) is fixed art, it cant be dealt")
+        for (spot, p) in a.cast {
+            assert(Seating.dealt.contains(spot), "\(spot) is fixed art, it cant be dealt")
+            assert(p.facing == Seating.facing(spot), "\(p) is facing the wrong way for \(spot)")
         }
-        assert(!a.who(.kid).animated && !a.who(.near).animated,
-               "music/sleepy face forwards, they dont belong on the lower seats")
+        assert(a.who(.kid) == .kid, "the front door passenger never changes")
+        assert(!a.who(.near).animated, "the near bench has no animated art yet")
+        assert(a.cast.values.filter(\.animated).count <= 1, "no twins")
         // whoever ends up where, the picking rules are untouched
         for v in Seating.victims { assert(!Seating.seats(beside: v).isEmpty) }
     }
-    assert(Arrangement.fixed.cast.isEmpty, "the tutorial cast is plain all the way through")
+    assert(Arrangement.fixed.cast.isEmpty, "the tutorial cast comes straight off the design")
     #endif
-}
-
-extension Arrangement {
-    /// only used by the checks, to prove the animated one actually moves
-    var animatedSpot: Seating.Person? { cast.first { $0.value.animated }?.key }
 }

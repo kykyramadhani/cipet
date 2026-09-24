@@ -40,6 +40,6 @@ struct RootView: View {
                 EndGameView(session: router.session) { router.go(.menu) }.transition(.opacity)
             }
         }
-        .task { Audio.shared.music(); runRouterChecks(); runSessionChecks(); runEndChecks() }
+        .task { Audio.shared.music(); runRouterChecks(); runSessionChecks(); runEndChecks(); runRiderChecks() }
     }
 }

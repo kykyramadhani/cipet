@@ -49,6 +49,7 @@ struct JailScreen: View {
         .task {
             withAnimation(.easeOut(duration: Jail.barFall)) { caged = true }
             try? await Task.sleep(for: .seconds(Jail.barFall))
+            Audio.shared.play(.failed)
             withAnimation(.easeOut(duration: Jail.signIn)) { signed = true }
         }
     }

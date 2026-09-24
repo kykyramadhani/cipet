@@ -6,6 +6,31 @@ enum SFX: String, CaseIterable {
     case caught  = "sfx_caught"
     case move    = "sfx_move"
     case win     = "sfx_win"
+
+    case click     = "button_clicked"       // anything you tap
+    case engine    = "vehicle_turnOn"       // the angkot pulling up on the countdown
+    case whistle   = "whistle"              // steal time, go
+    case seated    = "character_seated"     // he takes the seat he picked
+    case grab      = "grabbing_character"   // hand goes in
+    case suspicion = "suspicion_bar"        // a strike lands on the suspicion bar
+    case warning   = "alert_warning"        // the almost-caught cooldown
+    case fight     = "fight"                // caught for real
+    case failed    = "failed_stealing"      // jailed
+    case stole     = "succeed_stealing"     // the lift came off
+    case coins     = "item_increase"        // takings on the succeed card
+    case leave     = "out_angkot"           // off to the next angkot
+    case postGame  = "post_game"            // the end screen
+
+    /// the long ones need pulling back so they dont sit on top of the music
+    var level: Float {
+        switch self {
+        case .engine:  return 0.45
+        case .fight:   return 0.6
+        case .warning: return 0.65
+        case .postGame, .leave: return 0.7
+        default:       return 1
+        }
+    }
 }
 
 final class Audio {
@@ -14,8 +39,11 @@ final class Audio {
     private var pool: [SFX: [AVAudioPlayer]] = [:]
     private var next: [SFX: Int] = [:]
     private var bgm: AVAudioPlayer?
+    private var lastPlayed: [SFX: TimeInterval] = [:]
 
     private static let voices = 3   // so the same sound can overlap itself
+    /// a state that flickers cant machine-gun the same sound. one event, one playback.
+    private static let minGap: TimeInterval = 0.12
 
     private init() {
         // ambient means we respect the silent switch and dont cut whatever the player
@@ -24,7 +52,10 @@ final class Audio {
         try? AVAudioSession.sharedInstance().setActive(true)
 
         for sfx in SFX.allCases {
-            guard let url = Bundle.main.url(forResource: sfx.rawValue, withExtension: "wav") else { continue }
+            guard let url = Bundle.main.url(forResource: sfx.rawValue, withExtension: "wav") else {
+                assertionFailure("\(sfx.rawValue).wav is not in the bundle")
+                continue
+            }
             pool[sfx] = (0..<Self.voices).compactMap { _ in
                 let p = try? AVAudioPlayer(contentsOf: url)
                 p?.prepareToPlay()
@@ -56,8 +87,13 @@ final class Audio {
         if !bgm.isPlaying { bgm.play() }
     }
 
-    func play(_ sfx: SFX, volume: Float = 1) {
+    func play(_ sfx: SFX, volume: Float? = nil) {
+        let volume = volume ?? sfx.level
         guard let voices = pool[sfx], !voices.isEmpty, Self.sfxVolume > 0 else { return }
+
+        let now = Date.timeIntervalSinceReferenceDate
+        guard now - (lastPlayed[sfx] ?? -.greatestFiniteMagnitude) >= Self.minGap else { return }
+        lastPlayed[sfx] = now
         let i = (next[sfx] ?? 0) % voices.count
         next[sfx] = i + 1
         let p = voices[i]

@@ -49,7 +49,7 @@ struct EndGameView: View {
             .clipped()
         }
         .fullBleed()
-        .task { runEndChecks() }
+        .task { runEndChecks(); Audio.shared.play(.postGame) }
     }
 
     private func halftone(_ space: DesignSpace) -> some View {

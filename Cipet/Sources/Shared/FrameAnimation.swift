@@ -52,6 +52,8 @@ enum Clips {
 
     // the passenger with the headphones
     static let musicToGalau = Clip(name: "MusicIdle-Galau", frames: 36)
+    // the dozing one. no frames shipped yet, so Rider.installed keeps him out of the pool.
+    static let sleepy       = Clip(name: "Sleepy", frames: 15, loops: true)
     static let galau        = Clip(name: "MusicGalau", frames: 15, loops: true)
     static let galauToMusic = Clip(name: "MusicGalau-Idle", frames: 36)
     static let musicToAngry = Clip(name: "MusicIdle-Angry", frames: 18)

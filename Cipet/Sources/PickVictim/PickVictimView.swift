@@ -14,6 +14,8 @@ enum Pick {
 }
 
 struct PickVictimView: View {
+    let showTutorial: Bool
+    let onTutorialDone: () -> Void
     let onStart: (Seating.Person, CGRect) -> Void
 
     @State private var vm = PickVictimViewModel()
@@ -25,15 +27,18 @@ struct PickVictimView: View {
             ZStack(alignment: .topLeading) {
                 scene(space)
                 if vm.tutorialUp {
-                    TutorialView { withAnimation(.easeInOut(duration: 0.3)) { vm.tutorialFinished() } }
-                        .transition(.opacity)
+                    TutorialView {
+                        withAnimation(.easeInOut(duration: 0.3)) { vm.tutorialFinished() }
+                        onTutorialDone()
+                    }
+                    .transition(.opacity)
                 }
             }
             .frame(width: geo.size.width, height: geo.size.height)
             .clipped()
         }
         .fullBleed()
-        .task { runSeatingChecks() }
+        .task { runSeatingChecks(); vm.tutorialUp = showTutorial }
     }
 
     private func scene(_ space: DesignSpace) -> some View {
@@ -122,4 +127,4 @@ struct PickVictimView: View {
     }
 }
 
-#Preview(traits: .landscapeLeft) { PickVictimView { _, _ in } }
+#Preview(traits: .landscapeLeft) { PickVictimView(showTutorial: false, onTutorialDone: {}) { _, _ in } }

@@ -37,6 +37,7 @@
 		C52D8123F3037B7E30D0AB4D /* Skranji-Regular.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 33D150E2E6B732590284F8A9 /* Skranji-Regular.ttf */; };
 		C8B338EFC427FEE7705A2468 /* sfx_caught.wav in Resources */ = {isa = PBXBuildFile; fileRef = 7575ACA1CC181AFCA3311EDC /* sfx_caught.wav */; };
 		CE58F9A04B9A5703CA027646 /* LoadingViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = D30742D5E5331C53F6C15EDD /* LoadingViewModel.swift */; };
+		D5E37FFE91D6D9E5F1E6B338 /* JailScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = 558E82CFB2ABA055CFE9B165 /* JailScreen.swift */; };
 		D5E70577C969B0D728847722 /* TutorialCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = 311D8E0DE92B834A3AF18B28 /* TutorialCard.swift */; };
 		D8F0B930633D32994FC97950 /* Style.swift in Sources */ = {isa = PBXBuildFile; fileRef = C20DF2E63C5C6002203D6554 /* Style.swift */; };
 		D9779B2CA17D523B797FB203 /* Skranji-Bold.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 0BD4E2CE4CB25CC20849989A /* Skranji-Bold.ttf */; };
@@ -67,6 +68,7 @@
 		39B01FB27A11E647024A5A0B /* sfx_success.wav */ = {isa = PBXFileReference; lastKnownFileType = audio.wav; path = sfx_success.wav; sourceTree = "<group>"; };
 		46820F96F60F02956336FB7C /* TutorialLayout.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TutorialLayout.swift; sourceTree = "<group>"; };
 		4CE329D050C1592D2D294CA4 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		558E82CFB2ABA055CFE9B165 /* JailScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = JailScreen.swift; sourceTree = "<group>"; };
 		56F7736B85287133F703BD8D /* MainMenuView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MainMenuView.swift; sourceTree = "<group>"; };
 		5845B202D76EDE17831BD1C2 /* StealViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StealViewModel.swift; sourceTree = "<group>"; };
 		66FD67C72C2F60401E54C645 /* SettingsPanel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsPanel.swift; sourceTree = "<group>"; };
@@ -117,6 +119,7 @@
 		5274979505AECB1CE67B3448 /* Steal */ = {
 			isa = PBXGroup;
 			children = (
+				558E82CFB2ABA055CFE9B165 /* JailScreen.swift */,
 				1961A911386E97028DE8F72E /* StealOverlays.swift */,
 				E0DF8F7C22472B67D151EE7C /* StealView.swift */,
 				5845B202D76EDE17831BD1C2 /* StealViewModel.swift */,
@@ -355,6 +358,7 @@
 				1BAA7B6FC8083153CA8141C6 /* GameView.swift in Sources */,
 				3041091DC823BF29C45EC282 /* GameViewModel.swift in Sources */,
 				AC811FDE155C96CC2A8336C6 /* HUD.swift in Sources */,
+				D5E37FFE91D6D9E5F1E6B338 /* JailScreen.swift in Sources */,
 				34B59E0D0F83EBC78DC57E88 /* LoadingView.swift in Sources */,
 				CE58F9A04B9A5703CA027646 /* LoadingViewModel.swift in Sources */,
 				EAAA4F29B9FF4AA3EECA1CC8 /* MainMenuView.swift in Sources */,

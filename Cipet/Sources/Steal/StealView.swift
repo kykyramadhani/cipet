@@ -3,12 +3,15 @@ import SwiftUI
 struct StealView: View {
     let victim: Seating.Person
     let thiefSeat: CGRect
-    let onDone: (Bool) -> Void        // true if the item was lifted
+    /// the round is over and the player has chosen where to go. the round never leaves on
+    /// its own — winning or getting caught shows a result here, it does not pop the screen.
+    enum Exit { case nextRound, home }
+    let onDone: (Exit) -> Void
 
     @State private var vm: StealViewModel
     private let clock = Timer.publish(every: 1.0 / 60, on: .main, in: .common).autoconnect()
 
-    init(victim: Seating.Person, thiefSeat: CGRect, onDone: @escaping (Bool) -> Void) {
+    init(victim: Seating.Person, thiefSeat: CGRect, onDone: @escaping (Exit) -> Void) {
         self.victim = victim
         self.thiefSeat = thiefSeat
         self.onDone = onDone
@@ -23,18 +26,24 @@ struct StealView: View {
                 scene(space)
                 grabArea(space)
                 if vm.phase == .penalty { PenaltyOverlay(count: vm.stopFor, space: space) }
-                if vm.phase == .paused  { PausedCard(space: space, onResume: vm.resume) }
+                if vm.phase == .paused {
+                    PausedCard(space: space, onResume: vm.resume) { onDone(.home) }
+                }
+                if vm.phase == .succeeded {
+                    SucceedCard(remaining: vm.clock, value: Steal.itemValue, space: space,
+                                onNext: { onDone(.nextRound) }, onEnd: { onDone(.home) })
+                        .transition(.opacity)
+                }
+                if vm.phase == .caught {
+                    JailScreen(space: space) { onDone(.home) }.transition(.opacity)
+                }
             }
             .frame(width: geo.size.width, height: geo.size.height)
             .clipped()
         }
         .fullBleed()
         .onReceive(clock) { _ in vm.tick(1.0 / 60) }
-        .onChange(of: vm.phase) { _, p in
-            if p == .succeeded { onDone(true) }
-            if p == .caught    { onDone(false) }
-        }
-        .task { runStealChecks() }
+        .task { runStealChecks(); runJailChecks() }
     }
 
     private func scene(_ space: DesignSpace) -> some View {

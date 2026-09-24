@@ -7,8 +7,8 @@ import SwiftUI
     private(set) var victim: Seating.Person?
     private(set) var seat: CGRect?
 
-    /// the tutorial cuts in over this screen before anything can be picked
-    var tutorialUp = Seen.shouldShowTutorial
+    /// set by the router, which is the only thing that arms it
+    var tutorialUp = false
 
     var prompt: String { stage == .victim ? "Pick your\nvictim\nfirst" : "Now, pick\nthe seat!" }
     var canConfirm: Bool { stage == .ready }
@@ -35,8 +35,5 @@ import SwiftUI
         stage = .ready
     }
 
-    func tutorialFinished() {
-        tutorialUp = false
-        Seen.tutorial = true
-    }
+    func tutorialFinished() { tutorialUp = false }
 }

@@ -16,16 +16,25 @@ struct RootView: View {
         ZStack {
             switch router.screen {
             case .loading:    LoadingView    { router.go(.menu) }.transition(.opacity)
-            case .menu:       MainMenuView   { router.go(.countdown) }.transition(.opacity)
+            case .menu:       MainMenuView   { router.startRun() }.transition(.opacity)
             case .countdown:  CountdownView  { router.go(.pickVictim) }.transition(.opacity)
             case .pickVictim:
-                PickVictimView { who, seat in router.go(.steal(who, seat)) }
-                    .transition(.opacity)
+                PickVictimView(showTutorial: router.tutorialPending,
+                               onTutorialDone: router.tutorialFinished) { who, seat in
+                    router.go(.steal(who, seat))
+                }
+                .transition(.opacity)
             case let .steal(who, seat):
-                StealView(victim: who, thiefSeat: seat) { _ in router.go(.pickVictim) }
-                    .transition(.opacity)
+                StealView(victim: who, thiefSeat: seat) { exit in
+                    // a new round goes back to the pick stage, and the tutorial stays gone
+                    switch exit {
+                    case .nextRound: router.go(.pickVictim)
+                    case .home:      router.go(.menu)
+                    }
+                }
+                .transition(.opacity)
             }
         }
-        .task { Audio.shared.music() }   // bgm runs across every screen
+        .task { Audio.shared.music(); runRouterChecks() }   // bgm runs across every screen
     }
 }

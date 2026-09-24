@@ -1,0 +1,15 @@
+{
+  "images": [
+    {
+      "filename": "settings_btn_ind.svg",
+      "idiom": "universal"
+    }
+  ],
+  "info": {
+    "author": "xcode",
+    "version": 1
+  },
+  "properties": {
+    "preserves-vector-representation": true
+  }
+}

@@ -17,7 +17,9 @@ enum Countdown {
 
     static let banner     = CGRect(x: 0, y: 109, width: 874, height: 184)
     static let dots       = CGRect(x: -100.003, y: -366.998, width: 1074.986, height: 918.275)
+    // the round card's banner is yellow, the counting ones are grey, dots a shade lighter either way
     static let bannerGrey = Color(red: 169 / 255, green: 169 / 255, blue: 169 / 255)
+    static let dotsGrey   = Color(red: 221 / 255, green: 221 / 255, blue: 221 / 255)
     static let labelInk   = Color(red:  24 / 255, green:  23 / 255, blue:  23 / 255)
     static let roundSize:  CGFloat = 100
     static let countSize:  CGFloat = 120
@@ -99,11 +101,12 @@ struct CountdownView: View {
             .offset(x: space.px(r.minX), y: space.px(r.minY))
     }
 
-    /// grey strip with the halftone bleeding out of it, clipped, word on top
+    /// coloured strip with the halftone bleeding out of it, clipped, word on top
     private func banner(_ space: DesignSpace) -> some View {
-        Countdown.bannerGrey
+        (vm.waiting ? Ink.yellow : Countdown.bannerGrey)
             .overlay {
-                Image("round_dots").resizable()
+                Image("round_dots").renderingMode(.template).resizable()
+                    .foregroundStyle(vm.waiting ? Ink.glow : Countdown.dotsGrey)
                     .frame(width: space.px(Countdown.dots.width),
                            height: space.px(Countdown.dots.height))
                     .position(x: space.px(Countdown.dots.midX), y: space.px(Countdown.dots.midY))

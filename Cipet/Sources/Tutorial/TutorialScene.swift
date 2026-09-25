@@ -42,11 +42,6 @@ struct TutorialAngkot: View {
         ForEach(Seating.benches[1], id: \.self) { passenger($0) }
 
         if show.contains(.onBoard) { art("loading_pencipet", thiefAt) }
-        if show.contains(.awareness) {
-            ForEach(Tut.aware.indices, id: \.self) { i in
-                AwarenessBar(index: i, level: Tut.awareLevel[i], space: space)
-            }
-        }
         ForEach(Array(aware.keys), id: \.self) { who in
             AwarenessBar(box: Seating.awareSlot(who), level: aware[who] ?? 0, space: space)
         }
@@ -116,7 +111,7 @@ struct TutorialHUD: View {
                         .foregroundStyle(.black)
                 }
             }
-            panel(show.contains(.alarm) ? "tut_panel_alert" : "tut_panel_clock", Tut.clockPanel) {
+            panel("tut_panel_clock", Tut.clockPanel) {
                 Image("tut_clock").resizable()
                     .frame(width: space.px(Tut.clockIcon), height: space.px(Tut.clockIcon))
                 Text(clock).font(.skranji(space.px(Tut.hudSize), bold: false))

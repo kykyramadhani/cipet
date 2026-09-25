@@ -10,9 +10,6 @@ import SwiftUI
     private(set) var target: Seating.Person?
     private(set) var seat: CGRect?
 
-    /// set by the router, which is the only thing that arms it
-    var tutorialUp = false
-
     init(cast: Arrangement) { self.cast = cast }
 
     var prompt: String {
@@ -41,7 +38,7 @@ import SwiftUI
     /// switching targets drops the old one and its seats. only before the first Confirm.
     func pick(_ v: Seating.Person) {
         // the kid and the driver are on screen but off limits, whatever gets tapped
-        guard !tutorialUp, stage == .target, cast.targets.contains(v), v != target else { return }
+        guard stage == .target, cast.targets.contains(v), v != target else { return }
         target = v
         seat = nil
         Audio.shared.play(.click)
@@ -49,7 +46,7 @@ import SwiftUI
 
     /// and the same for seats, once the target is locked
     func take(seat spot: CGRect) {
-        guard !tutorialUp, stage == .seat, seatsOnOffer.contains(spot), spot != seat else { return }
+        guard stage == .seat, seatsOnOffer.contains(spot), spot != seat else { return }
         seat = spot
         Audio.shared.play(.seated)
     }
@@ -57,7 +54,7 @@ import SwiftUI
     /// the first press locks the target. one seat beside them and he just takes it, so this
     /// hands back the finished choice straight away; two and it waits for you to pick one.
     func confirm() -> (target: Seating.Person, seat: CGRect)? {
-        guard !tutorialUp, canConfirm, let target else { return nil }
+        guard canConfirm, let target else { return nil }
         switch stage {
         case .target:
             let seats = seatsOnOffer
@@ -73,7 +70,6 @@ import SwiftUI
         }
     }
 
-    func tutorialFinished() { tutorialUp = false }
 }
 
 func runPickChecks() {
@@ -126,11 +122,5 @@ func runPickChecks() {
     boxed.pick(.farMid)
     assert(boxed.target == .farMid && !boxed.canConfirm && boxed.confirm() == nil)
     assert(boxed.stage == .target, "so you stay put and pick someone else")
-
-    // nothing happens while the tutorial is up
-    let busy = PickVictimViewModel(cast: fixed)
-    busy.tutorialUp = true
-    busy.pick(.nearMid)
-    assert(busy.target == nil && busy.confirm() == nil)
     #endif
 }

@@ -7,8 +7,7 @@ struct CipetApp: App {
     }
 }
 
-// loading -> menu -> countdown -> pick a victim -> steal. the tutorial isnt a screen of its
-// own, it interrupts the pick stage, so it lives inside PickVictimView.
+// loading -> menu -> tutorial (first game only) -> countdown -> pick a target -> steal
 struct RootView: View {
     @State private var router = AppRouter()
 
@@ -17,13 +16,12 @@ struct RootView: View {
             switch router.screen {
             case .loading:    LoadingView    { router.go(.menu) }.transition(.opacity)
             case .menu:       MainMenuView   { router.startGame() }.transition(.opacity)
+            case .tutorial:   TutorialView   { router.tutorialDone() }.transition(.opacity)
             case .countdown:
                 CountdownView(round: router.session.round) { router.go(.pickVictim) }
                     .transition(.opacity)
             case .pickVictim:
-                PickVictimView(cast: router.session.arrangement,
-                               showTutorial: router.session.tutorialPending,
-                               onTutorialDone: router.session.tutorialFinished) { who, seat in
+                PickVictimView(cast: router.session.arrangement) { who, seat in
                     router.go(.steal(who, seat))
                 }
                 .transition(.opacity)

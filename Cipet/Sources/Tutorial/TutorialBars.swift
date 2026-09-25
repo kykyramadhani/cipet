@@ -6,17 +6,6 @@ struct AwarenessBar: View {
     let level: CGFloat     // 0...1
     let space: DesignSpace
 
-    /// the tutorial's three fixed bars
-    init(index: Int, level: CGFloat, space: DesignSpace) {
-        self.init(box: Tut.aware[index], level: level, space: space)
-    }
-
-    init(box: CGRect, level: CGFloat, space: DesignSpace) {
-        self.box = box
-        self.level = level
-        self.space = space
-    }
-
     var body: some View {
         let fill = Tut.awareFill
 

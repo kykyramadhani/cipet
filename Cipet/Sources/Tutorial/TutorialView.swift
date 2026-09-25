@@ -1,100 +1,93 @@
 import SwiftUI
 
-// five scenes that share one screen, so the differences live in TutorialStep and everything
-// here just reads them. the angkot is parked, nothing scrolls. the only moving part is the
-// steal bar filling on a loop.
+// the onboarding, straight after Play and before round 1. every page is its frame from the
+// design exported whole, so it matches exactly, with real buttons laid over the "skip" and
+// the arrow drawn on it. the rects are those words' own bounds in the frame.
+enum Tutorial {
+    struct Page {
+        let art: String
+        let skip: CGRect?
+        let next: CGRect   // the arrow, or "Play now" on the last page
+    }
+
+    static let pages: [Page] = [
+        Page(art: "tutorial_259_201",  skip: CGRect(x: 683, y: 307, width: 30, height: 18),
+             next: CGRect(x: 814, y: 304, width: 24, height: 24)),
+        Page(art: "tutorial_278_1161", skip: CGRect(x: 683, y: 283, width: 31, height: 18),
+             next: CGRect(x: 814, y: 283, width: 24, height: 24)),
+        Page(art: "tutorial_278_2688", skip: CGRect(x: 663, y: 258, width: 30, height: 18),
+             next: CGRect(x: 794, y: 255, width: 24, height: 24)),
+        Page(art: "tutorial_278_1745", skip: CGRect(x: 685, y: 257, width: 30, height: 18),
+             next: CGRect(x: 816, y: 254, width: 24, height: 24)),
+        Page(art: "tutorial_288_194",  skip: CGRect(x: 141, y: 351, width: 30, height: 18),
+             next: CGRect(x: 272, y: 348, width: 24, height: 24)),
+        Page(art: "tutorial_278_3324", skip: CGRect(x: 135, y: 348, width: 30, height: 18),
+             next: CGRect(x: 266, y: 345, width: 24, height: 24)),
+        Page(art: "tutorial_278_3061", skip: CGRect(x: 685, y: 338, width: 30, height: 18),
+             next: CGRect(x: 816, y: 335, width: 24, height: 24)),
+        Page(art: "tutorial_278_3241", skip: nil,
+             next: CGRect(x: 151, y: 298, width: 76, height: 18)),
+    ]
+
+    /// the drawn words are smaller than a finger, so every button reaches at least this far
+    static let minTap: CGFloat = 44
+
+    static func tap(_ r: CGRect) -> CGRect {
+        r.insetBy(dx: min(0, (r.width - minTap) / 2), dy: min(0, (r.height - minTap) / 2))
+    }
+}
+
 struct TutorialView: View {
     let onFinish: () -> Void
 
-    @State private var vm = TutorialViewModel()
-    private let ticker = Timer.publish(every: 1.0 / 60, on: .main, in: .common).autoconnect()
+    @State private var index = 0
 
     var body: some View {
         GeometryReader { geo in
             let space = DesignSpace(geo.size)
-            let step = vm.step
+            let page = Tutorial.pages[index]
 
             ZStack(alignment: .topLeading) {
-                scene(step, space).allowsHitTesting(false)
-                card(step, space)
+                place(CGRect(origin: .zero, size: DesignSpace.screen), space) {
+                    Image(page.art).resizable()
+                }
+                if let skip = page.skip { button(skip, space, onFinish) }
+                button(page.next, space, next)
             }
             .frame(width: geo.size.width, height: geo.size.height)
             .clipped()
         }
         .fullBleed()
-        .onReceive(ticker) { _ in vm.tick(1.0 / 60) }
-        .onAppear { vm.onFinish = onFinish }
         .task { runTutorialChecks() }
     }
 
-    private func scene(_ step: TutorialStep, _ space: DesignSpace) -> some View {
-        ZStack(alignment: .topLeading) {
-            background(space)
-            TutorialAngkot(show: step.show, space: space, hot: step.hot)
-            if step.show.contains(.onPavement) { TutorialPavement(space: space) }
-            TutorialHUD(show: step.show, clock: step.clock, space: space)
-            label(step, space)
-            if step.show.contains(.stealBar) { StealBar(progress: vm.fill, space: space) }
-            if step.show.contains(.suspicion) { SuspicionBar(lit: vm.spotted, space: space) }
+    private func next() {
+        if index + 1 < Tutorial.pages.count { index += 1 } else { onFinish() }
+    }
+
+    private func button(_ r: CGRect, _ space: DesignSpace,
+                        _ action: @escaping () -> Void) -> some View {
+        place(Tutorial.tap(r), space) {
+            Button(action: action) { Color.clear.contentShape(Rectangle()) }
+                .buttonStyle(PressStyle())
         }
-    }
-
-    // the first scene uses the menu's road, the rest use the kerbside one
-    private func background(_ space: DesignSpace) -> some View {
-        Image(vm.index == 0 ? "menu_road" : "tut_road").resizable().scaledToFill()
-            .frame(width: space.px(DesignSpace.screen.width),
-                   height: space.px(DesignSpace.screen.height))
-            .position(x: space.x(DesignSpace.screen.width / 2),
-                      y: space.y(DesignSpace.screen.height / 2))
-    }
-
-    private func label(_ step: TutorialStep, _ space: DesignSpace) -> some View {
-        place(Tut.label.offsetBy(dx: 0, dy: step.labelY), space) {
-            Text("Tutorials")
-                .font(.skranji(space.px(Tut.labelSize), bold: false))
-                .foregroundStyle(Ink.soft)
-                .fixedSize()
-                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
-        }
-    }
-
-    private func card(_ step: TutorialStep, _ space: DesignSpace) -> some View {
-        TutorialCard(text: step.text,
-                     nextTitle: vm.nextTitle,
-                     space: space,
-                     onSkip: vm.skip,
-                     onNext: vm.next)
-            .frame(width: space.px(DesignSpace.screen.width),
-                   height: space.px(DesignSpace.screen.height), alignment: .topLeading)
-            .offset(x: space.px(Tut.cardX), y: space.px(step.cardY))
-            .position(x: space.x(DesignSpace.screen.width / 2),
-                      y: space.y(DesignSpace.screen.height / 2))
     }
 }
 
 private func runTutorialChecks() {
     #if DEBUG
-    assert(abs(Tut.angkot.midX - (DesignSpace.screen.width / 2 - 0.34)) < 0.01)
-    assert(abs(Tut.bar.midX - DesignSpace.screen.width / 2) < 0.01)
-    assert(Tut.bar.maxY == DesignSpace.screen.height - 20, "bar sits 20 up from the bottom")
-
-    let steps = TutorialStep.all
-    assert(steps.count == 5)
-    assert(steps[0].show == [.onPavement], "first scene keeps him out on the pavement")
-    assert(steps[1].show.contains(.seatGhosts), "second scene offers him the empty seats")
-    assert(steps.dropFirst(2).allSatisfy { $0.show.contains(.onBoard) })
-    assert(steps.last!.show.isSuperset(of: [.stealBar, .suspicion, .awareness]),
-           "last scene shows all three bars")
-    assert(!steps.last!.countsSuspicion, "and its suspicion bar stays grey")
-    assert(steps.filter(\.countsSuspicion).count == 1, "only one scene fills it")
-    assert(steps.filter { $0.show.contains(.alarm) }.count == 1, "clock only panics once")
-
-    // three slots and it wraps, so it can never read past full
-    var lit = 0
-    for _ in 0..<12 { lit = (lit + 1) % (Tut.slots + 1); assert(lit <= Tut.slots) }
-
-    let span = CGFloat(Tut.slots) * Tut.slot.width + CGFloat(Tut.slots - 1) * Tut.slotGap
-    assert(Tut.slotX + span <= Tut.suspOutline.maxX, "slots have to fit inside their box")
+    assert(Tutorial.pages.count == 8, "eight screens in the design's tutorial row")
+    let screen = CGRect(origin: .zero, size: DesignSpace.screen)
+    for (i, p) in Tutorial.pages.enumerated() {
+        assert(UIImage(named: p.art) != nil, "page \(i + 1)'s art is missing")
+        assert(screen.contains(Tutorial.tap(p.next)), "page \(i + 1)'s next button is off screen")
+        if let skip = p.skip {
+            assert(!Tutorial.tap(skip).intersects(Tutorial.tap(p.next)),
+                   "page \(i + 1): skip and next would steal each other's taps")
+        }
+    }
+    assert(Tutorial.pages.last!.skip == nil, "the last page only has Play now")
+    assert(Tutorial.tap(CGRect(x: 0, y: 0, width: 24, height: 24)).width == Tutorial.minTap)
     #endif
 }
 

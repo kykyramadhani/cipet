@@ -23,17 +23,12 @@ enum Pick {
 
 struct PickVictimView: View {
     let cast: Arrangement
-    let showTutorial: Bool
-    let onTutorialDone: () -> Void
     let onStart: (Seating.Person, CGRect) -> Void
 
     @State private var vm: PickVictimViewModel
 
-    init(cast: Arrangement, showTutorial: Bool, onTutorialDone: @escaping () -> Void,
-         onStart: @escaping (Seating.Person, CGRect) -> Void) {
+    init(cast: Arrangement, onStart: @escaping (Seating.Person, CGRect) -> Void) {
         self.cast = cast
-        self.showTutorial = showTutorial
-        self.onTutorialDone = onTutorialDone
         self.onStart = onStart
         _vm = State(initialValue: PickVictimViewModel(cast: cast))
     }
@@ -42,21 +37,12 @@ struct PickVictimView: View {
         GeometryReader { geo in
             let space = DesignSpace(geo.size)
 
-            ZStack(alignment: .topLeading) {
-                scene(space)
-                if vm.tutorialUp {
-                    TutorialView {
-                        withAnimation(.easeInOut(duration: 0.3)) { vm.tutorialFinished() }
-                        onTutorialDone()
-                    }
-                    .transition(.opacity)
-                }
-            }
+            scene(space)
             .frame(width: geo.size.width, height: geo.size.height)
             .clipped()
         }
         .fullBleed()
-        .task { runSeatingChecks(); runPickChecks(); vm.tutorialUp = showTutorial }
+        .task { runSeatingChecks(); runPickChecks() }
     }
 
     private func scene(_ space: DesignSpace) -> some View {
@@ -159,5 +145,5 @@ struct PickVictimView: View {
 }
 
 #Preview(traits: .landscapeLeft) {
-    PickVictimView(cast: .random(avoiding: nil), showTutorial: false, onTutorialDone: {}) { _, _ in }
+    PickVictimView(cast: .random(avoiding: nil)) { _, _ in }
 }

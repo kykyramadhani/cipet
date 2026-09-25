@@ -31,9 +31,10 @@ struct StealView: View {
             ZStack(alignment: .topLeading) {
                 // flattened first, or each sprite gets blurred inside its own box
                 scene(space)
+                    .contentShape(Rectangle())
+                    .gesture(hold, including: vm.running ? .all : .subviews)
                     .compositingGroup()
                     .blur(radius: vm.phase == .penalty ? space.px(Cooldown.blur) : 0, opaque: true)
-                grabArea(space)
                 if vm.phase == .penalty {
                     PenaltyOverlay(count: vm.stopFor, space: space)
                     TutorialHUD(show: [], clock: vm.clock, space: space, clockOnly: true)
@@ -137,15 +138,13 @@ struct StealView: View {
         .position(x: space.x(w - vm.road * w), y: space.y(h / 2))
     }
 
-    /// hold anywhere over the bar to fill it. letting go, or getting spotted, drops it.
-    private func grabArea(_ space: DesignSpace) -> some View {
-        place(Tut.inBar(Tut.track.insetBy(dx: 0, dy: -18)), space) {
-            Rectangle().fill(.clear).contentShape(Rectangle())
-        }
-        .gesture(DragGesture(minimumDistance: 0)
+    /// press and hold anywhere on the scene to steal; the bar only shows how far along you
+    /// are. it sits on the whole scene rather than any one part of it, and outside of actual
+    /// stealing it's switched off so only the pause button answers (see `including:` above).
+    private var hold: some Gesture {
+        DragGesture(minimumDistance: 0)
             .onChanged { _ in if vm.running { vm.holding = true } }
-            .onEnded   { _ in vm.holding = false })
-        .allowsHitTesting(vm.running)
+            .onEnded   { _ in vm.holding = false }
     }
 
     private func pauseButton(_ space: DesignSpace) -> some View {

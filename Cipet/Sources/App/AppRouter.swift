@@ -1,19 +1,25 @@
 import SwiftUI
 
-// one place that knows what screen we're on. the tutorial is not a screen — it's a flag on
-// the session, latched so nothing downstream can bring it back.
+// one place that knows what screen we're on. the tutorial is its own screen now, between
+// Play and round 1, and only startGame can route to it.
 @Observable final class AppRouter {
     enum Screen {
-        case loading, menu, countdown, pickVictim, endGame
+        case loading, menu, tutorial, countdown, pickVictim, endGame
         case steal(Seating.Person, CGRect)
     }
 
     private(set) var screen: Screen = .loading
     let session = GameSession()
 
-    /// the menu starts a fresh game; Next Round re-enters the countdown without resetting it
+    /// the menu starts a fresh game, with the tutorial first if it's owed. Next Round goes
+    /// straight back to the countdown and never passes through here.
     func startGame() {
         session.startFirstRound()
+        go(session.tutorialPending ? .tutorial : .countdown)
+    }
+
+    func tutorialDone() {
+        session.tutorialFinished()
         go(.countdown)
     }
 
@@ -37,15 +43,19 @@ func runRouterChecks() {
     let r = AppRouter()
     assert(!r.session.tutorialPending, "nothing is armed before a game starts")
 
+    // Play goes to the tutorial first when it's owed, and it hands over to round 1's countdown
     r.startGame()
-    let armed = r.session.tutorialPending
-    r.go(.pickVictim)
-    assert(r.session.tutorialPending == armed, "moving between screens doesnt change it")
+    if r.session.tutorialPending {
+        if case .tutorial = r.screen {} else { assertionFailure("Play has to open the tutorial") }
+        r.tutorialDone()
+    }
+    if case .countdown = r.screen {} else { assertionFailure("then round 1's countdown") }
+    assert(!r.session.tutorialPending && r.session.round == 1)
 
-    r.session.tutorialFinished()
-    r.go(.steal(.farLeft, Arrangement.fixed.seats(beside: .farLeft)[0]))
+    // nothing in a round can bring it back
     r.go(.pickVictim)
-    assert(!r.session.tutorialPending, "coming back to the pick stage must not re-arm it")
+    r.go(.steal(.farLeft, Arrangement.fixed.seats(beside: .farLeft)[0]))
+    assert(!r.session.tutorialPending)
 
     // Next Round goes through the countdown again, on a new number, tutorial still gone
     let seating = r.session.arrangement

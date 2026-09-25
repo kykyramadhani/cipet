@@ -1,8 +1,6 @@
 import SwiftUI
 
 enum Tut {
-    static let cycle: Double = 2.6   // one fill of the steal bar
-
     // MARK: angkot
     // the group sits centred on the screen. everything below is in the group's own coordinates,
     // and the order they're drawn in matters: wheels, interior, exterior, THEN the people, so
@@ -30,11 +28,7 @@ enum Tut {
     static let bubbleText = CGRect(x: 686, y: 123, width: 170, height: 30)
     static let bubbleSize: CGFloat = 24
 
-    // MARK: the bar over three of the heads
-    static let aware = [CGRect(x: 232, y: 108, width: 68, height: 20),
-                        CGRect(x: 101, y: 192, width: 68, height: 20),
-                        CGRect(x: 158, y: 100, width: 68, height: 20)]
-    static let awareLevel: [CGFloat] = [34.0 / 50, 45.0 / 50, 16.0 / 50]
+    // MARK: the awareness bar over a head
     static let awareBox   = CGSize(width: 68, height: 20)
     static let awareNudge = CGSize(width: 0, height: -2)   // clears the top of their head
     static let awareTrack = CGRect(x: 8,  y: 3, width: 60, height: 14)
@@ -52,23 +46,6 @@ enum Tut {
     static let clockIcon:  CGFloat = 40
     static let hudSize:    CGFloat = 40
     static let hudGap:     CGFloat = 8
-
-    static let label = CGRect(x: 24, y: 0, width: 220, height: 48)   // y comes from the step
-    static let labelSize: CGFloat = 40
-
-    // MARK: card
-    static let cardX:      CGFloat = 669
-    static let cardW:      CGFloat = 183
-    static let cardPad:    CGFloat = 14
-    static let cardGap:    CGFloat = 16
-    static let cardRadius: CGFloat = 10
-    static let cardBorder: CGFloat = 6
-    static let cardSize:   CGFloat = 20
-    static let skipSize:   CGFloat = 18
-    static let nextSize:   CGFloat = 16
-    static let nextBox   = CGSize(width: 36, height: 17)
-    static let nextArt   = CGSize(width: 46.5141, height: 23.8214)
-    static let nextNudge = CGSize(width: -10.419, height: -5.278)
 
     // MARK: bottom bar group, 440x116 sat 20 up from the bottom
     static let bar = CGRect(x: 217, y: 266, width: 440, height: 116)

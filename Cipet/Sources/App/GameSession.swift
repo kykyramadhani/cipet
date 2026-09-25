@@ -21,14 +21,14 @@ struct RoundResult {
         takings = 0
         items = 0
         played = 0
-        arrangement = .random(avoiding: nil)
+        arrangement = .random(avoiding: nil, round: round)
     }
 
     /// a fresh round: new number, new seating, and the tutorial stays done
     func nextRound(after r: RoundResult) {
         bank(r)
         round += 1
-        arrangement = .random(avoiding: arrangement)
+        arrangement = .random(avoiding: arrangement, round: round)
     }
 
     func endGame(after r: RoundResult) { bank(r) }
@@ -47,9 +47,10 @@ struct RoundResult {
 }
 
 // how one passenger behaves this round, dealt fresh every round and fixed until it ends.
-// the four rates are always in this order, whatever gets rolled:
-//   grabRate < slip < awareCalm < awareRate
-// so the steal bar is the sluggish one and suspicion the twitchy one, for everyone.
+// the rates are always in this order, whatever gets rolled:
+//   grabRate <= slip < awareCalm < awareRate
+// grab and slip start level and only grab falls behind, by a fixed step every 5 rounds
+// (see grabGap), so the steal bar is the sluggish one and suspicion the twitchy one.
 struct Traits: Equatable {
     let grabRate: Double    // the steal bar fills this fast while you hold (they're the mark)
     let slip: Double        // and sags this fast when you let go
@@ -77,14 +78,22 @@ struct Traits: Equatable {
         "Sleepy": 6...11, "Music": 4...8, "Duo": 3...7,
     ]
 
-    static func random(for rider: Rider) -> Traits {
+    /// how far the steal bar's fill lags its sag: none for rounds 1-4, then 0.05% more
+    /// every 5 rounds, and never more than 0.50%, however long a run goes. not rolled.
+    static let grabStep = 0.0005
+    static let grabGapCap = 0.005
+    static func grabGap(round: Int) -> Double {
+        min(grabGapCap, grabStep * Double(max(0, round) / 5))
+    }
+
+    static func random(for rider: Rider, round: Int = 1) -> Traits {
         if rider == .kid { return kid }
         let key = watchful.keys.first { rider.person.contains($0) }
         let rate = Double.random(in: key.map { watchful[$0]! } ?? 0.30...0.40)
         // each one a slice below the next, so the order can never come out wrong
         let calm = rate * .random(in: 0.6...0.85)
         let slip = calm * .random(in: 0.6...0.85)
-        let grab = slip * .random(in: 0.6...0.85)
+        let grab = slip - grabGap(round: round)
         let away = drift.first { rider.person.contains($0.key) }?.value ?? 4...8
         return Traits(grabRate: grab, slip: slip, awareCalm: calm, awareRate: rate,
                       threshold: .random(in: 0.75...1), idleFor: 3...6, calmFor: away)
@@ -140,7 +149,7 @@ struct Arrangement: Equatable {
     /// somebody has somewhere to sit next to them, or there's no round to play
     var playable: Bool { targets.contains { !seats(beside: $0).isEmpty } }
 
-    static func random(avoiding previous: Arrangement?) -> Arrangement {
+    static func random(avoiding previous: Arrangement?, round: Int = 1) -> Arrangement {
         for _ in 0..<50 {
             var cast: [Seating.Person: Rider] = [:]
             var dealt: Set<String> = []   // nobody twice, not even once from each side
@@ -161,7 +170,7 @@ struct Arrangement: Equatable {
             }
             let kid = Bool.random()
             if kid { start[.kid] = .alert }
-            var traits = cast.mapValues { Traits.random(for: $0) }
+            var traits = cast.mapValues { Traits.random(for: $0, round: round) }
             if kid { traits[.kid] = .random(for: .kid) }
             let next = Arrangement(cast: cast, start: start, kid: kid, traits: traits)
             if next.cast != previous?.cast && headcount.contains(cast.count) && next.playable {
@@ -236,12 +245,25 @@ func runSessionChecks() {
         assert(Set(a.start.keys) == Set(a.watchers) && Set(a.traits.keys) == Set(a.watchers))
         // the four rates keep their order for every single passenger dealt
         for (who, t) in a.traits where who != .kid {
-            assert(t.grabRate < t.slip && t.slip < t.awareCalm && t.awareCalm < t.awareRate,
-                   "grabRate < slip < awareCalm < awareRate, always")
+            assert(t.grabRate <= t.slip && t.slip < t.awareCalm && t.awareCalm < t.awareRate,
+                   "grabRate <= slip < awareCalm < awareRate, always")
+            assert(t.slip - t.grabRate <= Traits.grabGapCap + 1e-12, "grab never lags slip by more than 0.50%")
             assert(t.threshold > 0 && t.threshold <= 1)
         }
     }
     // the kid, when he's on, catches on far slower than any passenger
+    // grab starts level with slip and only lags it by a fixed 0.05% every 5 rounds, capped
+    for (round, gap) in [(1, 0.0), (4, 0.0), (5, 0.0005), (9, 0.0005), (10, 0.001), (15, 0.0015),
+                         (49, 0.0045), (50, 0.005), (51, 0.005), (1_000, 0.005)] {
+        assert(abs(Traits.grabGap(round: round) - gap) < 1e-12, "round \(round) should lag by \(gap)")
+    }
+    for _ in 0..<50 {
+        let first = Traits.random(for: Rider(who: "Music"), round: 1)
+        assert(first.grabRate == first.slip, "round 1: grab and slip are exactly level")
+        let late = Traits.random(for: Rider(who: "Sleepy"), round: 5_000)
+        assert(abs((late.slip - late.grabRate) - Traits.grabGapCap) < 1e-12, "and the gap stops at 0.50%")
+    }
+
     // the kid is the same every round: slow up, twice as quick back down
     for a in seen where a.kid { assert(a.traits[.kid] == Traits.kid, "the kid's rates are never rolled") }
     assert(Traits.kid.awareCalm == 2 * Traits.kid.awareRate)

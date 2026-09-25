@@ -106,7 +106,7 @@ struct StealView: View {
             case .paused:    break
             }
         }
-        .task { Haptics.warmUp(); runStealChecks(); runPortraitChecks(); runJailChecks(); runThiefChecks(); runClipChecks(); runCooldownChecks(); runBarChecks() }
+        .task { Haptics.warmUp(); warmThief(); runStealChecks(); runPortraitChecks(); runJailChecks(); runThiefChecks(); runClipChecks(); runCooldownChecks(); runBarChecks() }
     }
 
     /// both the cooldown and the pause card sit on a blurred round rather than a black one,
@@ -118,6 +118,15 @@ struct StealView: View {
     /// clock is still running through it.
     private var ticking: Bool {
         vm.lowOnTime && !vm.over && vm.phase != .paused && vm.timeLeft > 0
+    }
+
+    /// the thief's frames are looked up the first time each move plays; do it now, before
+    /// anyone can hold, so the first reach doesnt stop to find them
+    private func warmThief() {
+        let behind = Seating.bench(of: thiefSeat) == 1
+        for m in ["Idle-Nyopet", "Nyopet", "Nyopet-Idle", "Nyopet-Caught", "Caught", "Idle-Standup"] {
+            _ = Clips.thief(m, left: reachingLeft, behind: behind).frames
+        }
     }
 
     /// he reaches towards whoever he's robbing
@@ -204,8 +213,16 @@ struct StealView: View {
             // everywhere but the hud: the wallet, the clock, pause and the round tag
             .contentShape(HoldArea(space: space), eoFill: true)
             .gesture(DragGesture(minimumDistance: 0)
-                .onChanged { _ in fingerDown = true; if vm.running { vm.holding = true } }
-                .onEnded   { _ in fingerDown = false; vm.holding = false })
+                // this fires on every wobble of the finger, and any write to the model redraws
+                // the whole scene even when nothing changed, so only the first one writes
+                .onChanged { _ in
+                    if !fingerDown { fingerDown = true }
+                    if vm.running && !vm.holding { vm.holding = true }
+                }
+                .onEnded { _ in
+                    fingerDown = false
+                    if vm.holding { vm.holding = false }
+                })
     }
 
     private func pauseButton(_ space: DesignSpace) -> some View {

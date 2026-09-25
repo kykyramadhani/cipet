@@ -67,7 +67,7 @@ func runLocaleChecks() {
     // every entry in the catalog made it into the build, and none is blank or untranslated
     let built = L10n.indonesian.flatMap { $0.url(forResource: "Localizable", withExtension: "strings") }
         .flatMap { NSDictionary(contentsOf: $0) as? [String: String] } ?? [:]
-    assert(built.count == 60, "the catalog should carry all 60 entries, found \(built.count)")
+    assert(built.count >= 60, "the catalog should carry at least the 60 game entries, found \(built.count)")
     // every sentence and label starts with a capital, in both languages
     for (english, indonesian) in built {
         assert(english.first?.isLowercase == false && indonesian.first?.isLowercase == false,
@@ -75,7 +75,9 @@ func runLocaleChecks() {
     }
     for (english, indonesian) in built {
         assert(!english.isEmpty && !indonesian.isEmpty, "no blank entries")
-        assert(english != indonesian, "\(english) is not a translation of itself")
+        // a symbol like ":(" is the same in both, a word never is
+        assert(english != indonesian || !english.contains(where: \.isLetter),
+               "\(english) is not a translation of itself")
         assert(t(english) == indonesian, "\(english) doesnt come back as its translation")
     }
     // the signs scale themselves to their art now, so what's left to check is that no

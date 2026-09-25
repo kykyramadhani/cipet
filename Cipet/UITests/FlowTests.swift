@@ -47,6 +47,21 @@ final class FlowTests: XCTestCase {
         snap("id-tutorial-\(page)")
         XCTAssertEqual(page, 6)
         XCTAssertTrue(app.buttons["tutorial-play"].exists)
+
+        // and on into picking, where the tab has the longest indonesian line to hold
+        app.buttons["tutorial-play"].tap()
+        let confirm = app.buttons["Konfirmasi"]
+        XCTAssertTrue(confirm.waitForExistence(timeout: 15))
+        sleep(1)
+        snap("id-pick-target")
+        for p in people where !confirm.isEnabled { at(p.0, p.1).tap() }
+        confirm.tap()
+        sleep(1)
+        if confirm.exists {
+            for s in seats where !confirm.isEnabled { at(s.0, s.1).tap() }
+            sleep(1)
+            snap("id-pick-ready")
+        }
     }
 
     func testFirstGameThenHoldAnywhere() {

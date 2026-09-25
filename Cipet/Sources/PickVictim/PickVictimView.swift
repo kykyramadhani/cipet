@@ -8,6 +8,13 @@ enum Pick {
     static let tabLift: CGFloat = 2.3466       // how far the flipped art pokes above the box
     static let tabText  = CGRect(x: 337, y: Tut.clockPanel.maxY + 5.35, width: 200, height: 21.262)
     static let tabSize: CGFloat = 15.652
+    /// room either side of the words: what the design leaves round its longest english line
+    static let tabPad: CGFloat = 14
+    /// the tab's slanted ends, kept as drawn while its middle stretches for a longer line
+    static let tabCap: CGFloat = 12
+
+    /// the tab is the design's width unless the words need more, and it stays centred
+    static func tabWidth(for text: CGFloat) -> CGFloat { max(tabArt.width, text + 2 * tabPad) }
 
     /// the angkot sits this much lower here than on the other screens, to make room for the tab
     static let drop: CGFloat = 20
@@ -123,14 +130,18 @@ struct PickVictimView: View {
     // MARK: chrome
 
     private func instruction(_ space: DesignSpace) -> some View {
-        Group {
-            place(CGRect(x: Pick.tab.minX, y: Pick.tab.minY - Pick.tabLift,
-                         width: Pick.tabArt.width, height: Pick.tabArt.height), space) {
-                Image("pv_tab").resizable().scaleEffect(x: 1, y: -1)
+        // centred on the line's typographic width like the design does it. swiftui's own
+        // Text frame runs a few points wider, so centring that drifts the words left.
+        let width = GlyphLine(vm.prompt, size: Pick.tabSize).box.width
+        let tab = Pick.tabWidth(for: width)
+        return Group {
+            place(CGRect(x: Pick.tab.midX - tab / 2, y: Pick.tab.minY - Pick.tabLift,
+                         width: tab, height: Pick.tabArt.height), space) {
+                Image("pv_tab")
+                    .resizable(capInsets: EdgeInsets(top: 0, leading: Pick.tabCap, bottom: 0,
+                                                     trailing: Pick.tabCap), resizingMode: .stretch)
+                    .scaleEffect(x: 1, y: -1)
             }
-            // centred on the line's typographic width like the design does it. swiftui's
-            // own Text frame runs a few points wider, so centring that drifts the words left.
-            let width = GlyphLine(vm.prompt, size: Pick.tabSize).box.width
             place(CGRect(x: Pick.tabText.midX - width / 2, y: Pick.tabText.minY,
                          width: width, height: Pick.tabText.height), space) {
                 Text(vm.prompt)

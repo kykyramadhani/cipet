@@ -138,6 +138,13 @@ func runSeatingChecks() {
     assert(Pick.tab.minY == Tut.clockPanel.maxY && Pick.tab.midX == Tut.clockPanel.midX)
     assert(abs(GlyphLine("Choose your target", size: Pick.tabSize).box.width - 138) < 1.5)
     assert(abs(GlyphLine("Confirm if you\u{2019}re ready!", size: Pick.tabSize).box.width - 170) < 1.5)
+    // english fits the design's tab as it is; a longer line (indonesian) widens it to fit
+    assert(Pick.tabWidth(for: GlyphLine("Confirm if you\u{2019}re ready!", size: Pick.tabSize).box.width)
+           == Pick.tabArt.width, "english keeps the design's tab")
+    for line in ["Konfirmasi kalau sudah siap!", "Sekarang, pilih kursinya!", "Pilih targetmu"] {
+        let w = GlyphLine(line, size: Pick.tabSize).box.width
+        assert(Pick.tabWidth(for: w) >= w + 2 * Pick.tabPad - 0.001, "\(line) runs off its tab")
+    }
     assert(abs(GlyphLine("x", size: Pick.tabSize).box.height - Pick.tabText.height) < 0.01,
            "the text box is skranji's own line height")
     #endif

@@ -105,10 +105,11 @@ enum Steal {
         // they carry on with their lives through a cooldown too
         advanceExpressions(dt)
 
+        // the cooldown only stops you stealing. you've let go, so the steal bar sags exactly
+        // as it does whenever you let go, and everyone's suspicion keeps settling
         if phase == .penalty {
             penaltyLeft -= dt
             if penaltyLeft <= 0 { phase = .stealing }
-            return
         }
 
         advanceGrab(dt)
@@ -244,20 +245,16 @@ func runStealChecks() {
     assert(s.phase == .penalty && s.penaltyLeft > 0)
     assert(!s.holding, "getting spotted makes you let go")
 
-    // the bar that fired is left full rather than wiped, and nothing moves while you're held
+    // through the cooldown nothing is frozen: the bar that fired drains from full at the
+    // settling rate, and the steal bar sags at slip, the same as letting go
     assert((s.aware.values.max() ?? 0) == 1, "a bar that just filled is left full")
-    let before = s.grab
+    let before = s.grab, cooling = s.penaltyLeft
     for _ in 0..<30 { s.tick(1.0 / 60) }
-    assert(s.grab == before, "the steal bar is frozen while you're told to stop")
-    assert(s.timeLeft < Steal.round, "but the clock keeps going")
-    assert((s.aware.values.max() ?? 0) == 1, "and the bar is still full through the cooldown")
-
-    // only once the cooldown is over does it come down — from full, at the settling rate
+    assert(s.phase == .penalty && abs(s.penaltyLeft - (cooling - 0.5)) < 0.001, "the cooldown runs as it did")
+    assert(abs(s.grab - max(0, before - 0.5 * st.slip)) < 0.001, "the steal bar sags at slip")
+    assert(abs((s.aware.values.max() ?? 0) - (1 - 0.5 * st.awareCalm)) < 0.01, "suspicion drains from full")
+    assert(s.timeLeft < Steal.round, "and the clock keeps going")
     while s.phase == .penalty { s.tick(1.0 / 60) }
-    for _ in 0..<30 { s.tick(1.0 / 60) }
-    let after = s.aware.values.max() ?? 0
-    assert(after < 1, "then it drains")
-    assert(abs(after - (1 - 0.5 * st.awareCalm)) < 0.01, "from full, not from nothing")
     assert(s.suspicion == 1, "and coming down is not another strike")
 
     // pause preserves everything and resumes where it left off

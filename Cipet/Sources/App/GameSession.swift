@@ -62,17 +62,23 @@ struct Traits: Equatable {
     let idleFor: ClosedRange<Double>
     let calmFor: ClosedRange<Double>
 
-    /// how watchful each kind of person is when idle, per second. the kid is by far the
-    /// slowest: he's still watching, it just takes him a good while to get suspicious.
+    /// how watchful each kind of person is when idle, per second
     static let watchful: [String: ClosedRange<Double>] = [
-        "Sleepy": 0.26...0.34, "Music": 0.30...0.40, "Duo": 0.32...0.42, "Boy": 0.10...0.14,
+        "Sleepy": 0.26...0.34, "Music": 0.30...0.40, "Duo": 0.32...0.42,
     ]
+
+    /// the kid isnt rolled: the same every round. he's slow to get suspicious and loses
+    /// interest twice as fast as he gains it — the one exception to the rates' usual order.
+    /// (he's never the mark, so his grab and slip are never used.)
+    static let kid = Traits(grabRate: 0.03, slip: 0.04, awareCalm: 0.12, awareRate: 0.06,
+                            threshold: 1, idleFor: 1_000_000...1_000_000, calmFor: 1...2)
     /// how long they drift off for. sleep lasts, a chat or a song less so.
     static let drift: [String: ClosedRange<Double>] = [
         "Sleepy": 6...11, "Music": 4...8, "Duo": 3...7,
     ]
 
     static func random(for rider: Rider) -> Traits {
+        if rider == .kid { return kid }
         let key = watchful.keys.first { rider.person.contains($0) }
         let rate = Double.random(in: key.map { watchful[$0]! } ?? 0.30...0.40)
         // each one a slice below the next, so the order can never come out wrong
@@ -229,17 +235,17 @@ func runSessionChecks() {
         assert(people.count == Set(people).count, "nobody twice in one angkot")
         assert(Set(a.start.keys) == Set(a.watchers) && Set(a.traits.keys) == Set(a.watchers))
         // the four rates keep their order for every single passenger dealt
-        for t in a.traits.values {
+        for (who, t) in a.traits where who != .kid {
             assert(t.grabRate < t.slip && t.slip < t.awareCalm && t.awareCalm < t.awareRate,
                    "grabRate < slip < awareCalm < awareRate, always")
             assert(t.threshold > 0 && t.threshold <= 1)
         }
     }
     // the kid, when he's on, catches on far slower than any passenger
-    if let k = seen.first(where: \.kid), let rate = k.traits[.kid]?.awareRate {
-        assert(rate <= Traits.watchful["Boy"]!.upperBound)
-        let slowest = Traits.watchful.filter { $0.key != "Boy" }.map(\.value.lowerBound).min()!
-        assert(Traits.watchful["Boy"]!.upperBound * 1.5 < slowest, "the kid has to be a lot slower")
-    }
+    // the kid is the same every round: slow up, twice as quick back down
+    for a in seen where a.kid { assert(a.traits[.kid] == Traits.kid, "the kid's rates are never rolled") }
+    assert(Traits.kid.awareCalm == 2 * Traits.kid.awareRate)
+    let slowest = Traits.watchful.values.map(\.lowerBound).min()!
+    assert(Traits.kid.awareRate * 4 <= slowest, "the kid has to be a lot slower than anyone")
     #endif
 }

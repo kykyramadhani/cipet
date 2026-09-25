@@ -68,6 +68,11 @@ func runLocaleChecks() {
     let built = L10n.indonesian.flatMap { $0.url(forResource: "Localizable", withExtension: "strings") }
         .flatMap { NSDictionary(contentsOf: $0) as? [String: String] } ?? [:]
     assert(built.count == 60, "the catalog should carry all 60 entries, found \(built.count)")
+    // every sentence and label starts with a capital, in both languages
+    for (english, indonesian) in built {
+        assert(english.first?.isLowercase == false && indonesian.first?.isLowercase == false,
+               "\(english) / \(indonesian) has to be sentence case")
+    }
     for (english, indonesian) in built {
         assert(!english.isEmpty && !indonesian.isEmpty, "no blank entries")
         assert(english != indonesian, "\(english) is not a translation of itself")

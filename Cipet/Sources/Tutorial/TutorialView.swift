@@ -10,8 +10,12 @@ enum Tutorial {
     struct Card {
         let text: String
         let box: CGRect
-        enum Row { case none, next(skip: String), play }
+        enum Row { case none, next, play }
         let row: Row
+        /// the room between the words and the row under them, which the design varies
+        var gap: CGFloat = 14
+        /// when the design lets the words run a touch wider than the card's padding
+        var textWidth: CGFloat? = nil
 
     }
 
@@ -33,6 +37,10 @@ enum Tutorial {
         var pointer: CGPoint? = nil
         var suspicion = 0
         var grab: CGFloat = 0.08
+        /// where the design nudges the round's pieces on this screen, against the round's own
+        var angkotShift = CGSize.zero
+        var barShift = CGSize.zero
+        var suspicionShift = CGSize.zero
     }
 
     /// the tutorial's angkot, straight off the design: two on the far bench and the mark in
@@ -47,21 +55,25 @@ enum Tutorial {
 
     static let pages: [Page] = [
         Page(cards: [Card(text: "Choose your target", box: CGRect(x: 669, y: 199, width: 183, height: 122),
-                          row: .next(skip: "Skip"))],
+                          row: .next)],
              lit: [.angkot, .pointer, .pavement], picking: true, pointer: CGPoint(x: 351.9, y: 166.5)),
         Page(cards: [Card(text: "Pick the best seat to make your move",
-                          box: CGRect(x: 669, y: 199, width: 183, height: 143), row: .next(skip: "skip"))],
+                          box: CGRect(x: 669, y: 199, width: 183, height: 143), row: .next)],
              lit: [.angkot, .pointer], picking: true, kid: true, ghosts: true, pointer: CGPoint(x: 291.9, y: 166.5)),
         Page(cards: [Card(text: "Hold until the bar is full to steal the item.",
-                          box: CGRect(x: 671, y: 176, width: 183, height: 143), row: .next(skip: "skip"))],
-             lit: [.target, .thief, .stealBar]),
+                          box: CGRect(x: 30, y: 94, width: 183, height: 112), row: .none),
+                     Card(text: "Release to lower it.", box: CGRect(x: 656, y: 211, width: 198, height: 77),
+                          row: .next, gap: 10, textWidth: 178)],
+             lit: [.target, .thief, .stealBar], grab: 0.22,
+             angkotShift: CGSize(width: 0, height: -2), barShift: CGSize(width: 4, height: -7),
+             suspicionShift: CGSize(width: 5, height: -5)),
         Page(cards: [Card(text: "Beware of other passengers\u{2019} suspicion bar.",
                           box: CGRect(x: 461, y: 89, width: 183, height: 109), row: .none),
                      Card(text: "If a suspicion bar fills up, your suspicion level rises. Stop for 3 seconds to lower it.",
-                          box: CGRect(x: 94, y: 211, width: 225, height: 170), row: .next(skip: "skip"))],
+                          box: CGRect(x: 94, y: 211, width: 225, height: 170), row: .next)],
              lit: [.bars, .suspicion, .target, .thief], suspicion: 1),
         Page(cards: [Card(text: "If your suspicion level is full, you\u{2019}ll go to jail.",
-                          box: CGRect(x: 121, y: 240, width: 183, height: 143), row: .next(skip: "skip"))],
+                          box: CGRect(x: 121, y: 240, width: 183, height: 143), row: .next)],
              lit: [.bars, .suspicion, .target, .thief], suspicion: 3),
         Page(cards: [Card(text: "Fill the bar without raising too much suspicion, and you win!",
                           box: CGRect(x: 658, y: 178, width: 205, height: 168), row: .play)],
@@ -109,6 +121,10 @@ struct TutorialView: View {
         place(Steal.pauseArt, space) { Image("pv_pause").resizable() }
     }
 
+    private func bar(_ shift: CGSize, _ space: DesignSpace) -> CGSize {
+        CGSize(width: space.px(shift.width), height: space.px(shift.height))
+    }
+
     private func next() {
         if index + 1 < Tutorial.pages.count { index += 1 } else { onFinish() }
     }
@@ -145,10 +161,10 @@ struct TutorialView: View {
         TutorialAngkot(show: [], space: space, thiefAt: Tutorial.thiefSeat,
                        cast: Arrangement(cast: rest, kid: false),
                        aware: lit.contains(.bars) ? [:] : Tutorial.bars, moods: Tutorial.cast.start, colored: true)
-            .offset(y: drop)
+            .offset(x: space.px(page.angkotShift.width), y: drop + space.px(page.angkotShift.height))
         hud(space)
-        if !lit.contains(.stealBar) { StealBar(progress: page.grab, space: space) }
-        if !lit.contains(.suspicion) { SuspicionBar(lit: page.suspicion, space: space) }
+        if !lit.contains(.stealBar) { StealBar(progress: page.grab, space: space).offset(bar(page.barShift, space)) }
+        if !lit.contains(.suspicion) { SuspicionBar(lit: page.suspicion, space: space).offset(bar(page.suspicionShift, space)) }
 
         Tutorial.dim.ignoresSafeArea()
 
@@ -159,9 +175,9 @@ struct TutorialView: View {
                             beat: .stealing, seat: Tutorial.thiefSeat, reachingLeft: false,
                             behind: Seating.bench(of: Tutorial.thiefSeat) == 1, space: space, onFinish: { _ in })),
                        drawBody: false)
-            .offset(y: drop)
-        if lit.contains(.stealBar) { StealBar(progress: page.grab, space: space) }
-        if lit.contains(.suspicion) { SuspicionBar(lit: page.suspicion, space: space) }
+            .offset(x: space.px(page.angkotShift.width), y: drop + space.px(page.angkotShift.height))
+        if lit.contains(.stealBar) { StealBar(progress: page.grab, space: space).offset(bar(page.barShift, space)) }
+        if lit.contains(.suspicion) { SuspicionBar(lit: page.suspicion, space: space).offset(bar(page.suspicionShift, space)) }
     }
 }
 
@@ -177,17 +193,19 @@ struct TutorialCard: View {
 
     var body: some View {
         place(card.box, space) {
-            VStack(spacing: space.px(14)) {
+            VStack(spacing: space.px(card.gap)) {
                 Text(t(card.text))
                     .font(.skranji(space.px(Tutorial.textSize), bold: false))
                     .foregroundStyle(Ink.black)
-                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .frame(width: space.px(card.textWidth ?? card.box.width - 28), alignment: .leading)
                     .fixedSize(horizontal: false, vertical: true)
+                    // a design-width line can hang past the padding, centred over it
+                    .frame(width: space.px(card.box.width - 28))
                 switch card.row {
                 case .none: EmptyView()
-                case let .next(skip):
+                case .next:
                     HStack {
-                        link(skip, onSkip).accessibilityIdentifier("tutorial-skip")
+                        link("Skip", onSkip).accessibilityIdentifier("tutorial-skip")
                         Spacer(minLength: 0)
                         Button(action: onNext) {
                             Image("tut_arrow_next").resizable()

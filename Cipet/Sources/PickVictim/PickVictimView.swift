@@ -71,7 +71,8 @@ struct PickVictimView: View {
             TutorialAngkot(show: show, space: space,
                            ghostSeats: vm.ghosts, thiefAt: vm.seat ?? Tut.seated,
                            hot: vm.target, cast: cast,
-                           aware: vm.target.map { [$0: 0] } ?? [:],   // the target's bar, empty for now
+                           // the target's bar, empty for now, and only if they're idle
+                           aware: vm.target.flatMap { cast.start[$0] == .alert ? [$0: 0] : nil } ?? [:],
                            dimFixed: true, moods: cast.start)
                 .offset(y: space.px(Pick.drop))
             if vm.onPavement { TutorialPavement(space: space) }

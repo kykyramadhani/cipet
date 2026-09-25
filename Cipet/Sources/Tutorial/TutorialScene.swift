@@ -32,7 +32,12 @@ struct TutorialAngkot: View {
     }
 
     @ViewBuilder private var people: some View {
-        if show.contains(.kid) { art("tut_bocah", Tut.bocah).colorMultiply(fixedTint) }
+        if show.contains(.kid), cast.kid {
+            place(Tut.inAngkot(Clips.box(over: Tut.bocah)), space) {
+                RiderActor(moves: Rider.kid.moves, mood: .alert, paused: paused)
+            }
+            .colorMultiply(fixedTint)
+        }
         ForEach(Seating.benches[0], id: \.self) { passenger($0) }
 
         if show.contains(.seatGhosts) {
@@ -41,7 +46,7 @@ struct TutorialAngkot: View {
             }
         }
 
-        art("tut_sopir", Tut.sopir).colorMultiply(fixedTint)
+        art("Driver-0000", Clips.box(over: Tut.sopir)).colorMultiply(fixedTint)
         ForEach(Seating.benches[1], id: \.self) { passenger($0) }
 
         if show.contains(.onBoard) { art("loading_pencipet", thiefAt) }
@@ -52,23 +57,12 @@ struct TutorialAngkot: View {
 
     private var fixedTint: Color { dimFixed ? Ink.grey : .white }
 
-    // picking somebody never changes who they are. the flat cast have a yellow version of
-    // their own drawing to swap to, the animated ones keep their frames and get a ring.
+    // picking somebody never changes who they are: they keep their own frames and get a ring
     @ViewBuilder private func passenger(_ v: Seating.Person) -> some View {
         if let who = cast.who(v) {
-            let ring: Color? = hot == v ? Ink.yellow : nil
-
-            if let moves = who.moves {
-                place(Tut.inAngkot(Clips.box(over: Seating.spot(v))), space) {
-                    RiderActor(moves: moves, mood: moods[v] ?? .calm, paused: paused,
-                               ring: ring, ringWidth: space.px(2))
-                }
-            } else if ring != nil, let yellow = who.hotArt {
-                art(yellow, Seating.spot(v))
-            } else {
-                place(Tut.inAngkot(Seating.spot(v)), space) {
-                    Sprite(name: who.art, ring: ring, ringWidth: space.px(2))
-                }
+            place(Tut.inAngkot(Clips.box(over: Seating.spot(v))), space) {
+                RiderActor(moves: who.moves, mood: moods[v] ?? .alert, paused: paused,
+                           ring: hot == v ? Ink.yellow : nil, ringWidth: space.px(2))
             }
         }
     }

@@ -137,8 +137,10 @@ func runPickChecks() {
     assert(one.stage == .target, "never went through picking a seat")
 
     // no seats: somebody boxed in on a full bench can be looked at but not confirmed
-    let boxed = PickVictimViewModel(cast: Arrangement(cast: [.farLeft: .frontA, .farMid: .frontB,
-                                                             .farRight: .frontA, .nearMid: .backA]))
+    let boxed = PickVictimViewModel(cast: Arrangement(cast: [.farLeft: Rider(who: "Music"),
+                                                             .farMid: Rider(who: "Sleepy"),
+                                                             .farRight: Rider(who: "LeftDuo"),
+                                                             .nearMid: Rider(who: "BehindMusic")]))
     boxed.pick(.farMid)
     assert(boxed.target == .farMid && !boxed.canConfirm && boxed.confirm() == nil)
     assert(boxed.stage == .target, "so you stay put and pick someone else")

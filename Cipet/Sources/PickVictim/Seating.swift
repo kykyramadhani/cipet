@@ -20,6 +20,15 @@ enum Seating {
     /// the seats a round deals passengers into. the kid is fixed, and the driver isnt back here.
     static let dealt = benches.flatMap { $0 }
 
+    /// the seat beside, on the same bench, or nothing at the end of it
+    static func right(of p: Person) -> Person? { neighbour(p, 1) }
+    static func left(of p: Person) -> Person? { neighbour(p, -1) }
+    private static func neighbour(_ p: Person, _ step: Int) -> Person? {
+        guard let bench = benches.first(where: { $0.contains(p) }), let i = bench.firstIndex(of: p),
+              bench.indices.contains(i + step) else { return nil }
+        return bench[i + step]
+    }
+
     static func facing(_ p: Person) -> Facing {
         if p == .kid { return .fixed }
         return benches[0].contains(p) ? .front : .back
@@ -88,7 +97,8 @@ func runSeatingChecks() {
         }
     }
     // a full bench leaves nobody on it a seat
-    let packed = Arrangement(cast: [.farLeft: .frontA, .farMid: .frontB, .farRight: .frontA])
+    let packed = Arrangement(cast: [.farLeft: Rider(who: "Music"), .farMid: Rider(who: "Sleepy"),
+                                    .farRight: Rider(who: "LeftDuo")])
     assert(packed.seats(beside: .farMid).isEmpty && !packed.playable)
 
     // the drawings line up with the thief's seats and sit on their own bench

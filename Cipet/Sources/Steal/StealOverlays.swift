@@ -192,18 +192,10 @@ struct VictimPortrait: View {
         .clipShape(RoundedRectangle(cornerRadius: space.px(Self.radius)))
     }
 
-    /// the yellow version of their drawing where there is one — the animated faces only
-    /// have their own frames, so they show as they are
-    private var art: String {
-        guard let who = cast.who(victim) else { return "" }   // you only ever rob a filled seat
-        return who.hotArt ?? who.art
-    }
+    /// them idle, in their own frames, drawn from the same bigger box the angkot uses
+    private var art: String { cast.who(victim)?.art ?? "" }
 
-    /// the animated faces are drawn from a bigger box than the seat, the same way the
-    /// angkot draws them, or they come out shrunk inside their own frame
-    private func mark(_ seat: CGRect) -> CGRect {
-        cast.who(victim)?.animated == true ? Clips.box(over: seat) : seat
-    }
+    private func mark(_ seat: CGRect) -> CGRect { Clips.box(over: seat) }
 
     private func layer(_ name: String, _ r: CGRect,
                        _ ox: CGFloat, _ oy: CGFloat, _ s: CGFloat) -> some View {

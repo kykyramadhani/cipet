@@ -14,6 +14,8 @@ struct ThiefActor: View {
     let beat: Beat
     let seat: CGRect
     let reachingLeft: Bool
+    /// sat on the near bench, back to us
+    var behind = false
     let space: DesignSpace
     var paused = false
     let onFinish: (Beat) -> Void
@@ -25,31 +27,34 @@ struct ThiefActor: View {
     }
 
     private var clip: Clip {
+        let move = { (m: String, loops: Bool) in
+            Clips.thief(m, left: reachingLeft, behind: behind, loops: loops)
+        }
         switch beat {
         // sitting still is the first frame of getting up, held
-        case .sitting:   return Clip(Clips.standUp.name, length: 1)
-        case .reaching:  return Clips.sitToSteal(reachingLeft: reachingLeft)
-        case .stealing:  return Clips.steal(reachingLeft: reachingLeft)
-        case .returning: return Clips.stealToSit(reachingLeft: reachingLeft)
-        case let .caught(mid):
-            return mid ? Clips.caughtMidSteal(reachingLeft: reachingLeft) : Clips.caughtSitting
-        case .standing:  return Clips.standUp
+        case .sitting:   return Clip(move("Idle-Standup", false).name, length: 1)
+        case .reaching:  return move("Idle-Nyopet", false)
+        case .stealing:  return move("Nyopet", true)
+        case .returning: return move("Nyopet-Idle", false)
+        case let .caught(mid): return move(mid ? "Nyopet-Caught" : "Caught", false)
+        case .standing:  return move("Idle-Standup", false)
         }
     }
 }
 
 func runThiefChecks() {
     #if DEBUG
-    // every beat resolves to frames that were actually installed
-    for reach in [true, false] {
-        let clips = [Clips.sitToSteal(reachingLeft: reach), Clips.steal(reachingLeft: reach),
-                     Clips.stealToSit(reachingLeft: reach), Clips.caughtMidSteal(reachingLeft: reach)]
-        for c in clips { assert(c.frames > 1, "\(c.name) needs more than one frame") }
+    // every move resolves to real frames from every seat, reaching either way
+    for left in [true, false] {
+        for behind in [true, false] {
+            for m in ["Idle-Nyopet", "Nyopet", "Nyopet-Idle", "Nyopet-Caught", "Caught", "Idle-Standup"] {
+                assert(Clips.thief(m, left: left, behind: behind).frames > 1, "\(m) has no frames")
+            }
+        }
     }
-    // only the mid-action pose loops; everything else has to end so the next beat can start
-    assert(Clips.steal(reachingLeft: true).loops && Clips.steal(reachingLeft: false).loops)
-    assert(!Clips.standUp.loops && !Clips.caughtMidSteal(reachingLeft: false).loops)
-    // both flavours of caught have to exist, the cooldown flinch uses the sitting one
-    assert(Clips.caughtSitting.frames > 1 && !Clips.caughtSitting.loops)
+    // the new drawings are the ones used: the redrawn left set, and his back on the near bench
+    assert(Clips.thief("Idle-Nyopet", left: true, behind: false).name == "LeftCipetIdle-Nyopet")
+    assert(Clips.thief("Nyopet", left: false, behind: true).name == "BehindCipetNyopet")
+    assert(Clips.thief("Nyopet", left: true, behind: true).name == "LeftBehindCipetNyopet")
     #endif
 }

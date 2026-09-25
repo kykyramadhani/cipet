@@ -14,6 +14,8 @@ struct StealView: View {
     @State private var beat: ThiefActor.Beat = .sitting
     /// held back until the thief has finished reacting, so the endings dont cut him off
     @State private var showEnding = false
+    /// when he got caught, so the cage can wait for the passengers to finish turning on him
+    @State private var caughtAt: Date?
     private let clock = Timer.publish(every: 1.0 / 60, on: .main, in: .common).autoconnect()
 
     init(victim: Seating.Person, thiefSeat: CGRect, timeLeft: Double, cast: Arrangement, round: Int,
@@ -83,7 +85,8 @@ struct StealView: View {
             // it's a cooldown or the real thing, and the endings wait for him to land it.
             switch p {
             case .penalty:   beat = .caught(midSteal: midSteal); Audio.shared.play(.warning)
-            case .caught:    beat = .caught(midSteal: midSteal); Audio.shared.play(.fight)
+            case .caught:
+                beat = .caught(midSteal: midSteal); caughtAt = .now; Audio.shared.play(.fight)
             case .stealing:  if isFlinching { beat = .sitting }
             case .succeeded: beat = .standing; Audio.shared.play(.stole)
             case .paused:    break
@@ -123,7 +126,12 @@ struct StealView: View {
             Audio.shared.play(.coins)
             withAnimation(.easeInOut(duration: 0.25)) { showEnding = true }
         case .caught:
-            withAnimation(.easeInOut(duration: 0.25)) { showEnding = true }
+            // everyone's current face -> MARAH, then a beat of it, then the cage
+            let anger = vm.angerTime > 0 ? vm.angerTime + Steal.angerHold : 0
+            let left = anger - Date.now.timeIntervalSince(caughtAt ?? .now)
+            DispatchQueue.main.asyncAfter(deadline: .now() + max(0, left)) {
+                withAnimation(.easeInOut(duration: 0.25)) { showEnding = true }
+            }
         default: break
         }
     }
@@ -134,9 +142,10 @@ struct StealView: View {
 
             Group {
                 TutorialAngkot(show: [.kid], space: space, hot: victim,
-                               cast: cast, aware: vm.aware, moods: vm.moods,
+                               cast: cast, aware: vm.bars, moods: vm.moods,
                                paused: vm.phase == .paused, colored: true)
                 ThiefActor(beat: beat, seat: thiefSeat, reachingLeft: reachingLeft,
+                           behind: Seating.benches[1].map(Seating.thiefSpot).contains(thiefSeat),
                            space: space, paused: vm.phase == .paused, onFinish: finished)
             }
             .offset(y: space.px(Steal.angkotDrop))

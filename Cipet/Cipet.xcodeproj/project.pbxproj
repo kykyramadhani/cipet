@@ -387,6 +387,7 @@
 			buildConfigurationList = 586FF1B4E10D7BE88596928B /* Build configuration list for PBXNativeTarget "Cipet" */;
 			buildPhases = (
 				8B38095752170C3236C51F24 /* Sources */,
+				8BAF3CAB20CF582FC4863A71 /* List animation sets */,
 				0B702D856F59EA7E9D123251 /* Resources */,
 			);
 			buildRules = (
@@ -470,6 +471,28 @@
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXResourcesBuildPhase section */
+
+/* Begin PBXShellScriptBuildPhase section */
+		8BAF3CAB20CF582FC4863A71 /* List animation sets */ = {
+			isa = PBXShellScriptBuildPhase;
+			alwaysOutOfDate = 1;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputFileListPaths = (
+			);
+			inputPaths = (
+			);
+			name = "List animation sets";
+			outputFileListPaths = (
+			);
+			outputPaths = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "ls \"$SRCROOT/Resources/Assets.xcassets/Frames\" | sed -n 's/-[0-9]\\{4\\}\\.imageset$//p' | sort -u \\\n  > \"$TARGET_BUILD_DIR/$UNLOCALIZED_RESOURCES_FOLDER_PATH/frame_sets.txt\"\n";
+		};
+/* End PBXShellScriptBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
 		5122D9702C096C02870E9828 /* Sources */ = {
@@ -646,6 +669,7 @@
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = JLQK39AS23;
+				ENABLE_USER_SCRIPT_SANDBOXING = NO;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = "Cipet-Info.plist";
 				INFOPLIST_KEY_CFBundleDisplayName = "c!pet";
@@ -729,6 +753,7 @@
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = JLQK39AS23;
+				ENABLE_USER_SCRIPT_SANDBOXING = NO;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = "Cipet-Info.plist";
 				INFOPLIST_KEY_CFBundleDisplayName = "c!pet";

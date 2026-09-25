@@ -3,20 +3,12 @@ import SwiftUI
 enum Steal {
     static let round: Double = 60        // seconds on the clock
     static let warn:  Double = 10        // the clock goes red for the last stretch
-    static let grabTime: Double = 7      // how long you have to hold to lift the item
-    /// the four rates are ordered, and the order is the design: the steal bar is the
-    /// sluggish one and a passenger's suspicion is the twitchy one.
-    ///   grabRate < slip < awareCalm < every awareRate
-    static var grabRate: Double { 1 / grabTime }
-    static let slip: Double = 0.16       // the bar sags faster than it fills
-
-    /// how fast a passenger gets suspicious while you're at it, the same on every seat, and
-    /// how fast they settle down when you stop
-    static let awareRate: Double = 0.22
-    static let awareIdle: Double = 0.20  // the kid, who isnt on a seat
-    static let awareCalm: Double = 0.18
+    // how fast the bar fills and sags, and how fast each passenger catches on, are dealt per
+    // passenger per round now: see Traits. the bar goes by the mark's own numbers.
 
     static let penalty: Double = 3       // seconds frozen after somebody clocks you
+    /// how long everyone's MARAH is held on screen before the cage comes down
+    static let angerHold: Double = 0.6
     /// the angkot sits 2 lower here than on the other screens
     static let angkotDrop: CGFloat = 2
     static let roundTag  = CGRect(x: 24, y: 350, width: 140, height: 32)
@@ -43,8 +35,12 @@ enum Steal {
     private(set) var phase: Phase = .stealing
     private(set) var grab: CGFloat = 0
     private(set) var aware: [Seating.Person: CGFloat] = [:]
-    /// what the animated passengers are up to, which picks their animation
+    /// what each passenger is up to, which picks their animation and whether they're watching
     private(set) var moods: [Seating.Person: Mood] = [:]
+    /// seconds until each one switches between idle and their own thing
+    private var switchIn: [Seating.Person: Double] = [:]
+    /// how long the passengers take to turn on you once you're caught, so the cage waits for it
+    private(set) var angerTime: Double = 0
     private(set) var suspicion = 0
     private(set) var timeLeft = Steal.round
     /// the clock ran out, as opposed to getting spotted three times
@@ -69,6 +65,17 @@ enum Steal {
         // everyone gets a bar, whoever you're robbing included
         for who in cast.watchers { aware[who] = 0 }
         moods = cast.start
+        for who in cast.watchers { switchIn[who] = hold(who) }
+    }
+
+    /// the mark's numbers drive the steal bar
+    private var mark: Traits { cast.traits(victim) }
+
+    /// a passenger's bar shows while they're idle, and while it drains after they drift off.
+    /// once it's empty and they're off in their own thing, it's gone. drawn against their
+    /// own threshold, so it reads full at the moment they clock you.
+    var bars: [Seating.Person: CGFloat] {
+        aware.filter { moods[$0.key] == .alert || $0.value > 0 }
     }
 
     var clock: String { mmss(timeLeft.rounded(.up)) }
@@ -88,6 +95,9 @@ enum Steal {
         timeLeft -= dt
         if timeLeft <= 0 { timeLeft = 0; timedOut = true; caught(); return }
 
+        // they carry on with their lives through a cooldown too
+        advanceExpressions(dt)
+
         if phase == .penalty {
             penaltyLeft -= dt
             if penaltyLeft <= 0 { phase = .stealing }
@@ -100,16 +110,40 @@ enum Steal {
 
     private func advanceGrab(_ dt: Double) {
         if holding {
-            grab = min(1, grab + CGFloat(dt / Steal.grabTime))
+            grab = min(1, grab + CGFloat(dt * mark.grabRate))
             if grab >= 1 { phase = .succeeded }
         } else {
-            grab = max(0, grab - CGFloat(dt * Steal.slip))
+            grab = max(0, grab - CGFloat(dt * mark.slip))
         }
     }
 
+    /// idle -> their own thing -> idle, each on their own clock. the kid never drifts off, and a
+    /// duo's right half does whatever the left half does, since it's one conversation.
+    private func advanceExpressions(_ dt: Double) {
+        for who in cast.watchers where who != .kid && cast.who(who)?.isRightHalf == false {
+            switchIn[who, default: 0] -= dt
+            guard switchIn[who]! <= 0 else { continue }
+            let now: Mood = moods[who] == .alert ? .calm : .alert
+            moods[who] = now
+            switchIn[who] = hold(who)
+            if let right = Seating.right(of: who), cast.who(right)?.isRightHalf == true {
+                moods[right] = now
+            }
+        }
+    }
+
+    private func hold(_ who: Seating.Person) -> Double {
+        let t = cast.traits(who)
+        return .random(in: moods[who] == .alert ? t.idleFor : t.calmFor)
+    }
+
+    /// only an idle passenger is watching. in their own thing they notice nothing at all, and
+    /// whatever they'd built up drains away.
     private func advanceAwareness(_ dt: Double) {
         for who in Array(aware.keys) {
-            let rate = holding ? (who == .kid ? Steal.awareIdle : Steal.awareRate) : -Steal.awareCalm
+            let t = cast.traits(who)
+            let watching = moods[who] == .alert && holding
+            let rate = watching ? t.awareRate / Double(t.threshold) : -t.awareCalm
             let was = aware[who] ?? 0
             let next = min(1, max(0, was + CGFloat(dt * rate)))
             aware[who] = next
@@ -137,8 +171,14 @@ enum Steal {
     }
 
     /// the end of it, and everyone who can get angry does, not just whoever you were robbing
+    /// the end of it. spotted three times, everyone who can get angry does — the only way
+    /// anybody ever gets angry. running out of time is nobody catching you, so nobody does.
     private func caught() {
         phase = .caught
+        guard !timedOut else { return }
+        angerTime = cast.watchers.compactMap { who in
+            cast.who(who).map { $0.moves.time(from: moods[who] ?? .alert, to: .angry) }
+        }.max() ?? 0
         for who in moods.keys { moods[who] = .angry }
     }
 
@@ -167,18 +207,17 @@ func runStealChecks() {
     assert(greedy.suspicion == 1 && greedy.grab < 1, "one long hold has to get you spotted")
 
     // the four rates are ordered, and everything about how a round plays falls out of it
-    assert(Steal.grabRate < Steal.slip, "the steal bar has to sag faster than it fills")
-    assert(Steal.slip < Steal.awareCalm, "and sag slower than a passenger settles down")
-    assert(Steal.awareCalm < Steal.awareRate, "who all notice quicker than they settle")
-    assert(Steal.awareCalm < Steal.awareIdle, "the kid included")
+    // (the dealt ones are checked the same way over a hundred rounds in runSessionChecks)
+    let st = Traits.steady
+    assert(st.grabRate < st.slip && st.slip < st.awareCalm && st.awareCalm < st.awareRate)
 
     // what that ordering costs: easing off can never win on its own. to gain on the bar
     // you have to hold more than slip/(slip+grabRate) of the time, and to keep a bar from
     // filling you have to hold less than awareCalm/(awareCalm+awareRate) of it — and the
     // first is always the larger of the two while slip > grabRate. the strikes are the
     // only slack there is.
-    let mustHold = Steal.slip / (Steal.slip + Steal.grabRate)
-    let canHold  = Steal.awareCalm / (Steal.awareCalm + Steal.awareRate)
+    let mustHold = st.slip / (st.slip + st.grabRate)
+    let canHold  = st.awareCalm / (st.awareCalm + st.awareRate)
     assert(mustHold > canHold, "the ordering is what makes the round cost you strikes")
 
     var eased = StealViewModel(victim: .farLeft, thiefSeat: seat, cast: fixed)
@@ -209,7 +248,7 @@ func runStealChecks() {
     for _ in 0..<30 { s.tick(1.0 / 60) }
     let after = s.aware.values.max() ?? 0
     assert(after < 1, "then it drains")
-    assert(abs(after - (1 - 0.5 * Steal.awareCalm)) < 0.01, "from full, not from nothing")
+    assert(abs(after - (1 - 0.5 * st.awareCalm)) < 0.01, "from full, not from nothing")
     assert(s.suspicion == 1, "and coming down is not another strike")
 
     // pause preserves everything and resumes where it left off
@@ -256,6 +295,8 @@ func runStealChecks() {
         while c.grab > 0 && !c.over { c.tick(1.0 / 60) }   // let it sag so the lift never lands
     }
     assert(c.suspicion == Steal.strikes && c.phase == .caught && !c.timedOut, "jailed, not out of time")
+    assert(c.moods.values.allSatisfy { $0 == .angry } && c.angerTime > 0,
+           "caught, and everyone turns on you, and the cage waits while they do")
 
     // the target has a bar of their own, and so does the kid
     let bars = StealViewModel(victim: .farLeft, thiefSeat: seat, cast: fixed)
@@ -268,5 +309,48 @@ func runStealChecks() {
     assert(t.lowOnTime, "the clock has to go red for the last \(Int(Steal.warn)) seconds")
     while t.timeLeft > 0 { t.tick(1) }
     assert(t.phase == .caught && t.timedOut, "out of time is its own ending")
+    assert(!t.moods.values.contains(.angry), "nobody caught you, so nobody gets angry")
+
+    // nobody gets angry along the way either, however long a round runs
+    var calmRound = StealViewModel(victim: .farLeft, thiefSeat: seat, cast: .random(avoiding: nil))
+    while !calmRound.over { calmRound.holding = false; calmRound.tick(1.0 / 30)
+        assert(calmRound.over || !calmRound.moods.values.contains(.angry)) }
+
+    // drifted off: noticing nothing, the bar drains, and it's gone once it's empty
+    let drifting = Arrangement(cast: fixed.cast, start: [.farLeft: .alert, .farRight: .calm,
+                                                        .nearMid: .alert, .kid: .alert],
+                               traits: fixed.traits)
+    var d = StealViewModel(victim: .nearMid, thiefSeat: fixed.seats(beside: .nearMid)[0], cast: drifting)
+    d.holding = true
+    for _ in 0..<60 { d.tick(1.0 / 60) }
+    assert(d.aware[.farRight] == 0 && d.bars[.farRight] == nil, "in their own thing: no bar, no notice")
+    assert((d.aware[.farLeft] ?? 0) > 0 && d.bars[.farLeft] != nil, "idle: watching, and it shows")
+
+    // the kid never drifts off, and a duo drifts off together
+    let duo = Arrangement(cast: [.nearLeft: Rider(who: "BehindLeftDuo"), .nearMid: Rider(who: "BehindRightDuo"),
+                                 .farMid: Rider(who: "Music")],
+                          start: [.nearLeft: .alert, .nearMid: .alert, .farMid: .alert, .kid: .alert],
+                          traits: [.nearLeft: Traits.random(for: Rider(who: "BehindLeftDuo")),
+                                   .nearMid: Traits.random(for: Rider(who: "BehindRightDuo")),
+                                   .farMid: .steady, .kid: Traits.random(for: .kid)])
+    var q = StealViewModel(victim: .farMid, thiefSeat: duo.seats(beside: .farMid)[0], cast: duo)
+    var switched = false
+    for _ in 0..<(60 * 30) {
+        q.tick(1.0 / 60)
+        assert(q.moods[.kid] == .alert, "the kid is always idle")
+        assert(q.moods[.nearLeft] == q.moods[.nearMid], "one conversation, one mood")
+        switched = switched || q.moods[.nearLeft] == .calm
+        if q.over { break }
+    }
+    assert(switched, "a passenger drifts off at some point in half a minute")
+
+    // the steal bar goes by the mark's own numbers
+    let quick = Arrangement(cast: fixed.cast, start: fixed.start, traits: [.farLeft: Traits(
+        grabRate: 0.5, slip: 0.6, awareCalm: 0.7, awareRate: 0.8, threshold: 1,
+        idleFor: 1e6...1e6, calmFor: 1...2)])
+    var g = StealViewModel(victim: .farLeft, thiefSeat: seat, cast: quick)
+    g.holding = true
+    g.tick(0.5)
+    assert(abs(g.grab - 0.25) < 0.001)
     #endif
 }

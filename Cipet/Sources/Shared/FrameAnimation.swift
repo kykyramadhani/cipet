@@ -61,25 +61,16 @@ enum Clips {
                       width: size.width * k, height: size.height * k)
     }
 
-    // the thief, reaching right
-    static let sitToSteal     = Clip("CipetIdle-Nyopet")
-    static let stealing       = Clip("CipetNyopet", loops: true)
-    static let stealToSit     = Clip("CipetNyopet-Idle")
-    static let caughtMidSteal = Clip("CipetNyopet-Caught")
-    static let caughtSitting  = Clip("CipetCaught")
-    static let standUp        = Clip("CipetIdle-Standup")
-
-    // reaching left. there's no left "sit to steal", so the return trip runs backwards.
-    static let sitToStealL     = Clip("LeftCipetNyopet-Idle", reversed: true)
-    static let stealingL       = Clip("LeftCipetNyopet", loops: true)
-    static let stealToSitL     = Clip("LeftCipetNyopet-Idle")
-    static let caughtMidStealL = Clip("LeftCipetNyopet-Caught")
-
-    static func steal(reachingLeft: Bool) -> Clip { reachingLeft ? stealingL : stealing }
-    static func sitToSteal(reachingLeft: Bool) -> Clip { reachingLeft ? sitToStealL : sitToSteal }
-    static func stealToSit(reachingLeft: Bool) -> Clip { reachingLeft ? stealToSitL : stealToSit }
-    static func caughtMidSteal(reachingLeft: Bool) -> Clip {
-        reachingLeft ? caughtMidStealL : caughtMidSteal
+    /// one of the thief's moves: "Idle-Nyopet", "Nyopet", "Nyopet-Idle", "Nyopet-Caught",
+    /// "Caught", "Idle-Standup". reaching left is its own drawing ("Left..."), and so is sitting
+    /// on the near bench with his back to us ("Behind..."). when a drawing isnt there yet it
+    /// falls back to the nearest one that is, so a new set is used the moment it's added.
+    static func thief(_ move: String, left: Bool, behind: Bool, loops: Bool = false) -> Clip {
+        for (l, b) in [(left, behind), (false, behind), (left, false), (false, false)] {
+            let c = Clip((l ? "Left" : "") + (b ? "Behind" : "") + "Cipet" + move, loops: loops)
+            if c.exists { return c }
+        }
+        return Clip("Cipet" + move, loops: loops)
     }
 }
 
@@ -140,20 +131,21 @@ func runClipChecks() {
     #if DEBUG
     // frame counts come off the catalog, so check the counter against sets we know
     let known = ["CipetNyopet": 12, "CipetIdle-Nyopet": 24, "MusicGalau": 15, "MusicGalau-Idle": 36,
-                 "MusicGalau-Marah": 18, "MusicIdle-Angry": 18, "MusicIdle-Galau": 36,
+                 "MusicGalau-Angry": 18, "BehindSleepySleep-Idle": 52, "BoyIdle": 24,
+                 "RightDuoTalking": 12, "LeftDuoTalking": 1, "MusicIdle-Angry": 18, "MusicIdle-Galau": 36,
                  "SleepyIdle": 70, "SleepyIdle-Sleep": 15, "SleepySleep": 30,
                  "SleepySleep-Idle": 44, "SleepyIdle-Angry": 18]
     for (name, n) in known { assert(Clip.count(name) == n, "\(name) should have \(n) frames") }
     assert(!Clip("NoSuchSet").exists && Clip("NoSuchSet").frames == 0)
 
-    let c = Clips.stealing
+    let c = Clips.thief("Nyopet", left: false, behind: false, loops: true)
     assert(c.frame(0) == "CipetNyopet-0000")
     assert(c.last == "CipetNyopet-0011")
     assert(c.frame(-5) == c.frame(0) && c.frame(99) == c.last, "asking past either end clamps")
 
     // a reversed clip starts where its forward twin ends
-    let fwd = Clips.stealToSitL, back = Clips.sitToStealL
-    assert(fwd.name == back.name && back.reversed && !fwd.reversed)
+    let fwd = Clip("LeftCipetNyopet-Idle"), back = Clip("LeftCipetNyopet-Idle", reversed: true)
+    assert(back.reversed && !fwd.reversed)
     assert(back.frame(0) == fwd.last && back.last == fwd.frame(0))
 
     // a still is one frame of a set, held
@@ -161,14 +153,15 @@ func runClipChecks() {
     assert(still.frames == 1 && still.frame(0) == "MusicGalau-Idle-0035")
 
     // a clip lands on the sprite it replaces
-    let box = Clips.box(over: Tut.kanan)
+    let box = Clips.box(over: Tut.kanan)   // the near-middle seat's old drawing box
     assert(abs(box.width - box.height) < 0.01, "the frames are square")
     assert(box.minX < Tut.kanan.minX && box.minY < Tut.kanan.minY, "the padding hangs outside")
     assert(box.maxX > Tut.kanan.maxX && box.maxY > Tut.kanan.maxY)
 
     // only the hold-this-pose clips loop; the transitions have to end so the next beat starts
-    assert(Clips.stealing.loops)
-    for once in [Clips.sitToSteal, Clips.standUp, Clips.caughtSitting, Clip("MusicIdle-Angry")] {
+    assert(c.loops)
+    for once in ["Idle-Nyopet", "Idle-Standup", "Caught"].map({ Clips.thief($0, left: false, behind: false) })
+                + [Clip("MusicIdle-Angry")] {
         assert(!once.loops, "\(once.name) has to finish")
         assert(once.duration > 0.2 && once.duration < 2.5, "\(once.name) should feel snappy")
     }

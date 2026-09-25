@@ -87,7 +87,7 @@ enum Steal {
     /// who has drifted off since the round started, which is what lets their bar go
     private var driftedOff: Set<Seating.Person> = []
 
-    var clock: String { mmss(timeLeft.rounded(.up)) }
+    var clock: String { ss(timeLeft.rounded(.up)) }
     /// the last few seconds, which the hud draws in red
     var lowOnTime: Bool { timeLeft <= Steal.warn }
     var running: Bool { phase == .stealing }

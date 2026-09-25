@@ -117,7 +117,7 @@ struct TutorialView: View {
 
     /// the round's hud as it looks at the start, pause button and all (it's only a picture here)
     @ViewBuilder private func hud(_ space: DesignSpace) -> some View {
-        TutorialHUD(show: [], clock: mmss(Steal.round), space: space)
+        TutorialHUD(show: [], clock: ss(Steal.round), space: space)
         place(Steal.pauseArt, space) { Image("pv_pause").resizable() }
     }
 

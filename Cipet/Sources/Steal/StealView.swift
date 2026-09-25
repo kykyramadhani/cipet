@@ -5,8 +5,10 @@ struct StealView: View {
     let thiefSeat: CGRect
     let cast: Arrangement
     let round: Int
-    /// items taken over the rounds already finished
-    let items: Int
+    /// items taken over the rounds already finished, as they stood when the round began.
+    /// kept, not read live: Next Round banks this one into the session while this screen is
+    /// still fading out, and the live count plus the +1 below showed it twice.
+    @State private var items: Int
     /// the round is over and the player has chosen where to go. the round never leaves on
     /// its own — winning or getting caught shows a result here, it does not pop the screen.
     enum Exit { case nextRound(RoundResult), endGame(RoundResult, Ending), home }
@@ -29,7 +31,7 @@ struct StealView: View {
         self.thiefSeat = thiefSeat
         self.cast = cast
         self.round = round
-        self.items = items
+        _items = State(initialValue: items)
         self.onDone = onDone
         _vm = State(initialValue: StealViewModel(victim: victim, thiefSeat: thiefSeat, cast: cast,
                                                  timeLeft: timeLeft))

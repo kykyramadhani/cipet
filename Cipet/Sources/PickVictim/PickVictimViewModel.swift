@@ -57,7 +57,7 @@ import SwiftUI
         Audio.shared.play(.seated)
     }
 
-    var clock: String { mmss(timeLeft.rounded(.up)) }
+    var clock: String { ss(timeLeft.rounded(.up)) }
     var lowOnTime: Bool { timeLeft <= Steal.warn }
     /// the clock is only running when the screen is really yours, not behind the pause card
     var running: Bool { !paused && timeLeft > 0 }

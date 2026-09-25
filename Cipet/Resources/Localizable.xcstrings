@@ -12,13 +12,13 @@
         }
       }
     },
-    "Back to Home": {
+    "Back to Main Menu": {
       "extractionState": "manual",
       "localizations": {
         "id": {
           "stringUnit": {
             "state": "translated",
-            "value": "Kembali"
+            "value": "Kembali ke Menu Utama"
           }
         }
       }
@@ -140,6 +140,17 @@
           "stringUnit": {
             "state": "translated",
             "value": "Ambil barangnya sebelum waktu habis !"
+          }
+        }
+      }
+    },
+    "Haptic": {
+      "extractionState": "manual",
+      "localizations": {
+        "id": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Getar"
           }
         }
       }
@@ -393,6 +404,17 @@
           "stringUnit": {
             "state": "translated",
             "value": "Main"
+          }
+        }
+      }
+    },
+    "Play Again": {
+      "extractionState": "manual",
+      "localizations": {
+        "id": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Main Lagi"
           }
         }
       }

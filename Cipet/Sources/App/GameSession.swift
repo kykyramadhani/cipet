@@ -200,6 +200,7 @@ func runSessionChecks() {
     s.nextRound(after: RoundResult(value: 0, time: 90))
     assert(s.items == 1, "a round you came away empty from isnt an item")
     assert(s.avgTime == "0:40", "60 seconds over 3 rounds")
+    assert(ss(60) == "60" && ss(9) == "09" && ss(0) == "00", "the round clock is bare seconds")
 
     // deal a lot of rounds and make sure everything that's meant to change does
     var seen = [s.arrangement]

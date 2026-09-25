@@ -49,7 +49,8 @@ struct RootView: View {
                 }
                 .transition(.opacity)
             case let .endGame(how):
-                EndGameView(session: router.session, ending: how) { router.go(.menu) }
+                EndGameView(session: router.session, ending: how,
+                            onPlayAgain: { router.startGame(tutorial: false) }) { router.go(.menu) }
                     .transition(.opacity)
             }
         }

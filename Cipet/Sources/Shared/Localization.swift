@@ -54,6 +54,8 @@ enum Indonesian {
         // picking a target
         "Pick your\ntarget\nfirst": "Pilih\ntargetmu\ndulu",
         "Now, pick\nthe seat!":     "Sekarang,\npilih\nkursinya",
+        "Now, pick the seat!":      "Sekarang, pilih kursinya!",
+        "Confirm if you\u{2019}re ready!": "Konfirmasi kalau sudah siap!",
         "Confirm":                  "Konfirmasi",
 
         // tutorial
@@ -72,6 +74,7 @@ enum Indonesian {
 
         // the round itself
         "Hold to fill the bar":   "Tahan untuk isi bar",
+        "Hold anywhere to fill the bar": "Tahan di mana saja untuk isi bar",
         "Stop for":               "Berhenti",
         "You almost get caught!": "Kamu hampir ketahuan!",
         "Paused":                 "Jeda",
@@ -86,6 +89,8 @@ enum Indonesian {
         "End Game":         "Selesai",
         "Next Round":       "Ronde Baru",
         "JAILED":           "TERCIDUK",
+        "Failed":           "Gagal",
+        "Try again next time": "Coba lagi lain kali",
         "Congrats?":        "Selamat?",
         "Avg time":         "Rata-rata",
         "Total Items":      "Total Barang",
@@ -112,6 +117,7 @@ func runLocaleChecks() {
     // translation is so long the fit shrinks it past legible. measured, not counted:
     // TERCIDUK is only 8 characters and still overran the plate at full size.
     assert(Jail.signScale(t("JAILED")) >= 0.7, "the jail word shrinks too far to read")
+    assert(Jail.signScale(t("Failed")) >= 0.7)
     assert(Countdown.stealScale([t("STEAL"), t("TIME")]) >= 0.7,
            "the steal sign shrinks too far to read")
 

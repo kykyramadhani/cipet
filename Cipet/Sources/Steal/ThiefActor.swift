@@ -27,7 +27,7 @@ struct ThiefActor: View {
     private var clip: Clip {
         switch beat {
         // sitting still is the first frame of getting up, held
-        case .sitting:   return Clip(name: Clips.standUp.name, frames: 1)
+        case .sitting:   return Clip(Clips.standUp.name, length: 1)
         case .reaching:  return Clips.sitToSteal(reachingLeft: reachingLeft)
         case .stealing:  return Clips.steal(reachingLeft: reachingLeft)
         case .returning: return Clips.stealToSit(reachingLeft: reachingLeft)

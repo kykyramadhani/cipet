@@ -15,19 +15,25 @@ struct TutorialAngkot: View {
     var aware: [Seating.Person: CGFloat] = [:]
     /// greys out the driver and the kid, for when you're picking a target and they're off limits
     var dimFixed = false
+    /// what the animated passengers are up to, which picks their animation
+    var moods: [Seating.Person: Mood] = [:]
+    var paused = false
+    /// the yellow body, while you're stealing
+    var colored = false
 
     var body: some View {
         Group {
             art("loading_angkot_wheel",    Tut.wheel)
             art("tut_angkot_interior",     Tut.interior)
-            art("loading_angkot_exterior", Tut.exterior)
+            if colored { art("steal_angkot_exterior", Tut.exteriorColored) }
+            else { art("loading_angkot_exterior", Tut.exterior) }
             people
         }
     }
 
     @ViewBuilder private var people: some View {
-        if show.contains(.kid) { passenger(.kid).colorMultiply(fixedTint) }
-        passenger(.farRight)
+        if show.contains(.kid) { art("tut_bocah", Tut.bocah).colorMultiply(fixedTint) }
+        ForEach(Seating.benches[0], id: \.self) { passenger($0) }
 
         if show.contains(.seatGhosts) {
             ForEach(ghostSeats.indices, id: \.self) { i in
@@ -35,16 +41,10 @@ struct TutorialAngkot: View {
             }
         }
 
-        passenger(.farLeft)
         art("tut_sopir", Tut.sopir).colorMultiply(fixedTint)
-        passenger(.near)
+        ForEach(Seating.benches[1], id: \.self) { passenger($0) }
 
         if show.contains(.onBoard) { art("loading_pencipet", thiefAt) }
-        if show.contains(.awareness) {
-            ForEach(Tut.aware.indices, id: \.self) { i in
-                AwarenessBar(index: i, level: Tut.awareLevel[i], space: space)
-            }
-        }
         ForEach(Array(aware.keys), id: \.self) { who in
             AwarenessBar(box: Seating.awareSlot(who), level: aware[who] ?? 0, space: space)
         }
@@ -55,18 +55,20 @@ struct TutorialAngkot: View {
     // picking somebody never changes who they are. the flat cast have a yellow version of
     // their own drawing to swap to, the animated ones keep their frames and get a ring.
     @ViewBuilder private func passenger(_ v: Seating.Person) -> some View {
-        let who = cast.who(v)
-        let ring: Color? = hot == v ? Ink.yellow : nil
+        if let who = cast.who(v) {
+            let ring: Color? = hot == v ? Ink.yellow : nil
 
-        if let clip = who.clip {
-            place(Tut.inAngkot(Clips.box(over: Seating.spot(v))), space) {
-                FrameAnimation(clip: clip, ring: ring, ringWidth: space.px(2))
-            }
-        } else if ring != nil, let yellow = who.hotArt {
-            art(yellow, Seating.spot(v))
-        } else {
-            place(Tut.inAngkot(Seating.spot(v)), space) {
-                Sprite(name: who.art, ring: ring, ringWidth: space.px(2))
+            if let moves = who.moves {
+                place(Tut.inAngkot(Clips.box(over: Seating.spot(v))), space) {
+                    RiderActor(moves: moves, mood: moods[v] ?? .calm, paused: paused,
+                               ring: ring, ringWidth: space.px(2))
+                }
+            } else if ring != nil, let yellow = who.hotArt {
+                art(yellow, Seating.spot(v))
+            } else {
+                place(Tut.inAngkot(Seating.spot(v)), space) {
+                    Sprite(name: who.art, ring: ring, ringWidth: space.px(2))
+                }
             }
         }
     }
@@ -107,8 +109,7 @@ struct TutorialHUD: View {
     /// swells on the second and springs back down, so the clock has a pulse
     @State private var beating = false
 
-    /// the tutorial teaches this state on its own step, and the round is really in it
-    private var alarm: Bool { low || show.contains(.alarm) }
+    private var alarm: Bool { low }
 
     var body: some View {
         Group {

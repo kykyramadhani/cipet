@@ -84,15 +84,17 @@ struct StealView: View {
         // a hold that's still down when a cooldown or a pause ends just carries on
         .onChange(of: vm.running) { _, running in vm.holding = running && fingerDown }
         .onChange(of: vm.holding) { _, down in
+            // ahead of the guard: getting spotted lets go too, and that has to stop it
+            if !down { Haptics.stopHold() }
             guard vm.running else { return }
             beat = down ? .reaching : .returning
             if down {
                 Audio.shared.play(.grab)
-                Haptics.grab()
+                Haptics.startHold()
             }
         }
         .onChange(of: ticking, initial: true) { _, on in Audio.shared.ticking(on) }
-        .onDisappear { Audio.shared.ticking(false) }
+        .onDisappear { Audio.shared.ticking(false); Haptics.stopHold() }
         .onChange(of: vm.suspicion) { _, _ in Audio.shared.play(.suspicion) }
         .onChange(of: vm.phase) { _, p in
             // getting clocked is the thief's moment, not the screen's. he flinches whether

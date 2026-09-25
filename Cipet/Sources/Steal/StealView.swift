@@ -112,6 +112,9 @@ struct StealView: View {
     private var midSteal: Bool { beat == .reaching || beat == .stealing }
     private var isFlinching: Bool { if case .caught = beat { return true }; return false }
 
+    /// the run's items, counting this one the moment "Succeed!" comes up
+    private var shownItems: Int { items + (vm.phase == .succeeded && showEnding ? 1 : 0) }
+
     /// what this round was worth, whichever way it ended
     private var result: RoundResult {
         RoundResult(value: vm.phase == .succeeded ? vm.loot : 0,
@@ -152,7 +155,7 @@ struct StealView: View {
                                                      space: space, paused: vm.phase == .paused,
                                                      onFinish: finished)))
                 .offset(y: space.px(Steal.angkotDrop))
-            TutorialHUD(show: [], clock: vm.clock, space: space, low: vm.lowOnTime, items: items)
+            TutorialHUD(show: [], clock: vm.clock, space: space, low: vm.lowOnTime, items: shownItems)
             RoundTag(round: round, space: space)
 
             StealBar(progress: vm.grab, space: space)

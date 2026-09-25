@@ -7,8 +7,7 @@ struct CipetApp: App {
     }
 }
 
-// loading -> menu -> countdown -> pick a victim -> steal. the tutorial isnt a screen of its
-// own, it interrupts the pick stage, so it lives inside PickVictimView.
+// loading -> menu -> tutorial (first game only) -> countdown -> pick a target -> steal
 struct RootView: View {
     @State private var router = AppRouter()
 
@@ -17,6 +16,7 @@ struct RootView: View {
             switch router.screen {
             case .loading:    LoadingView    { router.go(.menu) }.transition(.opacity)
             case .menu:       MainMenuView   { router.startGame() }.transition(.opacity)
+            case .tutorial:   TutorialView   { router.tutorialDone() }.transition(.opacity)
             case .countdown:
                 CountdownView(round: router.session.round,
                               onStart: { router.go(.pickVictim) },
@@ -24,24 +24,23 @@ struct RootView: View {
                     .transition(.opacity)
             case .pickVictim:
                 PickVictimView(cast: router.session.arrangement,
-                               showTutorial: router.session.tutorialPending,
-                               onTutorialDone: router.session.tutorialFinished,
                                onHome: { router.go(.menu) }) { who, seat, left in
                     router.go(.steal(who, seat, left))
                 }
                 .transition(.opacity)
             case let .steal(who, seat, left):
                 StealView(victim: who, thiefSeat: seat, timeLeft: left,
-                          cast: router.session.arrangement) { exit in
+                          cast: router.session.arrangement, round: router.session.round) { exit in
                     switch exit {
                     case let .nextRound(r): router.nextRound(after: r)
-                    case let .endGame(r):   router.endGame(after: r)
+                    case let .endGame(r, how): router.endGame(after: r, how)
                     case .home:             router.go(.menu)
                     }
                 }
                 .transition(.opacity)
-            case .endGame:
-                EndGameView(session: router.session) { router.go(.menu) }.transition(.opacity)
+            case let .endGame(how):
+                EndGameView(session: router.session, ending: how) { router.go(.menu) }
+                    .transition(.opacity)
             }
         }
         .task {

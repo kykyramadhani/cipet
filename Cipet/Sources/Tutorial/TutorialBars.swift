@@ -6,17 +6,6 @@ struct AwarenessBar: View {
     let level: CGFloat     // 0...1
     let space: DesignSpace
 
-    /// the tutorial's three fixed bars
-    init(index: Int, level: CGFloat, space: DesignSpace) {
-        self.init(box: Tut.aware[index], level: level, space: space)
-    }
-
-    init(box: CGRect, level: CGFloat, space: DesignSpace) {
-        self.box = box
-        self.level = level
-        self.space = space
-    }
-
     var body: some View {
         let fill = Tut.awareFill
 
@@ -55,7 +44,7 @@ struct StealBar: View {
         Group {
             place(Tut.inBar(Tut.holdLabel), space) { Image("tut_hold_label").resizable() }
             place(Tut.inBar(Tut.holdText), space) {
-                Text(t("Hold to fill the bar"))
+                Text(t("Hold anywhere to fill the bar"))
                     .font(.skranji(space.px(Tut.holdSize), bold: false))
                     .foregroundStyle(.black)
                     .fixedSize()

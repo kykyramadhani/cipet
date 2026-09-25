@@ -20,6 +20,7 @@ enum Ink {
     static let redGlow = Color(red: 232 / 255, green: 112 / 255, blue: 100 / 255)
     static let snow    = Color(red: 250 / 255, green: 250 / 255, blue: 250 / 255)
     static let grey    = Color(red: 161 / 255, green: 161 / 255, blue: 161 / 255)
+    static let stone   = Color(red: 115 / 255, green: 115 / 255, blue: 115 / 255)
 }
 
 /// m:ss, for the clock and the end screen

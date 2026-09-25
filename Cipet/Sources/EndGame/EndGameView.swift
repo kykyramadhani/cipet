@@ -1,5 +1,8 @@
 import SwiftUI
 
+/// how the run finished: chose to stop, got spotted three times, or ran out of clock
+enum Ending { case walkedAway, jailed, failed }
+
 enum End {
     // same halftone as the countdown card and the jail screen, just tinted for a yellow bg
     static let dots = CGRect(x: -100.003, y: -257.998, width: 1074.986, height: 918.275)
@@ -25,12 +28,41 @@ enum End {
     static let button     = CGRect(x: 363,    y: 310,     width: 300,     height: 40)
     static let buttonArt  = CGRect(x: 360.68, y: 307.696, width: 303.054, height: 45.3038)
     static let buttonSize: CGFloat = 20
+
+    // MARK: jailed: small card on the left, the cage over the thief, the sign top right
+    static let jailThief   = CGRect(x: 543.02, y: 94, width: 198.8, height: 278.1)
+    static let jailSign    = CGRect(x: 506, y: 33, width: 320, height: 100)
+    static let jailCardArt = CGRect(x: 44.652, y: 71.612, width: 366.668, height: 260.379)
+    static let jailTally   = CGPoint(x: 68, y: 101)
+    static let jailWidth: CGFloat = 320
+    static let jailButton    = CGRect(x: 68, y: 261, width: 320, height: 40)
+    static let jailButtonArt = CGRect(x: 65.685, y: 258.696, width: 322.854, height: 45.3037)
+
+    // MARK: failed: the big card shifted left, the thief peeking in with a sad bubble
+    static let failCardArt = cardArt.offsetBy(dx: -107, dy: 0)
+    static let failTitle   = CGRect(x: 130, y: 61, width: 400, height: 48)
+    static let failTitleSize: CGFloat = 40
+    static let failTally   = CGPoint(x: 130, y: 141)
+    static let failWidth: CGFloat = 400
+    static let failButton    = CGRect(x: 130, y: 310, width: 400, height: 40)
+    static let failButtonArt = CGRect(x: 127.671, y: 307.696, width: 401.832, height: 45.3036)
+    static let failThief   = CGRect(x: 609.96, y: 131, width: 227.24, height: 317.84)
+    static let bubbleArt   = CGRect(x: 676.822, y: 79.775, width: 145.891, height: 107.506)
+    static let bubbleText  = CGPoint(x: 750, y: 134)
+    static let bubbleSize: CGFloat = 60
+
+    // the tally on the red screens: three grey 20s 8 apart, then 20 down the black total
+    static let greyRow:  CGFloat = 24
+    static let greyGap:  CGFloat = 8
+    static let totalGap: CGFloat = 20
+    static let greySize: CGFloat = 20
 }
 
-// where a run finishes: the whole game's tally, not one round's. reached from End Game on
-// the succeed card and from the jail screen.
+// where a run finishes: the whole game's tally, not one round's. End Game on the succeed card
+// comes here as Congrats?, the cage as JAILED, and the clock running out as Failed.
 struct EndGameView: View {
     let session: GameSession
+    var ending: Ending = .walkedAway
     let onHome: () -> Void
 
     var body: some View {
@@ -38,12 +70,11 @@ struct EndGameView: View {
             let space = DesignSpace(geo.size)
 
             ZStack(alignment: .topLeading) {
-                Ink.yellow.ignoresSafeArea()
-                halftone(space)
-                place(End.cardArt, space) { Image("eg_card").resizable() }
-                tally(space)
-                homeButton(space)
-                place(End.thief, space) { Image("loading_pencipet").resizable() }
+                switch ending {
+                case .walkedAway: congrats(space)
+                case .jailed:     jailed(space)
+                case .failed:     failed(space)
+                }
             }
             .frame(width: geo.size.width, height: geo.size.height)
             .clipped()
@@ -52,61 +83,119 @@ struct EndGameView: View {
         .task { runEndChecks(); Audio.shared.play(.postGame) }
     }
 
-    private func halftone(_ space: DesignSpace) -> some View {
-        Image("round_dots").renderingMode(.template).resizable()
-            .foregroundStyle(Ink.glow)
-            .frame(width: space.px(End.dots.width), height: space.px(End.dots.height))
-            .position(x: space.x(End.dots.midX), y: space.y(End.dots.midY))
+    private var stats: [(String, String)] {
+        [(t("Avg time"), session.avgTime), (t("Total Items"), "\(session.items)"),
+         (t("Total Rounds"), "\(session.round)")]
+    }
+    private var total: String { "Rp \(session.takings)k" }
+
+    @ViewBuilder private func congrats(_ space: DesignSpace) -> some View {
+        Ink.yellow.ignoresSafeArea()
+        Halftone(tint: Ink.glow, space: space)
+        place(End.cardArt, space) { Image("eg_card").resizable() }
+        place(End.title, space) {
+            Text(t("Congrats?"))
+                .font(.skranji(space.px(End.titleSize)))
+                .foregroundStyle(Ink.black)
+                .fixedSize()
+                .frame(maxWidth: .infinity, alignment: .leading)
+        }
+        ForEach(stats.indices, id: \.self) { i in
+            statRow(stats[i].0, stats[i].1, End.labelSize, End.valueSize, Ink.grey,
+                    CGRect(x: End.column.minX, y: End.firstY + CGFloat(i) * End.rowStep,
+                           width: End.column.width, height: End.rowH), space)
+        }
+        statRow(t("Total Item value"), total, End.labelSize, End.valueSize, Ink.black,
+                CGRect(x: End.column.minX, y: End.totalY, width: End.column.width, height: End.rowH),
+                space)
+        artButton(t("Back to Home"), "eg_button", End.button, End.buttonArt, space, onHome)
+        place(End.thief, space) { Image("loading_pencipet").resizable() }
     }
 
-    private func tally(_ space: DesignSpace) -> some View {
-        let stats = [(t("Avg time"), session.avgTime),
-                     (t("Total Items"), "\(session.items)"),
-                     (t("Total Rounds"), "\(session.round)")]
-        return Group {
-            place(End.title, space) {
-                Text(t("Congrats?"))
-                    .font(.skranji(space.px(End.titleSize)))
-                    .foregroundStyle(Ink.black)
-                    .fixedSize()
-                    .frame(maxWidth: .infinity, alignment: .leading)
-            }
+    @ViewBuilder private func jailed(_ space: DesignSpace) -> some View {
+        Ink.red.ignoresSafeArea()
+        Halftone(tint: Ink.redGlow, space: space)
+        place(End.jailThief, space) { Image("loading_pencipet").resizable() }
+        Cage(space: space)
+        JailSign(word: "JAILED", box: End.jailSign, space: space)
+        place(End.jailCardArt, space) { Image("jail_card").resizable() }
+        tally(End.jailTally, End.jailWidth, space)
+        artButton(t("Back to Home"), "jail_button", End.jailButton, End.jailButtonArt, space, onHome)
+    }
+
+    @ViewBuilder private func failed(_ space: DesignSpace) -> some View {
+        Ink.red.ignoresSafeArea()
+        Halftone(tint: Ink.redGlow, space: space)
+        place(End.failCardArt, space) { Image("eg_card").resizable() }
+        place(End.failTitle, space) {
+            Text(t("Try again next time"))
+                .font(.skranji(space.px(End.failTitleSize)))
+                .foregroundStyle(.black)
+                .fixedSize()
+                .frame(maxWidth: .infinity, alignment: .leading)
+        }
+        tally(End.failTally, End.failWidth, space)
+        artButton(t("Back to Home"), "fail_button", End.failButton, End.failButtonArt, space, onHome)
+        place(End.failThief, space) { Image("loading_pencipet").resizable() }
+        // the bubble's tail points down at him, so the art goes in upside down
+        place(End.bubbleArt, space) { Image("fail_bubble").resizable().scaleEffect(y: -1) }
+        Text(":(")
+            .font(.skranji(space.px(End.bubbleSize), bold: false))
+            .foregroundStyle(Ink.soft)
+            .fixedSize()
+            .position(x: space.x(End.bubbleText.x), y: space.y(End.bubbleText.y))
+    }
+
+    private func tally(_ at: CGPoint, _ width: CGFloat, _ space: DesignSpace) -> some View {
+        Group {
             ForEach(stats.indices, id: \.self) { i in
-                row(stats[i].0, stats[i].1, Ink.grey,
-                    End.firstY + CGFloat(i) * End.rowStep, space)
+                statRow(stats[i].0, stats[i].1, End.greySize, End.greySize, Ink.grey,
+                        CGRect(x: at.x, y: at.y + CGFloat(i) * (End.greyRow + End.greyGap),
+                               width: width, height: End.greyRow), space)
             }
-            row(t("Total Item value"), "Rp \(session.takings)k", Ink.black, End.totalY, space)
+            statRow(t("Total Item value"), total, End.labelSize, End.valueSize, .black,
+                    CGRect(x: at.x, y: at.y + End.redTotalY, width: width, height: End.rowH), space)
         }
     }
+}
 
-    private func row(_ label: String, _ value: String, _ tint: Color,
-                     _ y: CGFloat, _ space: DesignSpace) -> some View {
-        place(CGRect(x: End.column.minX, y: y, width: End.column.width, height: End.rowH),
-              space) {
-            HStack(spacing: space.px(8)) {
-                Text(label).font(.skranji(space.px(End.labelSize), bold: false))
-                Spacer(minLength: 0)
-                Text(value).font(.skranji(space.px(End.valueSize), bold: false))
-            }
-            .lineLimit(1)
-            .fixedSize(horizontal: false, vertical: true)
-            .foregroundStyle(tint)
-        }
-    }
+extension End {
+    /// where the black total starts under the three grey rows
+    static var redTotalY: CGFloat { 3 * greyRow + 2 * greyGap + totalGap }
+}
 
-    private func homeButton(_ space: DesignSpace) -> some View {
-        place(End.buttonArt, space) {
-            Button(action: onHome) {
-                ZStack {
-                    Image("eg_button").resizable()
-                    Text(t("Back to Home"))
-                        .font(.skranji(space.px(End.buttonSize), bold: false))
-                        .foregroundStyle(Ink.black)
-                }
-            }
-            .buttonStyle(PressStyle())
+/// a label on the left and its value on the right, both centred on the row
+func statRow(_ label: String, _ value: String, _ labelSize: CGFloat, _ valueSize: CGFloat,
+             _ tint: Color, _ r: CGRect, _ space: DesignSpace) -> some View {
+    place(r, space) {
+        HStack(spacing: space.px(8)) {
+            Text(label).font(.skranji(space.px(labelSize), bold: false))
+            Spacer(minLength: 0)
+            Text(value).font(.skranji(space.px(valueSize), bold: false))
         }
+        .lineLimit(1)
+        .fixedSize(horizontal: false, vertical: true)
+        .foregroundStyle(tint)
     }
+}
+
+/// one of the hand drawn buttons: the art bleeds past `box`, the word sits in the middle of it
+func artButton(_ title: String, _ art: String, _ box: CGRect, _ artBox: CGRect,
+               _ space: DesignSpace, _ action: @escaping () -> Void) -> some View {
+    Button(action: action) {
+        ZStack(alignment: .topLeading) {
+            Image(art).resizable()
+                .frame(width: space.px(artBox.width), height: space.px(artBox.height))
+            Text(title)
+                .font(.skranji(space.px(End.buttonSize), bold: false))
+                .foregroundStyle(Ink.black)
+                .fixedSize()
+                .position(x: space.px(box.midX - artBox.minX), y: space.px(box.midY - artBox.minY))
+        }
+        .frame(width: space.px(artBox.width), height: space.px(artBox.height))
+    }
+    .buttonStyle(PressStyle())
+    .position(x: space.x(artBox.midX), y: space.y(artBox.midY))
 }
 
 func runEndChecks() {
@@ -129,7 +218,15 @@ func runEndChecks() {
     // the thief is to the left of the text, not over it
     assert(End.thief.maxX <= End.column.minX + 1)
     assert(End.dots.width > DesignSpace.screen.width, "the halftone covers the whole screen")
+
+    // the red cards: the total clears the button, and the button sits on the card's bottom inset
+    assert(End.jailTally.y + End.redTotalY + End.rowH < End.jailButton.minY)
+    assert(End.failTally.y + End.redTotalY + End.rowH < End.failButton.minY)
+    assert(End.jailButtonArt.contains(End.jailButton), "the art bleeds round the button")
+    assert(End.failTitle.maxY + 32 == End.failTally.y, "32 under the title")
+    assert(End.jailCardArt.contains(CGRect(origin: End.jailTally,
+                                           size: CGSize(width: End.jailWidth, height: 200))))
     #endif
 }
 
-#Preview(traits: .landscapeLeft) { EndGameView(session: GameSession()) {} }
+#Preview(traits: .landscapeLeft) { EndGameView(session: GameSession(), ending: .failed) {} }

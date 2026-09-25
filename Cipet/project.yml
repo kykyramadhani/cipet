@@ -27,3 +27,31 @@ targets:
         INFOPLIST_KEY_UILaunchScreen_Generation: YES
         INFOPLIST_KEY_UIRequiresFullScreen: YES
         INFOPLIST_KEY_UISupportedInterfaceOrientations: "UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight"
+
+  # plays the start of a game with real touches, since the simulator tools cant tap here
+  CipetUITests:
+    type: bundle.ui-testing
+    platform: iOS
+    sources: [UITests]
+    dependencies:
+      - target: Cipet
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.gamejam.cipet.uitests
+        DEVELOPMENT_TEAM: JLQK39AS23
+        GENERATE_INFOPLIST_FILE: YES
+        TEST_TARGET_NAME: Cipet
+        SWIFT_VERSION: "5.0"
+
+schemes:
+  Cipet:
+    build:
+      targets:
+        Cipet: all
+    run:
+      config: Debug
+    test:
+      config: Debug
+      targets: [CipetUITests]
+    archive:
+      config: Release

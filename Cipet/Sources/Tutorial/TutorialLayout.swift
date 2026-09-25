@@ -1,8 +1,6 @@
 import SwiftUI
 
 enum Tut {
-    static let cycle: Double = 2.6   // one fill of the steal bar
-
     // MARK: angkot
     // the group sits centred on the screen. everything below is in the group's own coordinates,
     // and the order they're drawn in matters: wheels, interior, exterior, THEN the people, so
@@ -11,6 +9,7 @@ enum Tut {
     static let wheel    = CGRect(x: 0,    y: 3.06, width: 439.313, height: 410.388)
     static let interior = CGRect(x: 7.38, y: 7.38, width: 424.264, height: 396.33)
     static let exterior = CGRect(x: 0,    y: 0,    width: 439.313, height: 410.388)
+    static let exteriorColored = CGRect(x: 2, y: 1, width: 438, height: 409.479)
 
     static let bocah  = CGRect(x: 230.99, y: 116.21, width: 66.166, height: 84)
     static let kiriA  = CGRect(x: 166.50, y: 110.94, width: 57.497, height: 84)
@@ -30,11 +29,7 @@ enum Tut {
     static let bubbleText = CGRect(x: 686, y: 123, width: 170, height: 30)
     static let bubbleSize: CGFloat = 24
 
-    // MARK: the bar over three of the heads
-    static let aware = [CGRect(x: 232, y: 108, width: 68, height: 20),
-                        CGRect(x: 101, y: 192, width: 68, height: 20),
-                        CGRect(x: 158, y: 100, width: 68, height: 20)]
-    static let awareLevel: [CGFloat] = [34.0 / 50, 45.0 / 50, 16.0 / 50]
+    // MARK: the awareness bar over a head
     static let awareBox   = CGSize(width: 68, height: 20)
     static let awareNudge = CGSize(width: 0, height: -2)   // clears the top of their head
     static let awareTrack = CGRect(x: 8,  y: 3, width: 60, height: 14)
@@ -59,29 +54,12 @@ enum Tut {
     static let alarmSpring: Double = 0.36
     static let alarmBounce: Double = 0.42
 
-    static let label = CGRect(x: 24, y: 0, width: 220, height: 48)   // y comes from the step
-    static let labelSize: CGFloat = 40
+    // MARK: bottom bar group, 440x116 sat 12 up from the bottom
+    static let bar = CGRect(x: 217, y: 274, width: 440, height: 116)
 
-    // MARK: card
-    static let cardX:      CGFloat = 669
-    static let cardW:      CGFloat = 183
-    static let cardPad:    CGFloat = 14
-    static let cardGap:    CGFloat = 16
-    static let cardRadius: CGFloat = 10
-    static let cardBorder: CGFloat = 6
-    static let cardSize:   CGFloat = 20
-    static let skipSize:   CGFloat = 18
-    static let nextSize:   CGFloat = 16
-    static let nextBox   = CGSize(width: 36, height: 17)
-    static let nextArt   = CGSize(width: 46.5141, height: 23.8214)
-    static let nextNudge = CGSize(width: -10.419, height: -5.278)
-
-    // MARK: bottom bar group, 440x116 sat 20 up from the bottom
-    static let bar = CGRect(x: 217, y: 266, width: 440, height: 116)
-
-    static let holdLabel = CGRect(x: 120, y: -1.699, width: 198.9, height: 36.0456)
-    static let holdText  = CGRect(x: 153, y: 5.348, width: 150, height: 22)
-    static let holdSize:  CGFloat = 15.652
+    static let holdLabel = CGRect(x: 120, y: 3.301, width: 198.9, height: 36.0456)
+    static let holdText  = CGRect(x: 140, y: 9, width: 160, height: 17)
+    static let holdSize:  CGFloat = 12
 
     static let track = CGRect(x: 55.63, y: 25.95, width: 328.749, height: 40.0915)
     static let fill  = CGRect(x: 61, y: 34, width: 318, height: 24)   // width is the progress

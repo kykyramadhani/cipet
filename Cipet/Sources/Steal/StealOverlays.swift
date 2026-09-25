@@ -297,11 +297,9 @@ struct VictimPortrait: View {
     let cast: Arrangement
     let space: DesignSpace
 
-    /// the design's frame is 160 x 297 with a 12 border, so everything here is that shape
-    /// scaled down to the width the card has room for
-    static let box    = CGSize(width: 96, height: 178.2)
-    static let border: CGFloat = 7.2
-    static let radius: CGFloat = 4.8
+    /// the design's frame, 160 x 297. its brush-stroke border is drawn over this separately.
+    static let box    = CGSize(width: 160, height: 297)
+    static let radius: CGFloat = 8
 
     /// how wide a slice of the angkot shows through, in the angkot's own units. the height
     /// follows from the frame's shape, so there is only ever one number to tune: set it so
@@ -327,21 +325,19 @@ struct VictimPortrait: View {
         .frame(width: space.px(Self.box.width), height: space.px(Self.box.height),
                alignment: .topLeading)
         .clipShape(RoundedRectangle(cornerRadius: space.px(Self.radius)))
-        .overlay(RoundedRectangle(cornerRadius: space.px(Self.radius))
-            .strokeBorder(.black, lineWidth: space.px(Self.border)))
     }
 
     /// the yellow version of their drawing where there is one — the animated faces only
     /// have their own frames, so they show as they are
     private var art: String {
-        let who = cast.who(victim)
+        guard let who = cast.who(victim) else { return "" }   // you only ever rob a filled seat
         return who.hotArt ?? who.art
     }
 
     /// the animated faces are drawn from a bigger box than the seat, the same way the
     /// angkot draws them, or they come out shrunk inside their own frame
     private func mark(_ seat: CGRect) -> CGRect {
-        cast.who(victim).animated ? Clips.box(over: seat) : seat
+        cast.who(victim)?.animated == true ? Clips.box(over: seat) : seat
     }
 
     private func layer(_ name: String, _ r: CGRect,
@@ -354,11 +350,9 @@ struct VictimPortrait: View {
 
 func runPortraitChecks() {
     #if DEBUG
-    // the frame keeps the design's 160 x 297 proportions, and its border with them
-    assert(abs(VictimPortrait.box.height / VictimPortrait.box.width - 297.0 / 160) < 0.01)
-    assert(abs(VictimPortrait.border / VictimPortrait.box.width - 12.0 / 160) < 0.01)
-    // and it fits the card it sits in, inside the padding
-    assert(VictimPortrait.box.height <= 210 - 2 * 16 + 0.5, "the portrait has to fit the card")
+    // the portrait is the design's frame exactly, and sits inside the card
+    assert(VictimPortrait.box == SucceedCard.frame.size)
+    assert(SucceedCard.cardArt.contains(SucceedCard.frame))
 
     // the window keeps the frame's shape, so nothing in the angkot comes out stretched
     assert(abs(VictimPortrait.cropHeight / VictimPortrait.cropWidth
@@ -366,7 +360,7 @@ func runPortraitChecks() {
 
     // every mark can be framed, whole, and each one lands in a different part of the angkot
     var seen: Set<String> = []
-    for v in Seating.victims {
+    for v in Seating.dealt {
         let seat = Seating.spot(v)
         let ox = seat.midX - VictimPortrait.cropWidth / 2
         let oy = seat.midY - VictimPortrait.drop * VictimPortrait.cropHeight
@@ -377,11 +371,12 @@ func runPortraitChecks() {
                "head and feet both")
         seen.insert("\(Int(ox)),\(Int(oy))")
     }
-    assert(seen.count == Seating.victims.count, "each mark gets their own crop")
+    assert(seen.count == Seating.dealt.count, "each mark gets their own crop")
     #endif
 }
 
-// what you get for pulling it off. the mark, the takings, and where to go next.
+// what you get for pulling it off: the mark, still sat where you left them, the takings, and
+// where to go next. it sits straight on the scene, the design doesnt dim what's behind it.
 struct SucceedCard: View {
     let remaining: String
     let value: Int
@@ -391,63 +386,42 @@ struct SucceedCard: View {
     let onNext: () -> Void
     let onEnd: () -> Void
 
-    private static let card  = CGSize(width: 430, height: 210)
-    private static let title: CGFloat = 40
-    private static let row:   CGFloat = 17
-    private static let btn   = CGSize(width: 116, height: 30)
+    static let cardArt = CGRect(x: 163.652, y: 28.756, width: 546.659, height: 346.242)
+    /// where the mark's portrait goes, and the brush-stroke frame drawn over it
+    static let frame    = CGRect(x: 187, y: 53, width: 160, height: 297)
+    static let frameArt = CGRect(x: 181, y: 48.429, width: 170.339, height: 306.292)
+    static let title  = CGRect(x: 367, y: 61, width: 320, height: 72)
+    static let rows: [CGFloat] = [149, 191.4]      // remaining time, item value
+    static let totalY: CGFloat = 249.8
+    static let rowH:   CGFloat = 26.4
+    static let endBox  = CGRect(x: 367, y: 310, width: 154, height: 40)
+    static let nextBox = CGRect(x: 533, y: 310, width: 154, height: 40)
+    static let endArt  = CGRect(x: 364.683, y: 307.696, width: 158.75, height: 45.3043)
+    static let nextArt = CGRect(x: 530.683, y: 307.696, width: 158.75, height: 45.3043)
 
     var body: some View {
-        ZStack {
-            Color.black.opacity(0.3).ignoresSafeArea()
-
-            HStack(spacing: space.px(18)) {
-                VictimPortrait(victim: victim, cast: cast, space: space)
-
-                VStack(alignment: .leading, spacing: space.px(6)) {
-                    Text(t("Succeed!"))
-                        .font(.skranji(space.px(Self.title)))
-                        .foregroundStyle(Ink.black)
-                    line(t("Remaining time"), remaining)
-                    line(t("Item value"), "Rp \(value)k")
-                    line(t("Total Item value"), "Rp \(value)k")
-                    HStack(spacing: space.px(10)) {
-                        button(t("End Game"), Ink.redGlow, action: onEnd)
-                        button(t("Next Round"), Ink.yellow, action: onNext)
-                    }
-                    .padding(.top, space.px(4))
-                }
+        ZStack(alignment: .topLeading) {
+            place(Self.cardArt, space) { Image("succeed_card").resizable() }
+            place(Self.frame, space) { VictimPortrait(victim: victim, cast: cast, space: space) }
+            place(Self.frameArt, space) { Image("succeed_frame").resizable() }
+            place(Self.title, space) {
+                Text(t("Succeed!"))
+                    .font(.skranji(space.px(60)))
+                    .foregroundStyle(.black)
+                    .fixedSize()
+                    .frame(maxWidth: .infinity, alignment: .leading)
             }
-            .padding(space.px(16))
-            .frame(width: space.px(Self.card.width), alignment: .leading)
-            .background(Ink.paper, in: RoundedRectangle(cornerRadius: space.px(12)))
-            .overlay(RoundedRectangle(cornerRadius: space.px(12))
-                .stroke(.black, lineWidth: space.px(5)))
-            .position(x: space.x(DesignSpace.screen.width / 2),
-                      y: space.y(DesignSpace.screen.height / 2))
+            let lines = [(t("Remaining time"), remaining), (t("Item value"), "Rp \(value)k")]
+            ForEach(lines.indices, id: \.self) { i in
+                statRow(lines[i].0, lines[i].1, 22, 24, Ink.stone,
+                        CGRect(x: Self.title.minX, y: Self.rows[i], width: Self.title.width,
+                               height: Self.rowH), space)
+            }
+            statRow(t("Total Item value"), "Rp \(value)k", 22, 24, .black,
+                    CGRect(x: Self.title.minX, y: Self.totalY, width: Self.title.width,
+                           height: Self.rowH), space)
+            artButton(t("End Game"), "succeed_red", Self.endBox, Self.endArt, space, onEnd)
+            artButton(t("Next Round"), "succeed_yellow", Self.nextBox, Self.nextArt, space, onNext)
         }
-    }
-
-    private func line(_ label: String, _ value: String) -> some View {
-        HStack {
-            Text(label)
-            Spacer(minLength: space.px(12))
-            Text(value)
-        }
-        .font(.skranji(space.px(Self.row), bold: false))
-        .foregroundStyle(Ink.black)
-    }
-
-    private func button(_ title: String, _ fill: Color,
-                        action: @escaping () -> Void) -> some View {
-        Button(action: action) {
-            Text(title)
-                .font(.skranji(space.px(15), bold: false))
-                .foregroundStyle(Ink.black)
-                .frame(width: space.px(Self.btn.width), height: space.px(Self.btn.height))
-                .background(fill, in: RoundedRectangle(cornerRadius: space.px(7)))
-                .overlay(RoundedRectangle(cornerRadius: space.px(7))
-                    .stroke(.black, lineWidth: space.px(2.5)))
-        }
-        .buttonStyle(PressStyle())
     }
 }

@@ -23,15 +23,17 @@ enum Pick {
 
 struct PickVictimView: View {
     let cast: Arrangement
+    var items = 0
     let onHome: () -> Void
     let onStart: (Seating.Person, CGRect, Double) -> Void
 
     @State private var vm: PickVictimViewModel
     private let ticker = Timer.publish(every: 1.0 / 60, on: .main, in: .common).autoconnect()
 
-    init(cast: Arrangement, onHome: @escaping () -> Void,
+    init(cast: Arrangement, items: Int = 0, onHome: @escaping () -> Void,
          onStart: @escaping (Seating.Person, CGRect, Double) -> Void) {
         self.cast = cast
+        self.items = items
         self.onHome = onHome
         self.onStart = onStart
         _vm = State(initialValue: PickVictimViewModel(cast: cast))
@@ -76,7 +78,7 @@ struct PickVictimView: View {
                            dimFixed: true, moods: cast.start)
                 .offset(y: space.px(Pick.drop))
             if vm.onPavement { TutorialPavement(space: space) }
-            TutorialHUD(show: [], clock: vm.clock, space: space, low: vm.lowOnTime)
+            TutorialHUD(show: [], clock: vm.clock, space: space, low: vm.lowOnTime, items: items)
 
             instruction(space)
             pauseButton(space)

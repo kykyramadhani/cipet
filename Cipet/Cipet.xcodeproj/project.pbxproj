@@ -117,7 +117,7 @@
 		708C431B2E2E2DAAEE788E1E /* TutorialBars.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TutorialBars.swift; sourceTree = "<group>"; };
 		7459590FE74685AB56D80CAC /* OFL.txt */ = {isa = PBXFileReference; lastKnownFileType = text; path = OFL.txt; sourceTree = "<group>"; };
 		7575ACA1CC181AFCA3311EDC /* sfx_caught.wav */ = {isa = PBXFileReference; lastKnownFileType = audio.wav; path = sfx_caught.wav; sourceTree = "<group>"; };
-		76D2DA08C9CE07554B6C519C /* CipetUITests.xctest */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.cfbundle; path = CipetUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		76D2DA08C9CE07554B6C519C /* CipetUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = CipetUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		82CB3CE84D1EC9AA8276573A /* FlowTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FlowTests.swift; sourceTree = "<group>"; };
 		894CC8C509B92FBF0FEB310E /* succeed_stealing.wav */ = {isa = PBXFileReference; lastKnownFileType = audio.wav; path = succeed_stealing.wav; sourceTree = "<group>"; };
 		94954D9E0D38FCE75BF36C97 /* GameConfig.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GameConfig.swift; sourceTree = "<group>"; };
@@ -125,7 +125,7 @@
 		9F3F71BAAB6EE7A3D52D39B8 /* AppRouter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppRouter.swift; sourceTree = "<group>"; };
 		A52ABC24E21705EC3BC861AD /* TutorialScene.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TutorialScene.swift; sourceTree = "<group>"; };
 		B61276C01CB478AD434434C5 /* RecordPanel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecordPanel.swift; sourceTree = "<group>"; };
-		BD1C86A0AC1DB821FB8E2526 /* Cipet.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = Cipet.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		BD1C86A0AC1DB821FB8E2526 /* Cipet.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Cipet.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		BDA1C65B2855C451E50C92AE /* Seating.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Seating.swift; sourceTree = "<group>"; };
 		C20DF2E63C5C6002203D6554 /* Style.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Style.swift; sourceTree = "<group>"; };
 		C8AB0EFA63F3AE0317BC7659 /* Haptics.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Haptics.swift; sourceTree = "<group>"; };
@@ -638,6 +638,7 @@
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = iphoneos;
 				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
+				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
 				SWIFT_VERSION = 5.0;
 			};
@@ -741,6 +742,7 @@
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = iphoneos;
 				SWIFT_COMPILATION_MODE = wholemodule;
+				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_OPTIMIZATION_LEVEL = "-O";
 				SWIFT_VERSION = 5.0;
 			};

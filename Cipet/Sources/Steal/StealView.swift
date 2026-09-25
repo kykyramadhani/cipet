@@ -5,6 +5,8 @@ struct StealView: View {
     let thiefSeat: CGRect
     let cast: Arrangement
     let round: Int
+    /// items taken over the rounds already finished
+    let items: Int
     /// the round is over and the player has chosen where to go. the round never leaves on
     /// its own — winning or getting caught shows a result here, it does not pop the screen.
     enum Exit { case nextRound(RoundResult), endGame(RoundResult, Ending), home }
@@ -19,11 +21,13 @@ struct StealView: View {
     private let clock = Timer.publish(every: 1.0 / 60, on: .main, in: .common).autoconnect()
 
     init(victim: Seating.Person, thiefSeat: CGRect, timeLeft: Double, cast: Arrangement, round: Int,
+         items: Int = 0,
          onDone: @escaping (Exit) -> Void) {
         self.victim = victim
         self.thiefSeat = thiefSeat
         self.cast = cast
         self.round = round
+        self.items = items
         self.onDone = onDone
         _vm = State(initialValue: StealViewModel(victim: victim, thiefSeat: thiefSeat, cast: cast,
                                                  timeLeft: timeLeft))
@@ -49,7 +53,7 @@ struct StealView: View {
                     PausedCard(space: space, onResume: vm.resume) { onDone(.home) }
                 }
                 if vm.phase == .succeeded && showEnding {
-                    SucceedCard(remaining: vm.clock, value: Steal.itemValue,
+                    SucceedCard(remaining: vm.clock, value: vm.loot,
                                 victim: victim, cast: cast, space: space,
                                 onNext: { Audio.shared.play(.leave); onDone(.nextRound(result)) },
                                 onEnd: { onDone(.endGame(result, .walkedAway)) })
@@ -110,7 +114,7 @@ struct StealView: View {
 
     /// what this round was worth, whichever way it ended
     private var result: RoundResult {
-        RoundResult(value: vm.phase == .succeeded ? Steal.itemValue : 0,
+        RoundResult(value: vm.phase == .succeeded ? vm.loot : 0,
                     time: Steal.round - vm.timeLeft)
     }
 
@@ -140,16 +144,15 @@ struct StealView: View {
         ZStack(alignment: .topLeading) {
             road(space)
 
-            Group {
-                TutorialAngkot(show: [.kid], space: space, hot: victim,
-                               cast: cast, aware: vm.bars, moods: vm.moods,
-                               paused: vm.phase == .paused, colored: true)
-                ThiefActor(beat: beat, seat: thiefSeat, reachingLeft: reachingLeft,
-                           behind: Seating.benches[1].map(Seating.thiefSpot).contains(thiefSeat),
-                           space: space, paused: vm.phase == .paused, onFinish: finished)
-            }
-            .offset(y: space.px(Steal.angkotDrop))
-            TutorialHUD(show: [], clock: vm.clock, space: space, low: vm.lowOnTime)
+            TutorialAngkot(show: [.kid], space: space, thiefAt: thiefSeat, hot: victim,
+                           cast: cast, aware: vm.bars, moods: vm.moods,
+                           paused: vm.phase == .paused, colored: true,
+                           thief: AnyView(ThiefActor(beat: beat, seat: thiefSeat, reachingLeft: reachingLeft,
+                                                     behind: Seating.bench(of: thiefSeat) == 1,
+                                                     space: space, paused: vm.phase == .paused,
+                                                     onFinish: finished)))
+                .offset(y: space.px(Steal.angkotDrop))
+            TutorialHUD(show: [], clock: vm.clock, space: space, low: vm.lowOnTime, items: items)
             roundTag(space)
 
             StealBar(progress: vm.grab, space: space)

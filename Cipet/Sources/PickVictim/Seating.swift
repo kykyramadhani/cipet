@@ -63,15 +63,20 @@ enum Seating {
         }
     }
 
-    /// where their bar hangs. the offsets from the drawing are measured off the design, the
-    /// sprites have uneven transparent margins so centring them puts the bar in the wrong place.
+    /// where their bar hangs: centred over their head with a gap above it, whichever bench
+    /// they're on. scaled down from the design's 68x20 so neighbours' bars never touch.
     static func awareSlot(_ p: Person) -> CGRect {
-        let box = Tut.awareBox, s = spot(p)
-        switch facing(p) {
-        case .front: return CGRect(x: s.minX - 8.5,  y: 100, width: box.width, height: box.height)
-        case .back:  return CGRect(x: s.minX - 4.63, y: 192, width: box.width, height: box.height)
-        case .fixed: return CGRect(x: 232,           y: 108, width: box.width, height: box.height)
-        }
+        let size = CGSize(width: Tut.awareBox.width * Tut.awareScale,
+                          height: Tut.awareBox.height * Tut.awareScale)
+        let head = p == .kid ? CGPoint(x: Tut.bocah.midX, y: Tut.bocah.minY + Tut.kidHeadDrop)
+                             : CGPoint(x: spot(p).midX, y: spot(p).minY - Tut.headLift)
+        return CGRect(x: head.x - size.width / 2, y: head.y - Tut.awareGap - size.height,
+                      width: size.width, height: size.height)
+    }
+
+    /// which bench a thief's seat is on: 0 the far one, 1 the near one
+    static func bench(of seat: CGRect) -> Int {
+        benches[1].map(thiefSpot).contains(seat) ? 1 : 0
     }
 
     private static func centred(_ size: CGSize, on midX: CGFloat, y: CGFloat) -> CGRect {
@@ -86,8 +91,18 @@ func runSeatingChecks() {
     assert(fixed.seats(beside: .farLeft) == [Tut.seated] && fixed.seats(beside: .farRight) == [Tut.seated],
            "on the end of the far bench, the one gap is the middle")
     assert(fixed.seats(beside: .nearMid) == Tut.ghosts, "in the middle, both ends of the near bench")
-    assert(Seating.awareSlot(.farLeft).minX == 35.15 && Seating.awareSlot(.farRight).minX == 158)
-    assert(abs(Seating.awareSlot(.nearMid).minX - 101) < 0.001)
+    // every bar sits over its own head, clear of it, and never touches a neighbour's
+    let everyone = Seating.dealt + [.kid]
+    for p in everyone {
+        let bar = Seating.awareSlot(p)
+        let head = p == .kid ? Tut.bocah.midX : Seating.spot(p).midX
+        assert(abs(bar.midX - head) < 0.01, "\(p)'s bar is off their head")
+        assert(bar.maxY < (p == .kid ? Tut.bocah.minY + Tut.kidHeadDrop : Seating.spot(p).minY - Tut.headLift),
+               "\(p)'s bar sits on their head")
+        for q in everyone where q != p {
+            assert(!bar.intersects(Seating.awareSlot(q)), "\(p) and \(q)'s bars overlap")
+        }
+    }
 
     // only people on the benches can be robbed, and only into an empty seat
     assert(!fixed.targets.contains(.kid) && fixed.seats(beside: .kid).isEmpty)
@@ -104,7 +119,6 @@ func runSeatingChecks() {
     // the drawings line up with the thief's seats and sit on their own bench
     for p in Seating.dealt {
         assert(abs(Seating.spot(p).midX - Seating.thiefSpot(p).midX) < 0.01, "\(p) is off its seat")
-        assert(Seating.awareSlot(p).maxY <= Seating.spot(p).midY, "\(p)'s bar should be over their head")
         // nothing you can tap to pick a target reaches the driver, and barely the kid
         assert(!Seating.spot(p).intersects(Tut.sopir), "\(p) overlaps the driver")
         assert(!Seating.spot(p).insetBy(dx: 1, dy: 1).intersects(Tut.bocah), "\(p) overlaps the kid")

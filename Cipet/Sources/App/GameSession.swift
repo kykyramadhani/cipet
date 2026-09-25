@@ -70,9 +70,10 @@ struct Traits: Equatable {
     let idleFor: ClosedRange<Double>
     let calmFor: ClosedRange<Double>
 
-    /// how watchful each kind of person is when idle, per second. the kid is the sharpest.
+    /// how watchful each kind of person is when idle, per second. the kid is by far the
+    /// slowest: he's still watching, it just takes him a good while to get suspicious.
     static let watchful: [String: ClosedRange<Double>] = [
-        "Sleepy": 0.26...0.34, "Music": 0.30...0.40, "Duo": 0.32...0.42, "Boy": 0.40...0.50,
+        "Sleepy": 0.26...0.34, "Music": 0.30...0.40, "Duo": 0.32...0.42, "Boy": 0.10...0.14,
     ]
     /// how long they drift off for. sleep lasts, a chat or a song less so.
     static let drift: [String: ClosedRange<Double>] = [
@@ -244,9 +245,11 @@ func runSessionChecks() {
             assert(t.threshold > 0 && t.threshold <= 1)
         }
     }
-    // the kid, when he's on, is the most watchful one aboard
+    // the kid, when he's on, catches on far slower than any passenger
     if let k = seen.first(where: \.kid), let rate = k.traits[.kid]?.awareRate {
-        assert(rate >= Traits.watchful["Boy"]!.lowerBound)
+        assert(rate <= Traits.watchful["Boy"]!.upperBound)
+        let slowest = Traits.watchful.filter { $0.key != "Boy" }.map(\.value.lowerBound).min()!
+        assert(Traits.watchful["Boy"]!.upperBound * 1.5 < slowest, "the kid has to be a lot slower")
     }
     #endif
 }

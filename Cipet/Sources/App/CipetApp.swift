@@ -23,14 +23,15 @@ struct RootView: View {
                               onHome: { router.go(.menu) })
                     .transition(.opacity)
             case .pickVictim:
-                PickVictimView(cast: router.session.arrangement,
+                PickVictimView(cast: router.session.arrangement, items: router.session.items,
                                onHome: { router.go(.menu) }) { who, seat, left in
                     router.go(.steal(who, seat, left))
                 }
                 .transition(.opacity)
             case let .steal(who, seat, left):
                 StealView(victim: who, thiefSeat: seat, timeLeft: left,
-                          cast: router.session.arrangement, round: router.session.round) { exit in
+                          cast: router.session.arrangement, round: router.session.round,
+                          items: router.session.items) { exit in
                     switch exit {
                     case let .nextRound(r): router.nextRound(after: r)
                     case let .endGame(r, how): router.endGame(after: r, how)

@@ -18,7 +18,8 @@ enum Steal {
     static let pauseArt  = CGRect(x: 787.498, y: 18.252, width: 65.437, height: 64.748)
     static let strikes = 3               // full aware bars before you're caught
 
-    static let itemValue = 20            // thousands of rupiah
+    /// what one lift is worth, in whole rupiah: anything up to a million, rolled per round
+    static func rollLoot() -> Int { Int.random(in: 50...1_000) * 1_000 }
 
     /// seconds for the road to scroll one screen width. the angkot itself never moves —
     /// the road going past underneath is the whole effect.
@@ -31,6 +32,8 @@ enum Steal {
     let victim: Seating.Person
     let thiefSeat: CGRect
     let cast: Arrangement
+    /// what's in the pocket this round, decided before he reaches for it
+    let loot = Steal.rollLoot()
 
     private(set) var phase: Phase = .stealing
     private(set) var grab: CGFloat = 0
@@ -71,12 +74,15 @@ enum Steal {
     /// the mark's numbers drive the steal bar
     private var mark: Traits { cast.traits(victim) }
 
-    /// a passenger's bar shows while they're idle, and while it drains after they drift off.
-    /// once it's empty and they're off in their own thing, it's gone. drawn against their
-    /// own threshold, so it reads full at the moment they clock you.
+    /// everyone's bar is up the moment stealing starts. after that a bar shows while they're
+    /// idle, and while it drains once they drift off; empty and off in their own thing, it's
+    /// gone until they're idle again. drawn against their own threshold, so it reads full at
+    /// the moment they clock you.
     var bars: [Seating.Person: CGFloat] {
-        aware.filter { moods[$0.key] == .alert || $0.value > 0 }
+        aware.filter { moods[$0.key] == .alert || $0.value > 0 || !driftedOff.contains($0.key) }
     }
+    /// who has drifted off since the round started, which is what lets their bar go
+    private var driftedOff: Set<Seating.Person> = []
 
     var clock: String { mmss(timeLeft.rounded(.up)) }
     /// the last few seconds, which the hud draws in red
@@ -125,9 +131,11 @@ enum Steal {
             guard switchIn[who]! <= 0 else { continue }
             let now: Mood = moods[who] == .alert ? .calm : .alert
             moods[who] = now
+            if now == .calm { driftedOff.insert(who) }
             switchIn[who] = hold(who)
             if let right = Seating.right(of: who), cast.who(right)?.isRightHalf == true {
                 moods[right] = now
+                if now == .calm { driftedOff.insert(right) }
             }
         }
     }
@@ -323,7 +331,9 @@ func runStealChecks() {
     var d = StealViewModel(victim: .nearMid, thiefSeat: fixed.seats(beside: .nearMid)[0], cast: drifting)
     d.holding = true
     for _ in 0..<60 { d.tick(1.0 / 60) }
-    assert(d.aware[.farRight] == 0 && d.bars[.farRight] == nil, "in their own thing: no bar, no notice")
+    assert(d.aware[.farRight] == 0, "in their own thing they notice nothing")
+    assert(d.bars[.farRight] != nil, "but every bar is up from the moment stealing starts")
+    assert(Set(StealViewModel(victim: .nearMid, thiefSeat: seat, cast: drifting).bars.keys) == Set(drifting.watchers))
     assert((d.aware[.farLeft] ?? 0) > 0 && d.bars[.farLeft] != nil, "idle: watching, and it shows")
 
     // the kid never drifts off, and a duo drifts off together
@@ -340,6 +350,9 @@ func runStealChecks() {
         assert(q.moods[.kid] == .alert, "the kid is always idle")
         assert(q.moods[.nearLeft] == q.moods[.nearMid], "one conversation, one mood")
         switched = switched || q.moods[.nearLeft] == .calm
+        if q.moods[.nearLeft] == .calm && q.aware[.nearLeft] == 0 {
+            assert(q.bars[.nearLeft] == nil, "drifted off and drained: the bar goes")
+        }
         if q.over { break }
     }
     assert(switched, "a passenger drifts off at some point in half a minute")

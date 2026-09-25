@@ -54,8 +54,11 @@ enum Clips {
     // artwork is cropped tight, so a clip has to be scaled and nudged to land on the same spot.
     private static let ink = CGRect(x: 64, y: 39, width: 173, height: 220)
 
+    /// the driver is drawn a little bigger in his frame than everyone else
+    static let driverInk = CGRect(x: 62, y: 23, width: 179, height: 237)
+
     /// the rect to draw a clip in so its character lands on the flat sprite's box
-    static func box(over spot: CGRect) -> CGRect {
+    static func box(over spot: CGRect, ink: CGRect = ink) -> CGRect {
         let k = spot.height / ink.height
         return CGRect(x: spot.minX - ink.minX * k, y: spot.minY - ink.minY * k,
                       width: size.width * k, height: size.height * k)
@@ -66,11 +69,22 @@ enum Clips {
     /// on the near bench with his back to us ("Behind..."). when a drawing isnt there yet it
     /// falls back to the nearest one that is, so a new set is used the moment it's added.
     static func thief(_ move: String, left: Bool, behind: Bool, loops: Bool = false) -> Clip {
-        for (l, b) in [(left, behind), (false, behind), (left, false), (false, false)] {
+        // from behind he only ever uses the Behind drawings — never turns round to face us
+        let sides = behind ? [(left, true), (false, true)] : [(left, false), (false, false)]
+        for (l, b) in sides {
             let c = Clip((l ? "Left" : "") + (b ? "Behind" : "") + "Cipet" + move, loops: loops)
             if c.exists { return c }
         }
-        return Clip("Cipet" + move, loops: loops)
+        // a move not drawn from behind yet: caught mid-steal pulls his hand back, anything
+        // else he stays sat with his back to us
+        if behind, move == "Nyopet-Caught" { return thief("Nyopet-Idle", left: left, behind: true) }
+        return behind ? behindIdle(left: left) : Clip("Cipet" + move, loops: loops)
+    }
+
+    /// him sat still with his back to us: where the return from reaching ends
+    static func behindIdle(left: Bool) -> Clip {
+        let back = thief("Nyopet-Idle", left: left, behind: true)
+        return Clip(back.name, length: 1, offset: back.frames - 1)
     }
 }
 

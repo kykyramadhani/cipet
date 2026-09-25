@@ -20,38 +20,68 @@ struct TutorialAngkot: View {
     var paused = false
     /// the yellow body, while you're stealing
     var colored = false
+    /// the thief when he's animated (stealing). he's drawn at his seat's depth, not on top
+    /// of everything: `thiefAt` says which row that is.
+    var thief: AnyView? = nil
 
     var body: some View {
         Group {
             art("loading_angkot_wheel",    Tut.wheel)
             art("tut_angkot_interior",     Tut.interior)
+            // the driver sits in his cab under the body panel, the way the design layers him
+            place(Tut.inAngkot(Clips.box(over: Tut.sopir, ink: Clips.driverInk)), space) {
+                Image("Driver-0000").resizable()
+            }
+            .colorMultiply(fixedTint)
             if colored { art("steal_angkot_exterior", Tut.exteriorColored) }
             else { art("loading_angkot_exterior", Tut.exterior) }
             people
         }
     }
 
+    // painted back to front: the far bench (and the kid beside it) sits further from us than
+    // the near bench, so anyone on the near bench covers anyone behind them, the thief
+    // included. each bar goes in with its own passenger, at their depth.
     @ViewBuilder private var people: some View {
         if show.contains(.kid), cast.kid {
             place(Tut.inAngkot(Clips.box(over: Tut.bocah)), space) {
                 RiderActor(moves: Rider.kid.moves, mood: .alert, paused: paused)
             }
             .colorMultiply(fixedTint)
+            bar(.kid)
         }
-        ForEach(Seating.benches[0], id: \.self) { passenger($0) }
+        row(0)
+        row(1)
+    }
 
+    @ViewBuilder private func row(_ bench: Int) -> some View {
+        let seats = Seating.benches[bench]
+        ForEach(seats, id: \.self) { passenger($0) }
         if show.contains(.seatGhosts) {
-            ForEach(ghostSeats.indices, id: \.self) { i in
-                art("loading_pencipet", ghostSeats[i]).opacity(Tut.ghostFade)
+            ForEach(ghostSeats.filter { Seating.bench(of: $0) == bench }, id: \.self) { spot in
+                sitting(spot).opacity(Tut.ghostFade)
             }
         }
+        if Seating.bench(of: thiefAt) == bench {
+            if let thief { thief } else if show.contains(.onBoard) { sitting(thiefAt) }
+        }
+        ForEach(seats, id: \.self) { bar($0) }
+    }
 
-        art("Driver-0000", Clips.box(over: Tut.sopir)).colorMultiply(fixedTint)
-        ForEach(Seating.benches[1], id: \.self) { passenger($0) }
+    @ViewBuilder private func bar(_ who: Seating.Person) -> some View {
+        if let level = aware[who] {
+            AwarenessBar(box: Seating.awareSlot(who), level: level, space: space)
+        }
+    }
 
-        if show.contains(.onBoard) { art("loading_pencipet", thiefAt) }
-        ForEach(Array(aware.keys), id: \.self) { who in
-            AwarenessBar(box: Seating.awareSlot(who), level: aware[who] ?? 0, space: space)
+    /// the thief sat still at a seat: facing us on the far bench, his back to us on the near one
+    @ViewBuilder private func sitting(_ spot: CGRect) -> some View {
+        if Seating.bench(of: spot) == 1 {
+            place(Tut.inAngkot(Clips.box(over: spot)), space) {
+                Sprite(name: Clips.behindIdle(left: false).frame(0))
+            }
+        } else {
+            art("loading_pencipet", spot)
         }
     }
 
@@ -99,6 +129,8 @@ struct TutorialHUD: View {
     var clockOnly = false
     /// the last few seconds of the round, which is a whole different panel
     var low = false
+    /// items taken over every round finished so far
+    var items = 0
 
     /// swells on the second and springs back down, so the clock has a pulse
     @State private var beating = false
@@ -111,8 +143,12 @@ struct TutorialHUD: View {
                 panel("tut_panel_wallet", Tut.walletPanel) {
                     Image("tut_wallet").resizable()
                         .frame(width: space.px(Tut.walletIcon), height: space.px(Tut.walletIcon))
-                    Text("00").font(.skranji(space.px(Tut.hudSize), bold: false))
+                    // sized for two digits and left aligned: more digits run on to the right,
+                    // the icon never shifts
+                    Text("\(items)").font(.skranji(space.px(Tut.hudSize), bold: false))
                         .foregroundStyle(.black)
+                        .fixedSize()
+                        .frame(width: space.px(Tut.itemsWidth), alignment: .leading)
                 }
             }
             panel(alarm ? "tut_panel_alarm" : "tut_panel_clock", Tut.clockPanel,

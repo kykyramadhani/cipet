@@ -268,13 +268,13 @@ struct SucceedCard: View {
                     .fixedSize()
                     .frame(maxWidth: .infinity, alignment: .leading)
             }
-            let lines = [(t("Remaining time"), remaining), (t("Item value"), "Rp \(value)k")]
+            let lines = [(t("Remaining time"), remaining), (t("Item value"), rupiah(value))]
             ForEach(lines.indices, id: \.self) { i in
                 statRow(lines[i].0, lines[i].1, 22, 24, Ink.stone,
                         CGRect(x: Self.title.minX, y: Self.rows[i], width: Self.title.width,
                                height: Self.rowH), space)
             }
-            statRow(t("Total Item value"), "Rp \(value)k", 22, 24, .black,
+            statRow(t("Total Item value"), rupiah(value), 22, 24, .black,
                     CGRect(x: Self.title.minX, y: Self.totalY, width: Self.title.width,
                            height: Self.rowH), space)
             artButton(t("End Game"), "succeed_red", Self.endBox, Self.endArt, space, onEnd)

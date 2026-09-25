@@ -31,8 +31,23 @@ enum Menu {
                width: buttonArtSize.width, height: buttonArtSize.height)
     }
 
-    static let infoIcon = CGRect(x: 760.5405, y: 14.9815, width: 38.1716, height: 37.7695)
-    static let gearIcon = CGRect(x: 811.469,  y: 15.505,  width: 39.1459, height: 38.7179)
+    // the two corner icons are one row: equal squares, a fixed gap, the same artwork frame
+    // around each glyph. the svg is drawn a shade larger than the square and hangs off it
+    // unevenly, which is why the art rect is derived rather than written down twice.
+    static let iconRow   = CGPoint(x: 763, y: 16)
+    static let iconSide:  CGFloat = 33
+    static let iconGap:   CGFloat = 16
+    static let iconBleed = CGSize(width: 1.3756, height: 0.9603)   // top left only
+    static let iconArtSize = CGSize(width: 35.9904, height: 35.6112)
+
+    static func icon(_ i: Int) -> CGRect {
+        CGRect(x: iconRow.x + CGFloat(i) * (iconSide + iconGap) - iconBleed.width,
+               y: iconRow.y - iconBleed.height,
+               width: iconArtSize.width, height: iconArtSize.height)
+    }
+
+    static var infoIcon: CGRect { icon(0) }
+    static var gearIcon: CGRect { icon(1) }
 }
 
 struct MainMenuView: View {
@@ -64,6 +79,7 @@ struct MainMenuView: View {
                     RecordPanel(shown: $recordShown, space: space).transition(.opacity)
                 }
             }
+            .task { runMenuChecks() }
             .coordinateSpace(name: Menu.space)
             .frame(width: geo.size.width, height: geo.size.height)
             .clipped()
@@ -121,6 +137,23 @@ struct MainMenuView: View {
             }
         }
     }
+}
+
+func runMenuChecks() {
+    #if DEBUG
+    // the icons are a row of matching squares, not two lumps that happen to sit near each
+    // other — which is how the gear ended up a circle beside a rounded square once already
+    assert(Menu.infoIcon.size == Menu.gearIcon.size, "one frame, two glyphs")
+    assert(abs(Menu.gearIcon.minX - Menu.infoIcon.minX - (Menu.iconSide + Menu.iconGap)) < 0.01)
+    assert(Menu.infoIcon.minY == Menu.gearIcon.minY, "and they sit on the same line")
+    assert(Menu.infoIcon.maxX < Menu.gearIcon.minX, "with daylight between them")
+    assert(Menu.gearIcon.maxX < DesignSpace.screen.width, "the gear stays on screen")
+
+    // Play is where the eye goes, so it holds its spot whether or not Record is under it
+    assert(Menu.playTall.size == Menu.button.size && Menu.recordTall.size == Menu.button.size)
+    assert(Menu.recordTall.minY > Menu.playTall.maxY, "Record hangs below Play")
+    assert(Menu.headlineTall.maxY < Menu.playTall.minY, "and the headline clears both")
+    #endif
 }
 
 #Preview(traits: .landscapeLeft) { MainMenuView {} }

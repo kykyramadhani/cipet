@@ -61,7 +61,7 @@ enum Tutorial {
                           box: CGRect(x: 669, y: 199, width: 183, height: 143), row: .next)],
              lit: [.angkot, .pointer], picking: true, kid: true, ghosts: true, pointer: CGPoint(x: 291.9, y: 166.5)),
         Page(cards: [Card(text: "Hold until the bar is full to steal the item.",
-                          box: CGRect(x: 30, y: 94, width: 183, height: 112), row: .none),
+                          box: CGRect(x: 83, y: 258, width: 183, height: 112), row: .none),
                      Card(text: "Release to lower it.", box: CGRect(x: 656, y: 211, width: 198, height: 77),
                           row: .next, gap: 10, textWidth: 178)],
              lit: [.target, .thief, .stealBar], grab: 0.22,

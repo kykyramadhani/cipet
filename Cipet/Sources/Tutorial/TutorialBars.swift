@@ -44,7 +44,7 @@ struct StealBar: View {
         Group {
             place(Tut.inBar(Tut.holdLabel), space) { Image("tut_hold_label").resizable() }
             place(Tut.inBar(Tut.holdText), space) {
-                Text("Hold to fill the bar")
+                Text("Hold anywhere to fill the bar")
                     .font(.skranji(space.px(Tut.holdSize), bold: false))
                     .foregroundStyle(.black)
                     .fixedSize()

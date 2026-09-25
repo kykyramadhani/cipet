@@ -2,12 +2,7 @@ import AVFoundation
 
 /// filenames in Resources/Audio have to match these exactly
 enum SFX: String, CaseIterable {
-    case success = "sfx_success"
-    case caught  = "sfx_caught"
-    case move    = "sfx_move"
-    case win     = "sfx_win"
-
-    case click     = "button_clicked"       // anything you tap
+    case click    = "button_clicked"       // anything you tap
     case engine    = "vehicle_turnOn"       // the angkot pulling up on the countdown
     case whistle   = "whistle"              // steal time, go
     case seated    = "character_seated"     // he takes the seat he picked

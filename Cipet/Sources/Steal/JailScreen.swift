@@ -33,6 +33,11 @@ enum Jail {
     static let signIn:  Double = 0.22
     static let signRise:   CGFloat = 70   // how far above its resting place the word starts
     static let failedRise: CGFloat = 75   // Failed comes in from 31 above the screen
+
+    /// "Tap anywhere to continue", centred along the bottom once everything has landed
+    static let hint = CGPoint(x: 437, y: 384)
+    static let hintSize: CGFloat = 20
+    static let hintIn: Double = 0.3
 }
 
 // the cage comes down first, then JAILED. the order is driven by the task below, not by
@@ -44,6 +49,8 @@ struct JailScreen: View {
 
     @State private var caged = false
     @State private var signed = false
+    /// the prompt only comes up once the cage and the word have both finished coming in
+    @State private var prompted = false
 
     var body: some View {
         ZStack(alignment: .topLeading) {
@@ -59,6 +66,14 @@ struct JailScreen: View {
                     .transition(.opacity.combined(with: .offset(
                         y: -space.px(jailed ? Jail.signRise : Jail.failedRise))))
             }
+            if prompted {
+                Text(t("Tap anywhere to continue"))
+                    .font(.skranji(space.px(Jail.hintSize), bold: false))
+                    .foregroundStyle(Ink.snow)
+                    .fixedSize()
+                    .position(x: space.x(Jail.hint.x), y: space.y(Jail.hint.y))
+                    .transition(.opacity)
+            }
         }
         .frame(width: space.px(DesignSpace.screen.width),
                height: space.px(DesignSpace.screen.height))
@@ -71,6 +86,8 @@ struct JailScreen: View {
             }
             Audio.shared.play(.failed)
             withAnimation(.easeOut(duration: Jail.signIn)) { signed = true }
+            try? await Task.sleep(for: .seconds(Jail.signIn))
+            withAnimation(.easeIn(duration: Jail.hintIn)) { prompted = true }
         }
     }
 }

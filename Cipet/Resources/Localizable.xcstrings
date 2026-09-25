@@ -551,6 +551,17 @@
         }
       }
     },
+    "Tap anywhere to continue": {
+      "extractionState": "manual",
+      "localizations": {
+        "id": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ketuk di mana saja untuk lanjut"
+          }
+        }
+      }
+    },
     "This is you!": {
       "extractionState": "manual",
       "localizations": {

@@ -18,12 +18,15 @@ struct TutorialAngkot: View {
     /// what the animated passengers are up to, which picks their animation
     var moods: [Seating.Person: Mood] = [:]
     var paused = false
+    /// the yellow body, while you're stealing
+    var colored = false
 
     var body: some View {
         Group {
             art("loading_angkot_wheel",    Tut.wheel)
             art("tut_angkot_interior",     Tut.interior)
-            art("loading_angkot_exterior", Tut.exterior)
+            if colored { art("steal_angkot_exterior", Tut.exteriorColored) }
+            else { art("loading_angkot_exterior", Tut.exterior) }
             people
         }
     }

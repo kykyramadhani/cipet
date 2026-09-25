@@ -23,6 +23,13 @@ enum Steal {
     static let awareCalm: Double = 0.30
 
     static let penalty: Double = 3       // seconds frozen after somebody clocks you
+    /// the angkot sits 2 lower here than on the other screens
+    static let angkotDrop: CGFloat = 2
+    static let roundTag  = CGRect(x: 24, y: 350, width: 140, height: 32)
+    static let roundArt  = CGRect(x: 23.328, y: 347.651, width: 140.629, height: 36.0456)
+    static let roundSize: CGFloat = 16
+    /// the hud sits at 20 here, 4 higher than on pick target
+    static let pauseArt  = CGRect(x: 787.498, y: 18.252, width: 65.437, height: 64.748)
     static let strikes = 3               // full aware bars before you're caught
 
     static let itemValue = 20            // thousands of rupiah
@@ -46,6 +53,8 @@ enum Steal {
     private(set) var moods: [Seating.Person: Mood] = [:]
     private(set) var suspicion = 0
     private(set) var timeLeft = Steal.round
+    /// the clock ran out, as opposed to getting spotted three times
+    private(set) var timedOut = false
     private(set) var penaltyLeft = 0.0
     /// how far the road has scrolled, 0..<1 of one screen width
     private(set) var road: CGFloat = 0
@@ -77,7 +86,7 @@ enum Steal {
 
         // the clock keeps running through the penalty, only the stealing stops
         timeLeft -= dt
-        if timeLeft <= 0 { timeLeft = 0; caught(); return }
+        if timeLeft <= 0 { timeLeft = 0; timedOut = true; caught(); return }
 
         if phase == .penalty {
             penaltyLeft -= dt
@@ -222,7 +231,7 @@ func runStealChecks() {
         while c.phase == .penalty { c.tick(1.0 / 60) }
         while c.grab > 0 && !c.over { c.tick(1.0 / 60) }   // let it sag so the lift never lands
     }
-    assert(c.suspicion == Steal.strikes && c.phase == .caught)
+    assert(c.suspicion == Steal.strikes && c.phase == .caught && !c.timedOut, "jailed, not out of time")
 
     // the target has a bar of their own, and so does the kid
     let bars = StealViewModel(victim: .farLeft, thiefSeat: seat, cast: fixed)
@@ -259,6 +268,6 @@ func runStealChecks() {
     // the clock running out ends it too
     var t = StealViewModel(victim: .nearMid, thiefSeat: seat, cast: fixed)
     while t.timeLeft > 0 { t.tick(1) }
-    assert(t.phase == .caught)
+    assert(t.phase == .caught && t.timedOut, "out of time is its own ending")
     #endif
 }

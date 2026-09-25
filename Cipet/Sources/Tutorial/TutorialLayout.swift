@@ -9,6 +9,7 @@ enum Tut {
     static let wheel    = CGRect(x: 0,    y: 3.06, width: 439.313, height: 410.388)
     static let interior = CGRect(x: 7.38, y: 7.38, width: 424.264, height: 396.33)
     static let exterior = CGRect(x: 0,    y: 0,    width: 439.313, height: 410.388)
+    static let exteriorColored = CGRect(x: 2, y: 1, width: 438, height: 409.479)
 
     static let bocah  = CGRect(x: 230.99, y: 116.21, width: 66.166, height: 84)
     static let kiriA  = CGRect(x: 166.50, y: 110.94, width: 57.497, height: 84)
@@ -47,12 +48,12 @@ enum Tut {
     static let hudSize:    CGFloat = 40
     static let hudGap:     CGFloat = 8
 
-    // MARK: bottom bar group, 440x116 sat 20 up from the bottom
-    static let bar = CGRect(x: 217, y: 266, width: 440, height: 116)
+    // MARK: bottom bar group, 440x116 sat 12 up from the bottom
+    static let bar = CGRect(x: 217, y: 274, width: 440, height: 116)
 
-    static let holdLabel = CGRect(x: 120, y: -1.699, width: 198.9, height: 36.0456)
-    static let holdText  = CGRect(x: 153, y: 5.348, width: 150, height: 22)
-    static let holdSize:  CGFloat = 15.652
+    static let holdLabel = CGRect(x: 120, y: 3.301, width: 198.9, height: 36.0456)
+    static let holdText  = CGRect(x: 140, y: 9, width: 160, height: 17)
+    static let holdSize:  CGFloat = 12
 
     static let track = CGRect(x: 55.63, y: 25.95, width: 328.749, height: 40.0915)
     static let fill  = CGRect(x: 61, y: 34, width: 318, height: 24)   // width is the progress

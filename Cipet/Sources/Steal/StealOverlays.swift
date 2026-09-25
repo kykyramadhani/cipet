@@ -142,7 +142,8 @@ struct PausedCard: View {
     }
 }
 
-// what you get for pulling it off. the thief, the takings, and where to go next.
+// what you get for pulling it off: a snap of the thief in his seat, the takings, and where to
+// go next. it sits straight on the scene, the design doesnt dim what's behind it.
 struct SucceedCard: View {
     let remaining: String
     let value: Int
@@ -150,67 +151,40 @@ struct SucceedCard: View {
     let onNext: () -> Void
     let onEnd: () -> Void
 
-    private static let card  = CGSize(width: 430, height: 210)
-    private static let title: CGFloat = 40
-    private static let row:   CGFloat = 17
-    private static let btn   = CGSize(width: 116, height: 30)
+    static let cardArt = CGRect(x: 163.652, y: 28.756, width: 546.659, height: 346.242)
+    /// the snap of him in his seat, brush-stroke frame and all
+    static let snap   = CGRect(x: 181, y: 48.429, width: 170.339, height: 306.292)
+    static let title  = CGRect(x: 367, y: 61, width: 320, height: 72)
+    static let rows: [CGFloat] = [149, 191.4]      // remaining time, item value
+    static let totalY: CGFloat = 249.8
+    static let rowH:   CGFloat = 26.4
+    static let endBox  = CGRect(x: 367, y: 310, width: 154, height: 40)
+    static let nextBox = CGRect(x: 533, y: 310, width: 154, height: 40)
+    static let endArt  = CGRect(x: 364.683, y: 307.696, width: 158.75, height: 45.3043)
+    static let nextArt = CGRect(x: 530.683, y: 307.696, width: 158.75, height: 45.3043)
 
     var body: some View {
-        ZStack {
-            Color.black.opacity(0.3).ignoresSafeArea()
-
-            HStack(spacing: space.px(18)) {
-                Image("loading_pencipet").resizable().scaledToFit()
-                    .frame(width: space.px(96))
-                    .background(Ink.pale, in: RoundedRectangle(cornerRadius: space.px(8)))
-                    .overlay(RoundedRectangle(cornerRadius: space.px(8))
-                        .stroke(.black, lineWidth: space.px(3)))
-
-                VStack(alignment: .leading, spacing: space.px(6)) {
-                    Text("Succeed!")
-                        .font(.skranji(space.px(Self.title)))
-                        .foregroundStyle(Ink.black)
-                    line("Remaining time", remaining)
-                    line("Item value", "Rp \(value)k")
-                    line("Total Item value", "Rp \(value)k")
-                    HStack(spacing: space.px(10)) {
-                        button("End Game", Ink.redGlow, action: onEnd)
-                        button("Next Round", Ink.yellow, action: onNext)
-                    }
-                    .padding(.top, space.px(4))
-                }
+        ZStack(alignment: .topLeading) {
+            place(Self.cardArt, space) { Image("succeed_card").resizable() }
+            place(Self.snap, space) { Image("succeed_snap").resizable() }
+            place(Self.title, space) {
+                Text("Succeed!")
+                    .font(.skranji(space.px(60)))
+                    .foregroundStyle(.black)
+                    .fixedSize()
+                    .frame(maxWidth: .infinity, alignment: .leading)
             }
-            .padding(space.px(16))
-            .frame(width: space.px(Self.card.width), alignment: .leading)
-            .background(Ink.paper, in: RoundedRectangle(cornerRadius: space.px(12)))
-            .overlay(RoundedRectangle(cornerRadius: space.px(12))
-                .stroke(.black, lineWidth: space.px(5)))
-            .position(x: space.x(DesignSpace.screen.width / 2),
-                      y: space.y(DesignSpace.screen.height / 2))
+            let lines = [("Remaining time", remaining), ("Item value", "Rp \(value)k")]
+            ForEach(lines.indices, id: \.self) { i in
+                statRow(lines[i].0, lines[i].1, 22, 24, Ink.stone,
+                        CGRect(x: Self.title.minX, y: Self.rows[i], width: Self.title.width,
+                               height: Self.rowH), space)
+            }
+            statRow("Total Item value", "Rp \(value)k", 22, 24, .black,
+                    CGRect(x: Self.title.minX, y: Self.totalY, width: Self.title.width,
+                           height: Self.rowH), space)
+            artButton("End Game", "succeed_red", Self.endBox, Self.endArt, space, onEnd)
+            artButton("Next Round", "succeed_yellow", Self.nextBox, Self.nextArt, space, onNext)
         }
-    }
-
-    private func line(_ label: String, _ value: String) -> some View {
-        HStack {
-            Text(label)
-            Spacer(minLength: space.px(12))
-            Text(value)
-        }
-        .font(.skranji(space.px(Self.row), bold: false))
-        .foregroundStyle(Ink.black)
-    }
-
-    private func button(_ title: String, _ fill: Color,
-                        action: @escaping () -> Void) -> some View {
-        Button(action: action) {
-            Text(title)
-                .font(.skranji(space.px(15), bold: false))
-                .foregroundStyle(Ink.black)
-                .frame(width: space.px(Self.btn.width), height: space.px(Self.btn.height))
-                .background(fill, in: RoundedRectangle(cornerRadius: space.px(7)))
-                .overlay(RoundedRectangle(cornerRadius: space.px(7))
-                    .stroke(.black, lineWidth: space.px(2.5)))
-        }
-        .buttonStyle(PressStyle())
     }
 }

@@ -102,9 +102,9 @@ struct SuspicionBar: View {
         let x = Tut.slotX + CGFloat(i) * (Tut.slot.width + Tut.slotGap)
         return place(Tut.inBar(CGRect(origin: CGPoint(x: x, y: Tut.slotY), size: Tut.slot)), space) {
             RoundedRectangle(cornerRadius: space.px(Tut.slotRadius))
-                .fill(on ? Ink.yellow : Ink.paper)
+                .fill(on ? Ink.redGlow : Ink.paper)
                 .overlay(RoundedRectangle(cornerRadius: space.px(Tut.slotRadius))
-                    .strokeBorder(on ? Ink.glow : Ink.pale,
+                    .strokeBorder(on ? Ink.red : Ink.pale,
                                   lineWidth: space.px(Tut.slotBorder)))
         }
     }

@@ -4,7 +4,8 @@ import SwiftUI
 // Play and round 1, and only startGame can route to it.
 @Observable final class AppRouter {
     enum Screen {
-        case loading, menu, tutorial, countdown, pickVictim, endGame
+        case loading, menu, tutorial, countdown, pickVictim
+        case endGame(Ending)
         case steal(Seating.Person, CGRect)
     }
 
@@ -28,9 +29,9 @@ import SwiftUI
         go(.countdown)
     }
 
-    func endGame(after r: RoundResult) {
+    func endGame(after r: RoundResult, _ how: Ending) {
         session.endGame(after: r)
-        go(.endGame)
+        go(.endGame(how))
     }
 
     func go(_ next: Screen) {
@@ -66,8 +67,8 @@ func runRouterChecks() {
     if case .countdown = r.screen {} else { assertionFailure("Next Round has to replay the countdown") }
 
     // ending it goes to the tally instead, keeping what the last round was worth
-    r.endGame(after: RoundResult(value: 20, time: 20))
+    r.endGame(after: RoundResult(value: 20, time: 20), .jailed)
     assert(r.session.takings == 40 && r.session.round == 2)
-    if case .endGame = r.screen {} else { assertionFailure("End Game has its own screen") }
+    if case .endGame(.jailed) = r.screen {} else { assertionFailure("End Game has its own screen, per ending") }
     #endif
 }

@@ -26,16 +26,18 @@ struct RootView: View {
                 }
                 .transition(.opacity)
             case let .steal(who, seat):
-                StealView(victim: who, thiefSeat: seat, cast: router.session.arrangement) { exit in
+                StealView(victim: who, thiefSeat: seat, cast: router.session.arrangement,
+                          round: router.session.round) { exit in
                     switch exit {
                     case let .nextRound(r): router.nextRound(after: r)
-                    case let .endGame(r):   router.endGame(after: r)
+                    case let .endGame(r, how): router.endGame(after: r, how)
                     case .home:             router.go(.menu)
                     }
                 }
                 .transition(.opacity)
-            case .endGame:
-                EndGameView(session: router.session) { router.go(.menu) }.transition(.opacity)
+            case let .endGame(how):
+                EndGameView(session: router.session, ending: how) { router.go(.menu) }
+                    .transition(.opacity)
             }
         }
         .task { Audio.shared.music(); runRouterChecks(); runSessionChecks(); runEndChecks(); runRiderChecks() }

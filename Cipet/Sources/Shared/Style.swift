@@ -106,9 +106,10 @@ struct StrokedText: View {
     let width: CGFloat       // design points, all of it outside the letter
     let scale: CGFloat
     var bold = false
+    var tracking: CGFloat = 0
 
     var body: some View {
-        let line = GlyphLine(string, size: size, bold: bold)
+        let line = GlyphLine(string, size: size, bold: bold, tracking: tracking)
         let path = line.path.applying(CGAffineTransform(scaleX: scale, y: scale))
         ZStack(alignment: .topLeading) {
             // a stroke is centred on the outline, so twice the width and the fill on top
@@ -128,11 +129,16 @@ struct GlyphLine {
     let path: Path
     let box: CGSize
 
-    init(_ string: String, size: CGFloat, bold: Bool = false) {
+    /// `tracking` is the design's letter spacing, in the same points as `size`. coretext
+    /// puts it after every character, the last one included, which is what figma measures a
+    /// tracked line as too.
+    init(_ string: String, size: CGFloat, bold: Bool = false, tracking: CGFloat = 0) {
         let font = (UIFont(name: bold ? "Skranji-Bold" : "Skranji", size: size)
                     ?? .systemFont(ofSize: size)) as CTFont
+        var attributes: [NSAttributedString.Key: Any] = [.font: font]
+        if tracking != 0 { attributes[.kern] = tracking }
         let line = CTLineCreateWithAttributedString(
-            NSAttributedString(string: string, attributes: [.font: font]))
+            NSAttributedString(string: string, attributes: attributes))
         var ascent: CGFloat = 0, descent: CGFloat = 0, leading: CGFloat = 0
         let width = CTLineGetTypographicBounds(line, &ascent, &descent, &leading)
 
@@ -153,6 +159,87 @@ struct GlyphLine {
         path = Path(out)
         box = CGSize(width: width, height: ascent + descent)
     }
+}
+
+// every overlay card is headed the same way, off 125:1508: skranji bold at fifty in the
+// near-black the design calls Neutral/950. settings used to be a forty point sticker with a
+// pale fill and an outline, and the instructions a twenty-four point regular, so the four
+// cards you can open from the menu read as four different screens.
+//
+// the design's line box is 51.704, which is tighter than skranji's own line — laying the
+// word out in a box that short quietly shrinks it to fit, which is what happened to Paused.
+// so the box here is the font's line height, centred on the spot the card puts the heading,
+// and the design's narrower box is only what the card's own layout reserves for it.
+struct CardTitle: View {
+    let text: String
+    /// where the card centres its heading
+    let centre: CGPoint
+    let space: DesignSpace
+    /// wide enough that a longer word in another language has room before it has to shrink
+    var width: CGFloat = 320
+
+    static let size: CGFloat = 50
+    /// what the design reserves for the line, which is not the same as what it draws in
+    static let lineBox: CGFloat = 51.704
+    /// skranji's own line at this size — its "normal" is 54.336 at 40
+    static let line: CGFloat = 54.336 * size / 40
+
+    static func box(_ centre: CGPoint, width: CGFloat = 320) -> CGRect {
+        CGRect(x: centre.x - width / 2, y: centre.y - line / 2, width: width, height: line)
+    }
+
+    var body: some View {
+        place(Self.box(centre, width: width), space) {
+            Text(text)
+                .font(.skranji(space.px(Self.size)))
+                .foregroundStyle(Ink.black)
+                .lineLimit(1)
+                .minimumScaleFactor(0.5)
+        }
+    }
+}
+
+func runGlyphChecks() {
+    #if DEBUG
+    // tracking has to reach the laid out line, not just the api. the menu's tagline is set
+    // tighter than the font draws it and used to come out a tenth wider than the design,
+    // because the only outline renderer that took a tracking value was the rounded one.
+    let plain = GlyphLine("Ready to Steal?", size: 40)
+    let tight = GlyphLine("Ready to Steal?", size: 40, tracking: -1.8467)
+    assert(tight.box.width < plain.box.width, "tracking has to narrow the line")
+    assert(abs((plain.box.width - tight.box.width) - 1.8467 * 15) < 0.5,
+           "and by the spacing times the characters")
+    assert(tight.box.height == plain.box.height, "without touching the line's height")
+
+    // the two weights are both really loaded, or everything silently falls back to the
+    // system font and every box measured off the design is wrong
+    assert(UIFont(name: "Skranji", size: 40) != nil && UIFont(name: "Skranji-Bold", size: 40) != nil)
+    assert(GlyphLine("CIPET", size: 40, bold: true).box.width
+           > GlyphLine("CIPET", size: 40).box.width, "bold is the wider of the two")
+    #endif
+}
+
+func runCardTitleChecks() {
+    #if DEBUG
+    // the heading is drawn in a taller box than the layout reserves, so the glyphs are never
+    // squeezed — the whole reason Paused came out small
+    assert(CardTitle.line > CardTitle.lineBox)
+    assert(abs(GlyphLine("Paused", size: CardTitle.size, bold: true).box.height
+               - CardTitle.line) < 0.01, "the box is skranji's own line at this size")
+
+    // and the box is centred on the point it is given, so a card only has to say where
+    let box = CardTitle.box(CGPoint(x: 100, y: 50))
+    assert(abs(box.midX - 100) < 0.001 && abs(box.midY - 50) < 0.001)
+
+    // every heading the game shows fits at full size, in both languages, so none of them is
+    // silently riding minimumScaleFactor the way the old Paused box was
+    for word in ["Settings", "Record", "Paused", "Instruction"] {
+        for copy in [word, Indonesian.table[word] ?? word] {
+            let w = GlyphLine(copy, size: CardTitle.size, bold: true).box.width
+            assert(w <= 320, "\(copy) is \(Int(w)) wide and would be shrunk to fit")
+        }
+    }
+    #endif
 }
 
 // a filled bar with a lighter rim, used for the steal bar and the suspicion bars

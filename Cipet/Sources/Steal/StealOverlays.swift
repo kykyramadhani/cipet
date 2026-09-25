@@ -91,65 +91,200 @@ func runCooldownChecks() {
     #endif
 }
 
+enum Pause {
+    // 382:267. the popup node is 360 x 285 sat a few units left of centre and a little
+    // below it; the card artwork is a touch narrower than that node and bleeds past it.
+    static let popup = CGRect(x: 251, y: 70, width: 360, height: 285)
+    static let card  = CGRect(x: 257.678, y: 67.72, width: 345.668, height: 291.284)
+
+    /// the design dims and blurs the whole round behind the card rather than blacking it out,
+    /// so you can still see the angkot you're going back to
+    static let dim  = Color(white: 102 / 255).opacity(0.4)
+    static let blur: CGFloat = 4
+
+    static let titleAt = CGPoint(x: 431, y: 117)
+    static var title: CGRect { CardTitle.box(titleAt) }
+
+    // a column of buttons: two full width, then two half width side by side
+    static let wide  = CGSize(width: 240, height: 52)
+    static let small = CGSize(width: 112, height: 52)
+    static let gap:  CGFloat = 12
+    static let left: CGFloat = 311      // the column is centred on the card, the row is not
+    static let top:  CGFloat = 159
+
+    static var resume: CGRect { CGRect(origin: CGPoint(x: left, y: top), size: wide) }
+    static var home:   CGRect { resume.offsetBy(dx: 0, dy: wide.height + gap) }
+    static var info:   CGRect { CGRect(x: left, y: home.maxY + gap,
+                                       width: small.width, height: small.height) }
+    static var gear:   CGRect { info.offsetBy(dx: small.width + gap, dy: 0) }
+
+    /// both plates are drawn larger than their button and hang off the top left corner by
+    /// the same amount, so one number covers all four
+    static let plateBleed = CGSize(width: 2.317, height: 2.122)
+    static let wideArt  = CGSize(width: 244.745, height: 57.1388)
+    static let smallArt = CGSize(width: 117.059, height: 57.1073)
+
+    static func plate(_ node: CGRect, _ art: CGSize) -> CGRect {
+        CGRect(x: node.minX - plateBleed.width, y: node.minY - plateBleed.height,
+               width: art.width, height: art.height)
+    }
+
+    // inside a wide button: a 200 wide row, nudged 3 right of centre, icon then words
+    static let rowWidth:  CGFloat = 200
+    static let rowNudge:  CGFloat = 3
+    static let icon:      CGFloat = 30
+    static let iconGap:   CGFloat = 8
+    static let labelSize: CGFloat = 28
+
+    // the two glyphs are cropped tight rather than framed, so each sits on its button by
+    // its own offset instead of dead centre
+    static let infoArt  = CGSize(width: 9.75854, height: 26.8754)
+    static let gearArt  = CGSize(width: 29.4923, height: 31.1874)
+    static let infoNudge = CGSize(width: -1.117, height: -1.063)
+    static let gearNudge = CGSize(width: -0.481, height: -0.369)
+
+    // he leans over the top of the card, cut off by the top of the screen
+    static let thief    = CGRect(x: 329.012, y: -84, width: 187.992, height: 179.969)
+    static let thiefArt = CGSize(width: 187.992, height: 262.95)   // 163 x 228, to width
+    static let thiefTilt: Double = -0.55
+}
+
 // pause card. the model holds whatever screen it's over still, this is just the menu on
 // top of it — and the same settings panel the main menu puts up, so sound and language
-// can be changed without leaving the round.
+// can be changed without leaving the round, plus the instructions for when you have
+// forgotten which bar is which.
 struct PausedCard: View {
     let space: DesignSpace
     let onResume: () -> Void
     let onHome: () -> Void
 
     @State private var settingsShown = false
-
-    private static let card  = CGRect(x: 300, y: 92, width: 274, height: 190)
-    private static let title: CGFloat = 34
-    private static let row   = CGSize(width: 214, height: 38)
-    private static let rowGap: CGFloat = 10
-    private static let rowSize: CGFloat = 22
+    @State private var instructionShown = false
 
     var body: some View {
-        ZStack {
-            Color.black.opacity(0.25).ignoresSafeArea()
+        ZStack(alignment: .topLeading) {
+            Pause.dim.ignoresSafeArea()
 
-            VStack(spacing: space.px(Self.rowGap)) {
-                Text(t("Paused"))
-                    .font(.skranji(space.px(Self.title)))
-                    .foregroundStyle(Ink.black)
-                    .padding(.bottom, space.px(2))
-                button(t("Resume"), filled: true, action: onResume)
-                button(t("Main Menu"), filled: false, action: onHome)
-                button(t("Settings"), filled: false) {
-                    withAnimation(.easeInOut(duration: 0.2)) { settingsShown = true }
-                }
+            // he is behind the card, so only his head and shoulders clear the top of it
+            place(Pause.thief, space) {
+                Image("loading_pencipet").resizable()
+                    .frame(width: space.px(Pause.thiefArt.width),
+                           height: space.px(Pause.thiefArt.height))
+                    .frame(width: space.px(Pause.thief.width),
+                           height: space.px(Pause.thief.height), alignment: .top)
+                    .clipped()
+                    .rotationEffect(.degrees(Pause.thiefTilt))
             }
-            .padding(space.px(16))
-            .frame(width: space.px(Self.card.width))
-            .background(Ink.paper, in: RoundedRectangle(cornerRadius: space.px(14)))
-            .overlay(RoundedRectangle(cornerRadius: space.px(14))
-                .stroke(.black, lineWidth: space.px(5)))
-            .position(x: space.x(DesignSpace.screen.width / 2),
-                      y: space.y(DesignSpace.screen.height / 2))
+
+            place(Pause.card, space) { Image("pause_card").resizable() }
+            title
+            wide(Pause.resume, art: "pause_btn", icon: "pause_ic_play",
+                 title: t("Resume"), action: onResume)
+            wide(Pause.home, art: "pause_btn_off", icon: "pause_ic_home",
+                 title: t("Main Menu"), action: onHome)
+            small(Pause.info, art: Pause.infoArt, nudge: Pause.infoNudge,
+                  icon: "pause_ic_info") {
+                withAnimation(.easeInOut(duration: 0.2)) { instructionShown = true }
+            }
+            small(Pause.gear, art: Pause.gearArt, nudge: Pause.gearNudge,
+                  icon: "pause_ic_gear") {
+                withAnimation(.easeInOut(duration: 0.2)) { settingsShown = true }
+            }
 
             if settingsShown {
                 SettingsPanel(shown: $settingsShown, space: space).transition(.opacity)
             }
+            if instructionShown {
+                InstructionPanel(shown: $instructionShown, space: space).transition(.opacity)
+            }
+        }
+        .task { runPauseChecks() }
+    }
+
+    private var title: some View {
+        CardTitle(text: t("Paused"), centre: Pause.titleAt, space: space)
+    }
+
+    /// icon and words on one row, laid from the left of a fixed box so Resume and Main Menu
+    /// line their icons up with each other however long the words get
+    private func wide(_ node: CGRect, art: String, icon: String, title: String,
+                      action: @escaping () -> Void) -> some View {
+        let row = CGRect(x: node.midX + Pause.rowNudge - Pause.rowWidth / 2,
+                         y: node.midY - Pause.icon / 2,
+                         width: Pause.rowWidth, height: Pause.icon)
+        return place(Pause.plate(node, Pause.wideArt), space) {
+            Button(action: action) { Image(art).resizable() }
+                .buttonStyle(PressStyle())
+        }
+        .overlay(alignment: .topLeading) {
+            place(row, space) {
+                HStack(spacing: space.px(Pause.iconGap)) {
+                    Image(icon).resizable()
+                        .frame(width: space.px(Pause.icon), height: space.px(Pause.icon))
+                    Text(title)
+                        .font(.skranji(space.px(Pause.labelSize), bold: false))
+                        .foregroundStyle(Ink.black)
+                        .lineLimit(1).minimumScaleFactor(0.6)
+                    Spacer(minLength: 0)
+                }
+            }
+            .allowsHitTesting(false)
         }
     }
 
-    private func button(_ title: String, filled: Bool,
-                        action: @escaping () -> Void) -> some View {
-        Button(action: action) {
-            Text(title)
-                .font(.skranji(space.px(Self.rowSize), bold: false))
-                .foregroundStyle(Ink.black)
-                .frame(width: space.px(Self.row.width), height: space.px(Self.row.height))
-                .background(filled ? Ink.yellow : Color.white,
-                            in: RoundedRectangle(cornerRadius: space.px(9)))
-                .overlay(RoundedRectangle(cornerRadius: space.px(9))
-                    .stroke(.black, lineWidth: space.px(3)))
+    private func small(_ node: CGRect, art: CGSize, nudge: CGSize, icon: String,
+                       action: @escaping () -> Void) -> some View {
+        place(Pause.plate(node, Pause.smallArt), space) {
+            Button(action: action) {
+                ZStack {
+                    Image("pause_btn_small").resizable()
+                    Image(icon).resizable()
+                        .frame(width: space.px(art.width), height: space.px(art.height))
+                        .offset(x: space.px(nudge.width + Pause.plateBleed.width
+                                            - (Pause.smallArt.width - node.width) / 2),
+                                y: space.px(nudge.height + Pause.plateBleed.height
+                                            - (Pause.smallArt.height - node.height) / 2))
+                }
+            }
+            .buttonStyle(PressStyle())
         }
-        .buttonStyle(PressStyle())
     }
+}
+
+func runPauseChecks() {
+    #if DEBUG
+    // the card artwork covers the node it was drawn for, and sits on the screen
+    assert(Pause.card.contains(Pause.popup.insetBy(dx: 10, dy: 0)), "the plate covers the popup")
+    assert(Pause.card.minY > 0 && Pause.card.maxY < DesignSpace.screen.height)
+
+    // one column: Resume, Main Menu, then the pair, each clear of the last by the gap
+    assert(Pause.home.minY - Pause.resume.maxY == Pause.gap)
+    assert(Pause.info.minY - Pause.home.maxY == Pause.gap)
+    assert(Pause.gear.minX - Pause.info.maxX == Pause.gap)
+    assert(Pause.info.minY == Pause.gear.minY, "the pair share a line")
+    assert(abs(Pause.resume.midX - Pause.home.midX) < 0.01, "and the wide ones share a centre")
+
+    // everything the player can press is inside the card, and below the title
+    let inside = Pause.card.insetBy(dx: 6, dy: 6)
+    for box in [Pause.title, Pause.resume, Pause.home, Pause.info, Pause.gear] {
+        assert(inside.contains(box), "\(box) has to be on the card")
+    }
+    assert(Pause.title.maxY <= Pause.resume.minY, "nothing overlaps the word Paused")
+
+    // the pair between them come to the width of the ones above, bar a few units of slack
+    // on the right — the row is laid from the left of the column, not centred under it
+    assert(2 * Pause.small.width + Pause.gap <= Pause.wide.width)
+    assert(2 * Pause.small.width + Pause.gap >= Pause.wide.width - 6)
+    assert(Pause.small.height == Pause.wide.height, "and the same height")
+
+    // he is cut off by the top of the screen and hidden by the card below it, so only the
+    // band between the two ever shows
+    assert(Pause.thief.minY < 0, "his head runs off the top")
+    assert(Pause.thief.maxY > Pause.card.minY, "and the card covers the rest of him")
+    assert(abs(Pause.thiefArt.height / Pause.thiefArt.width - 228.0 / 163) < 0.01,
+           "he keeps his own proportions")
+    assert(Pause.thiefArt.height > Pause.thief.height, "the box crops him rather than squashing")
+    #endif
 }
 
 

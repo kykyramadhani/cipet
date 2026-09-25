@@ -6,8 +6,8 @@ enum Rec {
     static let card  = CGRect(x: 216.659, y: 57.68, width: 440.666, height: 289.331)
     static let close = CGRect(x: 628.62,  y: 45.62, width: 38.76,   height: 38.76)
 
-    static let title      = CGRect(x: 347, y: 93, width: 180, height: 60)
-    static let titleSize:   CGFloat = 50
+    static let titleAt = CGPoint(x: 437, y: 123)
+    static var title: CGRect { CardTitle.box(titleAt) }
 
     // two tiles side by side, measured from the card's own top-left at 220, 60
     static let tiles    = CGRect(x: 274, y: 166, width: 325.5, height: 114)
@@ -17,11 +17,21 @@ enum Rec {
     static let tileBorder: CGFloat = 3
 
     /// inside a tile: the number, a gap, then what it's the number of
-    static let column   = CGSize(width: 103, height: 59)
     static let columnGap: CGFloat = 9
     static let valueBox   = CGSize(width: 100, height: 34)
     static let valueSize:   CGFloat = 24
     static let labelSize:   CGFloat = 16
+
+    /// skranji's own line at the label's size — its "normal" is 54.336 at 40
+    static let labelLine: CGFloat = 54.336 * labelSize / 40
+
+    // the design's column is 103 x 59, which is shorter and narrower than these two lines
+    // actually need: the pair wanted 65 and got 59, so swiftui shrank both to fit and the
+    // number came out at 21 point against the 24 it is set in. the column is measured from
+    // the type now, and takes the width of its tile so a longer label in another language
+    // has somewhere to go. both are centred in the tile either way, so nothing moves.
+    static let column = CGSize(width: tile.width - 16,
+                               height: valueBox.height + columnGap + labelLine)
 
     static func tileX(_ i: Int) -> CGFloat { tiles.minX + CGFloat(i) * (tile.width + tileGap) }
 }
@@ -53,12 +63,7 @@ struct RecordPanel: View {
     private func close() { withAnimation(.easeInOut(duration: 0.2)) { shown = false } }
 
     private var title: some View {
-        place(Rec.title, space) {
-            Text(t("Record"))
-                .font(.skranji(space.px(Rec.titleSize)))
-                .foregroundStyle(Ink.black)
-                .fixedSize()
-        }
+        CardTitle(text: t("Record"), centre: Rec.titleAt, space: space)
     }
 
     private func tile(_ i: Int, fill: Color, border: Color,
@@ -109,6 +114,27 @@ func runRecordPanelChecks() {
     assert(inside.contains(Rec.title))
     assert(inside.contains(CGRect(x: Rec.tileX(0), y: Rec.tiles.minY,
                                   width: Rec.tiles.width, height: Rec.tiles.height)))
+
+    // the column fits its tile, and the type fits the column — no line is being squeezed
+    // down by minimumScaleFactor to make it fit
+    assert(Rec.column.width <= Rec.tile.width && Rec.column.height <= Rec.tile.height)
+    assert(Rec.column.height >= Rec.valueBox.height + Rec.columnGap + Rec.labelLine - 0.01)
+    assert(abs(GlyphLine("Highest Round", size: Rec.labelSize).box.height - Rec.labelLine) < 0.01,
+           "the label row is the font's own line")
+    for label in ["Highest Round", "Top Value"] {
+        for copy in [label, Indonesian.table[label] ?? label] {
+            let w = GlyphLine(copy, size: Rec.labelSize).box.width
+            assert(w <= Rec.column.width, "\(copy) is \(Int(w)) wide against \(Int(Rec.column.width))")
+        }
+    }
+    // the numbers the panel realistically shows fit the design's box at the size they are
+    // set in. the box holds up to Rp999k; a bigger haul than that would be scaled down by
+    // the text itself, which is what minimumScaleFactor is there for.
+    for value in ["0", "99", "9999", "Rp0k", "Rp120k", "Rp999k"] {
+        let w = GlyphLine(value, size: Rec.valueSize, bold: true).box.width
+        assert(w <= Rec.valueBox.width,
+               "\(value) is \(Int(w)) wide against \(Int(Rec.valueBox.width)) of box")
+    }
 
     // two tiles with a gap between them, filling the row exactly
     assert(abs(2 * Rec.tile.width + Rec.tileGap - Rec.tiles.width) < 0.01)

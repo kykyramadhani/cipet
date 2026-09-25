@@ -54,7 +54,7 @@ enum Steal {
     private(set) var road: CGFloat = 0
 
     /// finger is down on the bar
-    var holding = false { didSet { if holding { reached = true } } }
+    var holding = false
 
     private var resumeTo: Phase = .stealing
 
@@ -75,16 +75,13 @@ enum Steal {
     /// the mark's numbers drive the steal bar
     private var mark: Traits { cast.traits(victim) }
 
-    /// no bars until his hand first goes in: the first hold is what starts the stealing.
-    /// then everyone's bar is up, and after that a bar shows while they're idle and while it
-    /// drains once they drift off; empty and off in their own thing, it's gone until they're
-    /// idle again. drawn against their own threshold, so it reads full as they clock you.
+    /// everyone's bar is up the moment the steal screen comes up (never while picking).
+    /// after that a bar shows while they're idle and while it drains once they drift off;
+    /// empty and off in their own thing, it's gone until they're idle again. drawn against
+    /// their own threshold, so it reads full as they clock you.
     var bars: [Seating.Person: CGFloat] {
-        guard reached else { return [:] }
-        return aware.filter { moods[$0.key] == .alert || $0.value > 0 || !driftedOff.contains($0.key) }
+        aware.filter { moods[$0.key] == .alert || $0.value > 0 || !driftedOff.contains($0.key) }
     }
-    /// whether he's held yet this round
-    private(set) var reached = false
     /// who has drifted off since the round started, which is what lets their bar go
     private var driftedOff: Set<Seating.Person> = []
 
@@ -332,13 +329,10 @@ func runStealChecks() {
     var d = StealViewModel(victim: .nearMid, thiefSeat: fixed.seats(beside: .nearMid)[0], cast: drifting)
     d.holding = true
     for _ in 0..<60 { d.tick(1.0 / 60) }
-    assert(StealViewModel(victim: .nearMid, thiefSeat: seat, cast: drifting).bars.isEmpty,
-           "no bars at all until the first hold")
     assert(d.aware[.farRight] == 0, "in their own thing they notice nothing")
     assert(d.bars[.farRight] != nil, "but every bar is up from the moment stealing starts")
-    var first = StealViewModel(victim: .nearMid, thiefSeat: seat, cast: drifting)
-    first.holding = true
-    assert(Set(first.bars.keys) == Set(drifting.watchers), "the first hold puts everyone's bar up")
+    assert(Set(StealViewModel(victim: .nearMid, thiefSeat: seat, cast: drifting).bars.keys) == Set(drifting.watchers),
+           "everyone's bar is up as soon as the steal screen is, before any hold")
     assert((d.aware[.farLeft] ?? 0) > 0 && d.bars[.farLeft] != nil, "idle: watching, and it shows")
 
     // the kid never drifts off, and a duo drifts off together

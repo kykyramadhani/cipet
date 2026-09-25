@@ -85,7 +85,7 @@ struct TutorialPavement: View {
             place(Tut.outside, space) { Image("loading_pencipet").resizable() }
             place(Tut.bubble,  space) { Image("tut_bubble").resizable() }
             place(Tut.bubbleText, space) {
-                Text("This is you!")
+                Text(t("This is you!"))
                     .font(.skranji(space.px(Tut.bubbleSize), bold: false))
                     .foregroundStyle(.black)
                     .fixedSize()
@@ -101,6 +101,14 @@ struct TutorialHUD: View {
     let space: DesignSpace
     /// the cooldown draws the clock again over its red wash, without the wallet
     var clockOnly = false
+    /// the last few seconds of the round, which is a whole different panel
+    var low = false
+
+    /// swells on the second and springs back down, so the clock has a pulse
+    @State private var beating = false
+
+    /// the tutorial teaches this state on its own step, and the round is really in it
+    private var alarm: Bool { low || show.contains(.alarm) }
 
     var body: some View {
         Group {
@@ -112,16 +120,31 @@ struct TutorialHUD: View {
                         .foregroundStyle(.black)
                 }
             }
-            panel(show.contains(.alarm) ? "tut_panel_alert" : "tut_panel_clock", Tut.clockPanel) {
+            panel(alarm ? "tut_panel_alarm" : "tut_panel_clock", Tut.clockPanel,
+                  scale: beating ? Tut.alarmBeat : 1) {
                 Image("tut_clock").resizable()
                     .frame(width: space.px(Tut.clockIcon), height: space.px(Tut.clockIcon))
                 Text(clock).font(.skranji(space.px(Tut.hudSize), bold: false))
-                    .foregroundStyle(Ink.soft)
+                    .foregroundStyle(alarm ? Ink.snow : Ink.soft)
+                    .contentTransition(.identity)
+                    .transaction { $0.animation = nil }   // never cross-fade a ticking number
             }
+            .onChange(of: clock) { _, _ in thump() }
+            .onChange(of: alarm) { _, on in if on { thump() } else { beating = false } }
         }
     }
 
-    private func panel<C: View>(_ name: String, _ r: CGRect,
+    /// jump to the bigger size on the tick with no animation, then spring back — a beat,
+    /// rather than the slow in-and-out an animated swell would give
+    private func thump() {
+        guard alarm else { return }
+        beating = true
+        withAnimation(.spring(response: Tut.alarmSpring, dampingFraction: Tut.alarmBounce)) {
+            beating = false
+        }
+    }
+
+    private func panel<C: View>(_ name: String, _ r: CGRect, scale: CGFloat = 1,
                                 @ViewBuilder _ content: () -> C) -> some View {
         let off = Tut.bleed(r.size, Tut.panelArt, Tut.panelNudge)
         return place(r, space) {
@@ -132,6 +155,8 @@ struct TutorialHUD: View {
                     .offset(x: space.px(off.width), y: space.px(off.height))
                 HStack(spacing: space.px(Tut.hudGap)) { content() }
             }
+            // a render-time scale, so the beat never moves the panel off its mark
+            .scaleEffect(scale)
         }
     }
 }

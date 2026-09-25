@@ -55,7 +55,7 @@ struct StealBar: View {
         Group {
             place(Tut.inBar(Tut.holdLabel), space) { Image("tut_hold_label").resizable() }
             place(Tut.inBar(Tut.holdText), space) {
-                Text("Hold to fill the bar")
+                Text(t("Hold to fill the bar"))
                     .font(.skranji(space.px(Tut.holdSize), bold: false))
                     .foregroundStyle(.black)
                     .fixedSize()
@@ -79,6 +79,11 @@ struct StealBar: View {
 
 func runBarChecks() {
     #if DEBUG
+    // the slots are the design's own: 40 x 23.2 with a 3.2 gap, 3.2 border, 8 radius.
+    // the colours are Red/50 on Red/100 lit, Neutral/200 on Neutral/300 not.
+    assert(Tut.slot == CGSize(width: 40, height: 23.2) && Tut.slotGap == 3.2)
+    assert(Tut.slotRadius == 8 && Tut.slotBorder == 3.2)
+
     assert(Tut.handX(0) == Tut.fill.minX, "empty, the hand is at the start of the bar")
     assert(Tut.handX(1) == Tut.coin.midX, "full, the hand is right on the wallet")
     assert(Tut.handX(2) == Tut.coin.midX, "and it never runs past it")
@@ -94,6 +99,9 @@ func runBarChecks() {
 }
 
 // three strikes. one lights up every time you get spotted, all three and youre caught.
+// a lit slot is Red/50 on Red/100, an unlit one Neutral/200 on Neutral/300 — it's the
+// one meter on the screen that only ever moves against you, so it's never the yellow
+// the steal bar uses.
 struct SuspicionBar: View {
     let lit: Int
     let space: DesignSpace
@@ -113,9 +121,9 @@ struct SuspicionBar: View {
         let x = Tut.slotX + CGFloat(i) * (Tut.slot.width + Tut.slotGap)
         return place(Tut.inBar(CGRect(origin: CGPoint(x: x, y: Tut.slotY), size: Tut.slot)), space) {
             RoundedRectangle(cornerRadius: space.px(Tut.slotRadius))
-                .fill(on ? Ink.yellow : Ink.paper)
+                .fill(on ? Ink.redGlow : Ink.paper)
                 .overlay(RoundedRectangle(cornerRadius: space.px(Tut.slotRadius))
-                    .strokeBorder(on ? Ink.glow : Ink.pale,
+                    .strokeBorder(on ? Ink.red : Ink.pale,
                                   lineWidth: space.px(Tut.slotBorder)))
         }
     }

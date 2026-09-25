@@ -53,6 +53,12 @@ enum Tut {
     static let hudSize:    CGFloat = 40
     static let hudGap:     CGFloat = 8
 
+    // the last ten seconds: the panel goes red and the whole thing beats once a second.
+    // it swells on the tick and springs back, so the rest is the shape you mostly read.
+    static let alarmBeat:   CGFloat = 1.14
+    static let alarmSpring: Double = 0.36
+    static let alarmBounce: Double = 0.42
+
     static let label = CGRect(x: 24, y: 0, width: 220, height: 48)   // y comes from the step
     static let labelSize: CGFloat = 40
 

@@ -11,7 +11,7 @@ import SwiftUI
 
     var step: TutorialStep { TutorialStep.all[index] }
     var isLast: Bool { index == TutorialStep.all.count - 1 }
-    var nextTitle: String { isLast ? "Play" : "Next" }
+    var nextTitle: String { t(isLast ? "Play" : "Next") }
 
     /// the steal bar fills over and over. on the scene that teaches the suspicion bar, each
     /// full pass lights one more slot, and three means caught, then it starts again.

@@ -1,14 +1,20 @@
 import SwiftUI
 
 enum Steal {
-    static let round: Double = 90        // seconds on the clock
+    static let round: Double = 60        // seconds on the clock
+    static let warn:  Double = 10        // the clock goes red for the last stretch
     static let grabTime: Double = 7      // how long you have to hold to lift the item
-    static let slip: Double = 0.08       // the bar sags when you let go, but slowly
+    /// the four rates are ordered, and the order is the design: the steal bar is the
+    /// sluggish one and a passenger's suspicion is the twitchy one.
+    ///   grabRate < slip < awareCalm < every awareRate
+    static var grabRate: Double { 1 / grabTime }
+    static let slip: Double = 0.16       // the bar sags faster than it fills
 
     /// how fast each idle passenger gets suspicious while you're at it, and how fast they
     /// settle down when you stop. different rates so they dont all fill in step.
-    static let awareRate: [Seating.Person: Double] = [.farLeft: 0.20, .farRight: 0.26, .near: 0.17]
-    static let awareCalm: Double = 0.30
+    static let awareRate: [Seating.Person: Double] = [.farLeft: 0.22, .farRight: 0.24, .near: 0.20]
+    static let awareIdle: Double = 0.20  // anyone with no rate of their own, ie the kid
+    static let awareCalm: Double = 0.18
 
     static let penalty: Double = 3       // seconds frozen after somebody clocks you
     static let strikes = 3               // full aware bars before you're caught
@@ -40,13 +46,18 @@ enum Steal {
 
     private var resumeTo: Phase = .stealing
 
-    init(victim: Seating.Person, thiefSeat: CGRect) {
+    /// the clock is the round's, not this screen's — it has already been running while
+    /// the seat was being picked, so the round carries on from wherever it got to.
+    init(victim: Seating.Person, thiefSeat: CGRect, timeLeft: Double = Steal.round) {
         self.victim = victim
         self.thiefSeat = thiefSeat
+        self.timeLeft = max(0, timeLeft)
         for who in Seating.idle(besides: victim) { aware[who] = 0 }
     }
 
     var clock: String { mmss(timeLeft.rounded(.up)) }
+    /// the last few seconds, which the hud draws in red
+    var lowOnTime: Bool { timeLeft <= Steal.warn }
     var running: Bool { phase == .stealing }
     var stopFor: Int { max(1, Int(penaltyLeft.rounded(.up))) }
     var over: Bool { phase == .succeeded || phase == .caught }
@@ -82,15 +93,18 @@ enum Steal {
 
     private func advanceAwareness(_ dt: Double) {
         for who in Array(aware.keys) {
-            let rate = holding ? (Steal.awareRate[who] ?? 0.2) : -Steal.awareCalm
-            let next = (aware[who] ?? 0) + CGFloat(dt * rate)
+            let rate = holding ? (Steal.awareRate[who] ?? Steal.awareIdle) : -Steal.awareCalm
+            let was = aware[who] ?? 0
+            let next = min(1, max(0, was + CGFloat(dt * rate)))
+            aware[who] = next
 
-            if next >= 1 {
-                aware[who] = 0          // they look away again, but the damage is done
+            // a bar that has just come up full is the strike. it then sits there full for
+            // the cooldown and drains from full once play resumes — it never snaps back to
+            // empty, so whoever you woke up is still the one watching you hardest.
+            if next >= 1, was < 1 {
                 spotted()
                 return
             }
-            aware[who] = max(0, next)
         }
     }
 
@@ -129,14 +143,28 @@ func runStealChecks() {
     while greedy.phase == .stealing { greedy.tick(1.0 / 60) }
     assert(greedy.suspicion == 1 && greedy.grab < 1, "one long hold has to get you spotted")
 
-    // holding, easing off before anyone fills up, then holding again does land it
-    var win = StealViewModel(victim: .farLeft, thiefSeat: seat)
-    while !win.over && win.timeLeft > 1 {
-        win.holding = (win.aware.values.max() ?? 0) < 0.55
-        win.tick(1.0 / 60)
+    // the four rates are ordered, and everything about how a round plays falls out of it
+    assert(Steal.grabRate < Steal.slip, "the steal bar has to sag faster than it fills")
+    assert(Steal.slip < Steal.awareCalm, "and sag slower than a passenger settles down")
+    assert(Steal.awareCalm < (Steal.awareRate.values.min() ?? 0),
+           "who all notice quicker than they settle")
+    assert(Steal.awareCalm < Steal.awareIdle, "the kid included")
+
+    // what that ordering costs: easing off can never win on its own. to gain on the bar
+    // you have to hold more than slip/(slip+grabRate) of the time, and to keep a bar from
+    // filling you have to hold less than awareCalm/(awareCalm+awareRate) of it — and the
+    // first is always the larger of the two while slip > grabRate. the strikes are the
+    // only slack there is.
+    let mustHold = Steal.slip / (Steal.slip + Steal.grabRate)
+    let canHold  = Steal.awareCalm / (Steal.awareCalm + (Steal.awareRate.values.max() ?? 1))
+    assert(mustHold > canHold, "the ordering is what makes the round cost you strikes")
+
+    var eased = StealViewModel(victim: .farLeft, thiefSeat: seat)
+    while !eased.over && eased.timeLeft > 1 {
+        eased.holding = (eased.aware.values.max() ?? 0) < 0.55
+        eased.tick(1.0 / 60)
     }
-    assert(win.phase == .succeeded, "easing off in time has to be a way to win")
-    assert(win.suspicion == 0, "and it shouldnt cost a strike")
+    assert(eased.phase != .succeeded, "which is to say easing off alone cant land it")
 
     // a full aware bar is exactly one strike, and it freezes you rather than ending it
     var s = StealViewModel(victim: .farLeft, thiefSeat: seat)
@@ -145,10 +173,22 @@ func runStealChecks() {
     assert(s.suspicion == 1, "one full bar, one strike")
     assert(s.phase == .penalty && s.penaltyLeft > 0)
     assert(!s.holding, "getting spotted makes you let go")
+
+    // the bar that fired is left full rather than wiped, and nothing moves while you're held
+    assert((s.aware.values.max() ?? 0) == 1, "a bar that just filled is left full")
     let before = s.grab
     for _ in 0..<30 { s.tick(1.0 / 60) }
     assert(s.grab == before, "the steal bar is frozen while you're told to stop")
     assert(s.timeLeft < Steal.round, "but the clock keeps going")
+    assert((s.aware.values.max() ?? 0) == 1, "and the bar is still full through the cooldown")
+
+    // only once the cooldown is over does it come down — from full, at the settling rate
+    while s.phase == .penalty { s.tick(1.0 / 60) }
+    for _ in 0..<30 { s.tick(1.0 / 60) }
+    let after = s.aware.values.max() ?? 0
+    assert(after < 1, "then it drains")
+    assert(abs(after - (1 - 0.5 * Steal.awareCalm)) < 0.01, "from full, not from nothing")
+    assert(s.suspicion == 1, "and coming down is not another strike")
 
     // pause preserves everything and resumes where it left off
     var p = StealViewModel(victim: .near, thiefSeat: Seating.seats(beside: .near)[0])
@@ -197,6 +237,9 @@ func runStealChecks() {
 
     // the clock running out ends it too
     var t = StealViewModel(victim: .near, thiefSeat: seat)
+    assert(!t.lowOnTime, "a fresh round is not an emergency")
+    while t.timeLeft > Steal.warn { t.tick(1.0 / 60) }
+    assert(t.lowOnTime, "the clock has to go red for the last \(Int(Steal.warn)) seconds")
     while t.timeLeft > 0 { t.tick(1) }
     assert(t.phase == .caught)
     #endif

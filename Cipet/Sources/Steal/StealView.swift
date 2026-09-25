@@ -15,13 +15,14 @@ struct StealView: View {
     @State private var showEnding = false
     private let clock = Timer.publish(every: 1.0 / 60, on: .main, in: .common).autoconnect()
 
-    init(victim: Seating.Person, thiefSeat: CGRect, cast: Arrangement,
+    init(victim: Seating.Person, thiefSeat: CGRect, timeLeft: Double, cast: Arrangement,
          onDone: @escaping (Exit) -> Void) {
         self.victim = victim
         self.thiefSeat = thiefSeat
         self.cast = cast
         self.onDone = onDone
-        _vm = State(initialValue: StealViewModel(victim: victim, thiefSeat: thiefSeat))
+        _vm = State(initialValue: StealViewModel(victim: victim, thiefSeat: thiefSeat,
+                                                 timeLeft: timeLeft))
     }
 
     var body: some View {
@@ -34,15 +35,18 @@ struct StealView: View {
                     .compositingGroup()
                     .blur(radius: vm.phase == .penalty ? space.px(Cooldown.blur) : 0, opaque: true)
                 grabArea(space)
+                pauseButton(space)
                 if vm.phase == .penalty {
                     PenaltyOverlay(count: vm.stopFor, space: space)
-                    TutorialHUD(show: [], clock: vm.clock, space: space, clockOnly: true)
+                    TutorialHUD(show: [], clock: vm.clock, space: space,
+                                clockOnly: true, low: vm.lowOnTime)
                 }
                 if vm.phase == .paused {
                     PausedCard(space: space, onResume: vm.resume) { onDone(.home) }
                 }
                 if vm.phase == .succeeded && showEnding {
-                    SucceedCard(remaining: vm.clock, value: Steal.itemValue, space: space,
+                    SucceedCard(remaining: vm.clock, value: Steal.itemValue,
+                                victim: victim, cast: cast, space: space,
                                 onNext: { Audio.shared.play(.leave); onDone(.nextRound(result)) },
                                 onEnd: { onDone(.endGame(result)) })
                         .transition(.opacity)
@@ -51,6 +55,7 @@ struct StealView: View {
                     JailScreen(space: space) { onDone(.endGame(result)) }.transition(.opacity)
                 }
             }
+            .coordinateSpace(name: Menu.space)
             .frame(width: geo.size.width, height: geo.size.height)
             .clipped()
         }
@@ -59,8 +64,13 @@ struct StealView: View {
         .onChange(of: vm.holding) { _, down in
             guard vm.running else { return }
             beat = down ? .reaching : .returning
-            if down { Audio.shared.play(.grab) }
+            if down {
+                Audio.shared.play(.grab)
+                Haptics.grab()
+            }
         }
+        .onChange(of: ticking, initial: true) { _, on in Audio.shared.ticking(on) }
+        .onDisappear { Audio.shared.ticking(false) }
         .onChange(of: vm.suspicion) { _, _ in Audio.shared.play(.suspicion) }
         .onChange(of: vm.phase) { _, p in
             // getting clocked is the thief's moment, not the screen's. he flinches whether
@@ -73,7 +83,14 @@ struct StealView: View {
             case .paused:    break
             }
         }
-        .task { runStealChecks(); runJailChecks(); runThiefChecks(); runClipChecks(); runCooldownChecks(); runBarChecks() }
+        .task { Haptics.warmUp(); runStealChecks(); runPortraitChecks(); runJailChecks(); runThiefChecks(); runClipChecks(); runCooldownChecks(); runBarChecks() }
+    }
+
+    /// the clock is only audible while it's actually counting down on him: not once the
+    /// round is over, and not behind the pause card. a cooldown still counts, because the
+    /// clock is still running through it.
+    private var ticking: Bool {
+        vm.lowOnTime && !vm.over && vm.phase != .paused && vm.timeLeft > 0
     }
 
     /// he reaches towards whoever he's robbing
@@ -113,8 +130,7 @@ struct StealView: View {
                            cast: cast, aware: vm.aware)
             ThiefActor(beat: beat, seat: thiefSeat, reachingLeft: reachingLeft,
                        space: space, paused: vm.phase == .paused, onFinish: finished)
-            TutorialHUD(show: [], clock: vm.clock, space: space)
-            pauseButton(space)
+            TutorialHUD(show: [], clock: vm.clock, space: space, low: vm.lowOnTime)
 
             StealBar(progress: vm.grab, space: space)
             SuspicionBar(lit: vm.suspicion, space: space)
@@ -136,15 +152,19 @@ struct StealView: View {
         .position(x: space.x(w - vm.road * w), y: space.y(h / 2))
     }
 
-    /// hold anywhere over the bar to fill it. letting go, or getting spotted, drops it.
+    /// hold anywhere on the screen to fill the bar — his hand is already on the pocket,
+    /// you're only deciding how long to leave it there. letting go, or getting spotted,
+    /// drops it. the pause button is drawn over this, so it still takes its own taps.
     private func grabArea(_ space: DesignSpace) -> some View {
-        place(Tut.inBar(Tut.track.insetBy(dx: 0, dy: -18)), space) {
-            Rectangle().fill(.clear).contentShape(Rectangle())
-        }
-        .gesture(DragGesture(minimumDistance: 0)
-            .onChanged { _ in if vm.running { vm.holding = true } }
-            .onEnded   { _ in vm.holding = false })
-        .allowsHitTesting(vm.running)
+        Rectangle().fill(.clear).contentShape(Rectangle())
+            .frame(width: space.px(DesignSpace.screen.width),
+                   height: space.px(DesignSpace.screen.height))
+            .position(x: space.x(DesignSpace.screen.width / 2),
+                      y: space.y(DesignSpace.screen.height / 2))
+            .gesture(DragGesture(minimumDistance: 0)
+                .onChanged { _ in if vm.running { vm.holding = true } }
+                .onEnded   { _ in vm.holding = false })
+            .allowsHitTesting(vm.running)
     }
 
     private func pauseButton(_ space: DesignSpace) -> some View {

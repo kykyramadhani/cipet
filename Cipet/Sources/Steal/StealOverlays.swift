@@ -45,11 +45,11 @@ struct PenaltyOverlay: View {
             .opacity(Cooldown.strength(count))
             .animation(.easeOut(duration: 0.25), value: count)
 
-            line("Stop for", Cooldown.stop, Cooldown.lineSize, .white,
+            line(t("Stop for"), Cooldown.stop, Cooldown.lineSize, .white,
                  Cooldown.edge, Cooldown.lineStroke)
             line("\(count)", Cooldown.count, Cooldown.countSize, Ink.snow,
                  Ink.red, Cooldown.countStroke)
-            line("You almost get caught!", Cooldown.note, Cooldown.lineSize, .white,
+            line(t("You almost get caught!"), Cooldown.note, Cooldown.lineSize, .white,
                  Cooldown.edge, Cooldown.lineStroke)
         }
         .allowsHitTesting(false)
@@ -91,11 +91,15 @@ func runCooldownChecks() {
     #endif
 }
 
-// pause card. the model holds the round still, this is just the menu on top of it.
+// pause card. the model holds whatever screen it's over still, this is just the menu on
+// top of it — and the same settings panel the main menu puts up, so sound and language
+// can be changed without leaving the round.
 struct PausedCard: View {
     let space: DesignSpace
     let onResume: () -> Void
     let onHome: () -> Void
+
+    @State private var settingsShown = false
 
     private static let card  = CGRect(x: 300, y: 92, width: 274, height: 190)
     private static let title: CGFloat = 34
@@ -108,13 +112,15 @@ struct PausedCard: View {
             Color.black.opacity(0.25).ignoresSafeArea()
 
             VStack(spacing: space.px(Self.rowGap)) {
-                Text("Paused")
+                Text(t("Paused"))
                     .font(.skranji(space.px(Self.title)))
                     .foregroundStyle(Ink.black)
                     .padding(.bottom, space.px(2))
-                button("Resume", filled: true, action: onResume)
-                button("Main Menu", filled: false, action: onHome)
-                button("Settings", filled: false) {}
+                button(t("Resume"), filled: true, action: onResume)
+                button(t("Main Menu"), filled: false, action: onHome)
+                button(t("Settings"), filled: false) {
+                    withAnimation(.easeInOut(duration: 0.2)) { settingsShown = true }
+                }
             }
             .padding(space.px(16))
             .frame(width: space.px(Self.card.width))
@@ -123,6 +129,10 @@ struct PausedCard: View {
                 .stroke(.black, lineWidth: space.px(5)))
             .position(x: space.x(DesignSpace.screen.width / 2),
                       y: space.y(DesignSpace.screen.height / 2))
+
+            if settingsShown {
+                SettingsPanel(shown: $settingsShown, space: space).transition(.opacity)
+            }
         }
     }
 
@@ -142,10 +152,106 @@ struct PausedCard: View {
     }
 }
 
-// what you get for pulling it off. the thief, the takings, and where to go next.
+
+// the mugshot on the succeed card: the mark, still sat where you left them. it isn't a
+// sprite on a swatch — the design frames a piece of the angkot itself, bench and window
+// and all, cropped round whoever you just robbed, so the card shows the person rather
+// than a picture of one.
+struct VictimPortrait: View {
+    let victim: Seating.Person
+    let cast: Arrangement
+    let space: DesignSpace
+
+    /// the design's frame is 160 x 297 with a 12 border, so everything here is that shape
+    /// scaled down to the width the card has room for
+    static let box    = CGSize(width: 96, height: 178.2)
+    static let border: CGFloat = 7.2
+    static let radius: CGFloat = 4.8
+
+    /// how wide a slice of the angkot shows through, in the angkot's own units. the height
+    /// follows from the frame's shape, so there is only ever one number to tune: set it so
+    /// the mark fills the frame the way the design has them, about two thirds across.
+    static let cropWidth: CGFloat = 78
+    static var cropHeight: CGFloat { cropWidth * box.height / box.width }
+    static let drop: CGFloat = 0.07   // how far below centre the mark sits
+
+    var body: some View {
+        let seat = Seating.spot(victim)
+        let s = space.px(Self.box.width) / Self.cropWidth
+        // the top-left of the window, in the angkot group's coordinates
+        let ox = seat.midX - Self.cropWidth / 2
+        let oy = seat.midY - Self.drop * Self.cropHeight - Self.cropHeight / 2
+
+        ZStack(alignment: .topLeading) {
+            Ink.pale
+            layer("loading_angkot_wheel",    Tut.wheel,    ox, oy, s)
+            layer("tut_angkot_interior",     Tut.interior, ox, oy, s)
+            layer("loading_angkot_exterior", Tut.exterior, ox, oy, s)
+            layer(art, mark(seat), ox, oy, s)
+        }
+        .frame(width: space.px(Self.box.width), height: space.px(Self.box.height),
+               alignment: .topLeading)
+        .clipShape(RoundedRectangle(cornerRadius: space.px(Self.radius)))
+        .overlay(RoundedRectangle(cornerRadius: space.px(Self.radius))
+            .strokeBorder(.black, lineWidth: space.px(Self.border)))
+    }
+
+    /// the yellow version of their drawing where there is one — the animated faces only
+    /// have their own frames, so they show as they are
+    private var art: String {
+        let who = cast.who(victim)
+        return who.hotArt ?? who.art
+    }
+
+    /// the animated faces are drawn from a bigger box than the seat, the same way the
+    /// angkot draws them, or they come out shrunk inside their own frame
+    private func mark(_ seat: CGRect) -> CGRect {
+        cast.who(victim).animated ? Clips.box(over: seat) : seat
+    }
+
+    private func layer(_ name: String, _ r: CGRect,
+                       _ ox: CGFloat, _ oy: CGFloat, _ s: CGFloat) -> some View {
+        Image(name).resizable()
+            .frame(width: r.width * s, height: r.height * s)
+            .offset(x: (r.minX - ox) * s, y: (r.minY - oy) * s)
+    }
+}
+
+func runPortraitChecks() {
+    #if DEBUG
+    // the frame keeps the design's 160 x 297 proportions, and its border with them
+    assert(abs(VictimPortrait.box.height / VictimPortrait.box.width - 297.0 / 160) < 0.01)
+    assert(abs(VictimPortrait.border / VictimPortrait.box.width - 12.0 / 160) < 0.01)
+    // and it fits the card it sits in, inside the padding
+    assert(VictimPortrait.box.height <= 210 - 2 * 16 + 0.5, "the portrait has to fit the card")
+
+    // the window keeps the frame's shape, so nothing in the angkot comes out stretched
+    assert(abs(VictimPortrait.cropHeight / VictimPortrait.cropWidth
+               - VictimPortrait.box.height / VictimPortrait.box.width) < 0.001)
+
+    // every mark can be framed, whole, and each one lands in a different part of the angkot
+    var seen: Set<String> = []
+    for v in Seating.victims {
+        let seat = Seating.spot(v)
+        let ox = seat.midX - VictimPortrait.cropWidth / 2
+        let oy = seat.midY - VictimPortrait.drop * VictimPortrait.cropHeight
+                 - VictimPortrait.cropHeight / 2
+        assert(seat.minX >= ox && seat.maxX <= ox + VictimPortrait.cropWidth,
+               "\(v) has to fit across their own portrait")
+        assert(seat.minY >= oy && seat.maxY <= oy + VictimPortrait.cropHeight,
+               "head and feet both")
+        seen.insert("\(Int(ox)),\(Int(oy))")
+    }
+    assert(seen.count == Seating.victims.count, "each mark gets their own crop")
+    #endif
+}
+
+// what you get for pulling it off. the mark, the takings, and where to go next.
 struct SucceedCard: View {
     let remaining: String
     let value: Int
+    let victim: Seating.Person
+    let cast: Arrangement
     let space: DesignSpace
     let onNext: () -> Void
     let onEnd: () -> Void
@@ -160,22 +266,18 @@ struct SucceedCard: View {
             Color.black.opacity(0.3).ignoresSafeArea()
 
             HStack(spacing: space.px(18)) {
-                Image("loading_pencipet").resizable().scaledToFit()
-                    .frame(width: space.px(96))
-                    .background(Ink.pale, in: RoundedRectangle(cornerRadius: space.px(8)))
-                    .overlay(RoundedRectangle(cornerRadius: space.px(8))
-                        .stroke(.black, lineWidth: space.px(3)))
+                VictimPortrait(victim: victim, cast: cast, space: space)
 
                 VStack(alignment: .leading, spacing: space.px(6)) {
-                    Text("Succeed!")
+                    Text(t("Succeed!"))
                         .font(.skranji(space.px(Self.title)))
                         .foregroundStyle(Ink.black)
-                    line("Remaining time", remaining)
-                    line("Item value", "Rp \(value)k")
-                    line("Total Item value", "Rp \(value)k")
+                    line(t("Remaining time"), remaining)
+                    line(t("Item value"), "Rp \(value)k")
+                    line(t("Total Item value"), "Rp \(value)k")
                     HStack(spacing: space.px(10)) {
-                        button("End Game", Ink.redGlow, action: onEnd)
-                        button("Next Round", Ink.yellow, action: onNext)
+                        button(t("End Game"), Ink.redGlow, action: onEnd)
+                        button(t("Next Round"), Ink.yellow, action: onNext)
                     }
                     .padding(.top, space.px(4))
                 }

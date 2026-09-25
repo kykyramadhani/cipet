@@ -35,9 +35,13 @@ struct StealView: View {
                 // flattened first, or each sprite gets blurred inside its own box
                 scene(space)
                     .compositingGroup()
-                    .blur(radius: vm.phase == .penalty ? space.px(Cooldown.blur) : 0, opaque: true)
+                    .blur(radius: softened ? space.px(Cooldown.blur) : 0, opaque: true)
                 grabArea(space)
+                // it stays above the grab area so it still takes its own taps, which is why
+                // it is out here rather than in the scene — and so it blurs on its own
                 pauseButton(space)
+                    .blur(radius: softened ? space.px(Cooldown.blur) : 0)
+                    .allowsHitTesting(vm.phase != .paused)
                 if vm.phase == .penalty {
                     PenaltyOverlay(count: vm.stopFor, space: space)
                     TutorialHUD(show: [], clock: vm.clock, space: space,
@@ -91,6 +95,10 @@ struct StealView: View {
         }
         .task { Haptics.warmUp(); runStealChecks(); runPortraitChecks(); runJailChecks(); runThiefChecks(); runClipChecks(); runCooldownChecks(); runBarChecks() }
     }
+
+    /// both the cooldown and the pause card sit on a blurred round rather than a black one,
+    /// so you can still see the angkot you're going back to
+    private var softened: Bool { vm.phase == .penalty || vm.phase == .paused }
 
     /// the clock is only audible while it's actually counting down on him: not once the
     /// round is over, and not behind the pause card. a cooldown still counts, because the

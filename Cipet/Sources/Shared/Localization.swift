@@ -58,6 +58,20 @@ enum Indonesian {
         "Confirm if you\u{2019}re ready!": "Konfirmasi kalau sudah siap!",
         "Confirm":                  "Konfirmasi",
 
+        // the instructions behind the info button. Paused/Resume/Main Menu are already
+        // down with the round itself, which is the other place they show.
+        "Instruction": "Petunjuk",
+        "Beware of other passengers suspicion bar.":
+            "Awas, perhatikan bar kecurigaan penumpang lain.",
+        "If the suspicion bar is full, your suspicion level will increase":
+            "Kalau bar kecurigaan penuh, level kecurigaanmu naik",
+        "If the level full you'll get into jail":
+            "Kalau levelnya penuh kamu masuk penjara",
+        "You'll succeed if the bar is full by keeping passenger awareness safe":
+            "Kamu berhasil kalau barnya penuh dan penumpang tetap tenang",
+        // "Hold anywhere to fill the bar" is the round's own label and is down with the
+        // rest of the round. the instructions draw the same bar, so they say the same words.
+
         // tutorial
         "Tutorials":    "Tutorial",
         "Skip":         "Lewati",

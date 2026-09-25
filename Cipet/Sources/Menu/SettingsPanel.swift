@@ -7,10 +7,10 @@ enum Cog {
     static let card  = CGRect(x: 213.658, y: 51.679, width: 440.666, height: 289.331)
     static let close = CGRect(x: 625.62,  y: 39.62,  width: 38.76,   height: 38.76)
 
-    static let title       = CGRect(x: 363, y: 78, width: 139, height: 52)
-    static let titleSize:    CGFloat = 40
-    static let titleTrack:   CGFloat = -1.5
-    static let titleOutline: CGFloat = 3.5
+    /// 125:1508 puts the heading on this line; it is drawn by the same CardTitle every
+    /// other overlay uses, centred on the card rather than on the design's own text box
+    static let titleAt = CGPoint(x: 434, y: 104)
+    static var title: CGRect { CardTitle.box(titleAt) }
 
     static let labelSize:  CGFloat = 30
     static let labelTrack: CGFloat = -1.8467
@@ -70,13 +70,7 @@ struct SettingsPanel: View {
     private func close() { withAnimation(.easeInOut(duration: 0.2)) { shown = false } }
 
     private var title: some View {
-        place(Cog.title.insetBy(dx: -20, dy: -20), space) {
-            OutlinedText(string: t("Settings"),
-                         font: .skranji(space.px(Cog.titleSize)),
-                         fill: Ink.pale,
-                         thickness: space.px(Cog.titleOutline),
-                         tracking: space.px(Cog.titleTrack))
-        }
+        CardTitle(text: t("Settings"), centre: Cog.titleAt, space: space)
     }
 
     private func label(_ text: String, _ rect: CGRect) -> some View {

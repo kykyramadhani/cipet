@@ -22,6 +22,7 @@
 		353351549C7C0A152157A869 /* post_game.wav in Resources */ = {isa = PBXBuildFile; fileRef = 257D7FC03440C178EC0A6D99 /* post_game.wav */; };
 		383742485F1E869020324D98 /* vehicle_turnOn.wav in Resources */ = {isa = PBXBuildFile; fileRef = 1BDC93FBD6FFD24DAF140051 /* vehicle_turnOn.wav */; };
 		39E1FFEFDA68659393306E21 /* RecordPanel.swift in Sources */ = {isa = PBXBuildFile; fileRef = B61276C01CB478AD434434C5 /* RecordPanel.swift */; };
+		A1B2C3D4E5F60718293A4B5C /* InstructionPanel.swift in Sources */ = {isa = PBXBuildFile; fileRef = B2C3D4E5F60718293A4B5C6D /* InstructionPanel.swift */; };
 		4051DE16CA829B1A942BBF3E /* StealView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E0DF8F7C22472B67D151EE7C /* StealView.swift */; };
 		415C25FE9985435BA1548D28 /* fight.wav in Resources */ = {isa = PBXBuildFile; fileRef = CAA5A7EF1E09F3C28608CA99 /* fight.wav */; };
 		44FB57E679379CDE2344F6E4 /* Seating.swift in Sources */ = {isa = PBXBuildFile; fileRef = BDA1C65B2855C451E50C92AE /* Seating.swift */; };
@@ -125,6 +126,7 @@
 		9F3F71BAAB6EE7A3D52D39B8 /* AppRouter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppRouter.swift; sourceTree = "<group>"; };
 		A52ABC24E21705EC3BC861AD /* TutorialScene.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TutorialScene.swift; sourceTree = "<group>"; };
 		B61276C01CB478AD434434C5 /* RecordPanel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecordPanel.swift; sourceTree = "<group>"; };
+		B2C3D4E5F60718293A4B5C6D /* InstructionPanel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InstructionPanel.swift; sourceTree = "<group>"; };
 		BD1C86A0AC1DB821FB8E2526 /* Cipet.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = Cipet.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		BDA1C65B2855C451E50C92AE /* Seating.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Seating.swift; sourceTree = "<group>"; };
 		C20DF2E63C5C6002203D6554 /* Style.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Style.swift; sourceTree = "<group>"; };
@@ -327,6 +329,7 @@
 			children = (
 				56F7736B85287133F703BD8D /* MainMenuView.swift */,
 				B61276C01CB478AD434434C5 /* RecordPanel.swift */,
+				B2C3D4E5F60718293A4B5C6D /* InstructionPanel.swift */,
 				66FD67C72C2F60401E54C645 /* SettingsPanel.swift */,
 				DD459AEDA9224F7CE96C4A97 /* SettingsViewModel.swift */,
 			);
@@ -510,6 +513,7 @@
 				5DDB6EBBAC0B6FC4320A9762 /* PickVictimViewModel.swift in Sources */,
 				D467BDA8C8182B76A15F23F9 /* Record.swift in Sources */,
 				39E1FFEFDA68659393306E21 /* RecordPanel.swift in Sources */,
+				A1B2C3D4E5F60718293A4B5C /* InstructionPanel.swift in Sources */,
 				C0515AA00E74E76EFB53C726 /* Rider.swift in Sources */,
 				44FB57E679379CDE2344F6E4 /* Seating.swift in Sources */,
 				602DAEC7D585E753EB094ABC /* SettingsPanel.swift in Sources */,

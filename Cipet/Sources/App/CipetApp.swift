@@ -10,13 +10,22 @@ struct CipetApp: App {
 // loading -> menu -> tutorial (first game only) -> countdown -> pick a target -> steal
 struct RootView: View {
     @State private var router = AppRouter()
+    /// set once the tutorial has been played through (or skipped), and kept across launches,
+    /// so only the very first Play ever shows it
+    @AppStorage("hasCompletedTutorial") private var hasCompletedTutorial = false
 
     var body: some View {
         ZStack {
             switch router.screen {
             case .loading:    LoadingView    { router.go(.menu) }.transition(.opacity)
-            case .menu:       MainMenuView   { router.startGame() }.transition(.opacity)
-            case .tutorial:   TutorialView   { router.tutorialDone() }.transition(.opacity)
+            case .menu:
+                MainMenuView { router.startGame(tutorial: !hasCompletedTutorial) }.transition(.opacity)
+            case .tutorial:
+                TutorialView {
+                    hasCompletedTutorial = true
+                    router.tutorialDone()
+                }
+                .transition(.opacity)
             case .countdown:
                 CountdownView(round: router.session.round,
                               onStart: { router.go(.pickVictim) },

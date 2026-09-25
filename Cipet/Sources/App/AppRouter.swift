@@ -13,17 +13,15 @@ import SwiftUI
     private(set) var screen: Screen = .loading
     let session = GameSession()
 
-    /// the menu starts a fresh game, with the tutorial first if it's owed. Next Round goes
-    /// straight back to the countdown and never passes through here.
-    func startGame() {
+    /// the menu starts a fresh game, with the tutorial first on the very first Play only —
+    /// whether it's been done lives in the view's @AppStorage. Next Round goes straight back
+    /// to the countdown and never passes through here.
+    func startGame(tutorial: Bool) {
         session.startFirstRound()
-        go(session.tutorialPending ? .tutorial : .countdown)
+        go(tutorial ? .tutorial : .countdown)
     }
 
-    func tutorialDone() {
-        session.tutorialFinished()
-        go(.countdown)
-    }
+    func tutorialDone() { go(.countdown) }
 
     func nextRound(after r: RoundResult) {
         session.nextRound(after: r)
@@ -47,27 +45,26 @@ func runRouterChecks() {
     defer { Record.shared.restore(round: keptRound, value: keptValue) }
 
     let r = AppRouter()
-    assert(!r.session.tutorialPending, "nothing is armed before a game starts")
 
-    // Play goes to the tutorial first when it's owed, and it hands over to round 1's countdown
-    r.startGame()
-    if r.session.tutorialPending {
-        if case .tutorial = r.screen {} else { assertionFailure("Play has to open the tutorial") }
-        r.tutorialDone()
-    }
+    // the first Play goes to the tutorial, and it hands over to round 1's countdown
+    r.startGame(tutorial: true)
+    if case .tutorial = r.screen {} else { assertionFailure("the first Play has to open the tutorial") }
+    r.tutorialDone()
     if case .countdown = r.screen {} else { assertionFailure("then round 1's countdown") }
-    assert(!r.session.tutorialPending && r.session.round == 1)
+    assert(r.session.round == 1)
+
+    // once it's been done, Play goes straight to round 1
+    r.startGame(tutorial: false)
+    if case .countdown = r.screen {} else { assertionFailure("no tutorial after it's been done") }
 
     // nothing in a round can bring it back
     r.go(.pickVictim)
     r.go(.steal(.farLeft, Arrangement.fixed.seats(beside: .farLeft)[0], Steal.round))
-    assert(!r.session.tutorialPending)
 
     // Next Round goes through the countdown again, on a new number, tutorial still gone
     let seating = r.session.arrangement
     r.nextRound(after: RoundResult(value: 20, time: 40))
     assert(r.session.round == 2)
-    assert(!r.session.tutorialPending)
     assert(r.session.arrangement != seating)
     if case .countdown = r.screen {} else { assertionFailure("Next Round has to replay the countdown") }
 

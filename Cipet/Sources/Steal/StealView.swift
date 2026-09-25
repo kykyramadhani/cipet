@@ -153,7 +153,7 @@ struct StealView: View {
                                                      onFinish: finished)))
                 .offset(y: space.px(Steal.angkotDrop))
             TutorialHUD(show: [], clock: vm.clock, space: space, low: vm.lowOnTime, items: items)
-            roundTag(space)
+            RoundTag(round: round, space: space)
 
             StealBar(progress: vm.grab, space: space)
             SuspicionBar(lit: vm.suspicion, space: space)
@@ -190,7 +190,20 @@ struct StealView: View {
             .allowsHitTesting(vm.running)
     }
 
-    private func roundTag(_ space: DesignSpace) -> some View {
+    private func pauseButton(_ space: DesignSpace) -> some View {
+        place(Steal.pauseArt, space) {
+            Button { vm.pause() } label: { Image("pv_pause").resizable() }
+                .buttonStyle(PressStyle())
+        }
+    }
+}
+
+/// "Round #N" on its yellow tab, bottom left
+struct RoundTag: View {
+    let round: Int
+    let space: DesignSpace
+
+    var body: some View {
         Group {
             // the art is the tab drawn upside down
             place(Steal.roundArt, space) { Image("round_tag").resizable().scaleEffect(y: -1) }
@@ -199,13 +212,6 @@ struct StealView: View {
                 .foregroundStyle(Ink.black)
                 .fixedSize()
                 .position(x: space.x(Steal.roundTag.midX), y: space.y(Steal.roundTag.midY))
-        }
-    }
-
-    private func pauseButton(_ space: DesignSpace) -> some View {
-        place(Steal.pauseArt, space) {
-            Button { vm.pause() } label: { Image("pv_pause").resizable() }
-                .buttonStyle(PressStyle())
         }
     }
 }

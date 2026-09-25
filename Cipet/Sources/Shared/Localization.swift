@@ -65,6 +65,16 @@ enum Indonesian {
         "This is you!": "Ini kamu!",
         "Choose your target":              "Pilih targetmu",
         "Pick a seat to make your move":   "Pilih kursi buat beraksi",
+        "Pick the best seat to make your move": "Pilih kursi terbaik buat beraksi",
+        "Hold until the bar is full to steal the item.": "Tahan sampai barnya penuh buat ambil barangnya.",
+        "Beware of other passengers\u{2019} suspicion bar.": "Awas bar kecurigaan penumpang lain.",
+        "If a suspicion bar fills up, your suspicion level rises. Stop for 3 seconds to lower it.":
+            "Kalau bar kecurigaan penuh, level kecurigaanmu naik. Berhenti 3 detik buat menurunkannya.",
+        "If your suspicion level is full, you\u{2019}ll go to jail.": "Kalau level kecurigaanmu penuh, kamu masuk penjara.",
+        "Fill the bar without raising too much suspicion, and you win!":
+            "Penuhi barnya tanpa bikin orang terlalu curiga, dan kamu menang!",
+        "skip":     "lewati",
+        "Play now": "Main sekarang",
         "Grab the item and keep your hand steady while stealing.":
             "Ambil barangnya dan tahan tanganmu selama nyopet.",
         "Watch out for other passengers\u{2019} suspicion bar.":

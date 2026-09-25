@@ -23,9 +23,17 @@ struct TutorialAngkot: View {
     /// the thief when he's animated (stealing). he's drawn at his seat's depth, not on top
     /// of everything: `thiefAt` says which row that is.
     var thief: AnyView? = nil
+    /// off for a layer of just people over something else, like the tutorial's lit ones
+    var drawBody = true
 
     var body: some View {
         Group {
+            if drawBody { angkot }
+            people
+        }
+    }
+
+    @ViewBuilder private var angkot: some View {
             art("loading_angkot_wheel",    Tut.wheel)
             art("tut_angkot_interior",     Tut.interior)
             // the driver sits in his cab under the body panel, the way the design layers him
@@ -35,8 +43,6 @@ struct TutorialAngkot: View {
             .colorMultiply(fixedTint)
             if colored { art("steal_angkot_exterior", Tut.exteriorColored) }
             else { art("loading_angkot_exterior", Tut.exterior) }
-            people
-        }
     }
 
     // painted back to front: the far bench (and the kid beside it) sits further from us than
@@ -74,15 +80,13 @@ struct TutorialAngkot: View {
         }
     }
 
-    /// the thief sat still at a seat: facing us on the far bench, his back to us on the near one
-    @ViewBuilder private func sitting(_ spot: CGRect) -> some View {
-        if Seating.bench(of: spot) == 1 {
-            place(Tut.inAngkot(Clips.box(over: spot)), space) {
-                Sprite(name: Clips.behindIdle(left: false).frame(0))
-            }
-        } else {
-            art("loading_pencipet", spot)
-        }
+    /// the thief sat still at a seat, in the same frames a round sits him in: facing us on
+    /// the far bench, his back to us on the near one
+    private func sitting(_ spot: CGRect) -> some View {
+        let still = Seating.bench(of: spot) == 1
+            ? Clips.behindIdle(left: false)
+            : Clips.thief("Idle-Standup", left: false, behind: false)
+        return place(Tut.inAngkot(Clips.box(over: spot)), space) { Sprite(name: still.frame(0)) }
     }
 
     private var fixedTint: Color { dimFixed ? Ink.grey : .white }
@@ -108,7 +112,10 @@ struct TutorialPavement: View {
 
     var body: some View {
         Group {
-            place(Tut.outside, space) { Image("loading_pencipet").resizable() }
+            // the round's own thief getting to his feet, and holding there
+            place(Clips.box(over: Tut.outside, ink: Clips.standingInk), space) {
+                FrameAnimation(clip: Clips.thief("Idle-Standup", left: false, behind: false))
+            }
             place(Tut.bubble,  space) { Image("tut_bubble").resizable() }
             place(Tut.bubbleText, space) {
                 Text(t("This is you!"))

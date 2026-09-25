@@ -56,6 +56,8 @@ enum Clips {
 
     /// the driver is drawn a little bigger in his frame than everyone else
     static let driverInk = CGRect(x: 62, y: 23, width: 179, height: 237)
+    /// and the thief once he's stood up, which is how he waits on the kerb
+    static let standingInk = CGRect(x: 73, y: 40, width: 155, height: 220)
 
     /// the rect to draw a clip in so its character lands on the flat sprite's box
     static func box(over spot: CGRect, ink: CGRect = ink) -> CGRect {

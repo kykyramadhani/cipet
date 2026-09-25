@@ -16,14 +16,11 @@ struct RoundResult {
     private(set) var played = 0.0
     private(set) var arrangement = Arrangement.fixed
 
-    var tutorialPending = false
-
     func startFirstRound() {
         round = 1
         takings = 0
         items = 0
         played = 0
-        tutorialPending = Seen.shouldShowTutorial
         arrangement = .random(avoiding: nil)
     }
 
@@ -35,11 +32,6 @@ struct RoundResult {
     }
 
     func endGame(after r: RoundResult) { bank(r) }
-
-    func tutorialFinished() {
-        tutorialPending = false
-        Seen.tutorial = true
-    }
 
     /// how long a round took on average, over the ones actually played
     var avgTime: String { mmss(played / Double(max(1, round))) }
@@ -185,12 +177,10 @@ func runSessionChecks() {
     s.startFirstRound()
     assert(s.round == 1 && s.takings == 0 && s.items == 0)
 
-    s.tutorialFinished()
     s.nextRound(after: RoundResult(value: 20, time: 30))
     assert(Record.shared.hasAny, "finishing a round is what puts the record button up")
     assert(s.round == 2, "Next Round has to count up")
     assert(s.takings == 20 && s.items == 1, "and keep what was already taken")
-    assert(!s.tutorialPending, "the tutorial never comes back in a later round")
 
     s.nextRound(after: RoundResult(value: 0, time: 90))
     assert(s.items == 1, "a round you came away empty from isnt an item")

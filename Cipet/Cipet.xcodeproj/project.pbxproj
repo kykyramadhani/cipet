@@ -62,7 +62,6 @@
 		D9779B2CA17D523B797FB203 /* Skranji-Bold.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 0BD4E2CE4CB25CC20849989A /* Skranji-Bold.ttf */; };
 		DD6EC47F568A857B583B5D7D /* bgm.wav in Resources */ = {isa = PBXBuildFile; fileRef = 2DAD8F637BA4104C091299CA /* bgm.wav */; };
 		E5AD7E2E529C74E776570E3E /* EndGameView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 350F6C791C14DC04AB4DD02C /* EndGameView.swift */; };
-		E8C052F4A336FAAABE020ADB /* Flags.swift in Sources */ = {isa = PBXBuildFile; fileRef = F4C2FCA0469E53200B0E0514 /* Flags.swift */; };
 		E9998734B151A07A777BCE23 /* GameConfig.swift in Sources */ = {isa = PBXBuildFile; fileRef = 94954D9E0D38FCE75BF36C97 /* GameConfig.swift */; };
 		EAAA4F29B9FF4AA3EECA1CC8 /* MainMenuView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 56F7736B85287133F703BD8D /* MainMenuView.swift */; };
 		EAF1A6912AF24D08F82091E9 /* CountdownViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9E92104BD60E272ABE1CFCC4 /* CountdownViewModel.swift */; };
@@ -117,7 +116,7 @@
 		708C431B2E2E2DAAEE788E1E /* TutorialBars.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TutorialBars.swift; sourceTree = "<group>"; };
 		7459590FE74685AB56D80CAC /* OFL.txt */ = {isa = PBXFileReference; lastKnownFileType = text; path = OFL.txt; sourceTree = "<group>"; };
 		7575ACA1CC181AFCA3311EDC /* sfx_caught.wav */ = {isa = PBXFileReference; lastKnownFileType = audio.wav; path = sfx_caught.wav; sourceTree = "<group>"; };
-		76D2DA08C9CE07554B6C519C /* CipetUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = CipetUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		76D2DA08C9CE07554B6C519C /* CipetUITests.xctest */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.cfbundle; path = CipetUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		82CB3CE84D1EC9AA8276573A /* FlowTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FlowTests.swift; sourceTree = "<group>"; };
 		894CC8C509B92FBF0FEB310E /* succeed_stealing.wav */ = {isa = PBXFileReference; lastKnownFileType = audio.wav; path = succeed_stealing.wav; sourceTree = "<group>"; };
 		94954D9E0D38FCE75BF36C97 /* GameConfig.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GameConfig.swift; sourceTree = "<group>"; };
@@ -125,7 +124,7 @@
 		9F3F71BAAB6EE7A3D52D39B8 /* AppRouter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppRouter.swift; sourceTree = "<group>"; };
 		A52ABC24E21705EC3BC861AD /* TutorialScene.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TutorialScene.swift; sourceTree = "<group>"; };
 		B61276C01CB478AD434434C5 /* RecordPanel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecordPanel.swift; sourceTree = "<group>"; };
-		BD1C86A0AC1DB821FB8E2526 /* Cipet.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Cipet.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		BD1C86A0AC1DB821FB8E2526 /* Cipet.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = Cipet.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		BDA1C65B2855C451E50C92AE /* Seating.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Seating.swift; sourceTree = "<group>"; };
 		C20DF2E63C5C6002203D6554 /* Style.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Style.swift; sourceTree = "<group>"; };
 		C8AB0EFA63F3AE0317BC7659 /* Haptics.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Haptics.swift; sourceTree = "<group>"; };
@@ -145,7 +144,6 @@
 		EF2CF9F6218964EBA3489818 /* GameView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GameView.swift; sourceTree = "<group>"; };
 		EF2D8FBFB6DD16DC8A046A7B /* Game.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Game.swift; sourceTree = "<group>"; };
 		F337A8894C29908DE4AB01C7 /* item_increase.wav */ = {isa = PBXFileReference; lastKnownFileType = audio.wav; path = item_increase.wav; sourceTree = "<group>"; };
-		F4C2FCA0469E53200B0E0514 /* Flags.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Flags.swift; sourceTree = "<group>"; };
 		F4EEA8D0003B1A9CD325EBDD /* TutorialStep.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TutorialStep.swift; sourceTree = "<group>"; };
 		F7E18A126F7201197202287B /* button_clicked.wav */ = {isa = PBXFileReference; lastKnownFileType = audio.wav; path = button_clicked.wav; sourceTree = "<group>"; };
 		F7FAE859B6EE1CE9CB745C9B /* DesignSpace.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DesignSpace.swift; sourceTree = "<group>"; };
@@ -218,7 +216,6 @@
 			children = (
 				E3F92620A53FE87F1A099708 /* AngkotColored.swift */,
 				F7FAE859B6EE1CE9CB745C9B /* DesignSpace.swift */,
-				F4C2FCA0469E53200B0E0514 /* Flags.swift */,
 				D95D0CD4E93F503FC8B3AE3E /* FrameAnimation.swift */,
 				C8AB0EFA63F3AE0317BC7659 /* Haptics.swift */,
 				E4DB7AC078583A9B766F1703 /* Localization.swift */,
@@ -515,7 +512,6 @@
 				EAF1A6912AF24D08F82091E9 /* CountdownViewModel.swift in Sources */,
 				654CC9A35E8AA01A82799062 /* DesignSpace.swift in Sources */,
 				E5AD7E2E529C74E776570E3E /* EndGameView.swift in Sources */,
-				E8C052F4A336FAAABE020ADB /* Flags.swift in Sources */,
 				D4BC0C3C54AE54D00DD32018 /* FrameAnimation.swift in Sources */,
 				7FD38EF5E50705D7D511A6C1 /* Game.swift in Sources */,
 				E9998734B151A07A777BCE23 /* GameConfig.swift in Sources */,
@@ -638,7 +634,6 @@
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = iphoneos;
 				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
-				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
 				SWIFT_VERSION = 5.0;
 			};
@@ -742,7 +737,6 @@
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = iphoneos;
 				SWIFT_COMPILATION_MODE = wholemodule;
-				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_OPTIMIZATION_LEVEL = "-O";
 				SWIFT_VERSION = 5.0;
 			};

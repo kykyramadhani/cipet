@@ -99,15 +99,17 @@ enum Indonesian {
     ]
 }
 
-/// money is whole rupiah underneath and shown in millions: "Rp 1.5M" in english,
-/// "Rp 1,5 JT" in indonesian
+/// money is whole rupiah underneath. under a million it's thousands, "Rp 999k" in both
+/// languages; from a million up it's "Rp 1.5M" in english and "Rp 1,5 JT" in indonesian
 func rupiah(_ amount: Int) -> String {
     let ind = L10n.shared.lang == .ind
     let f = NumberFormatter()
     f.numberStyle = .decimal
     f.maximumFractionDigits = 2
     f.locale = Locale(identifier: ind ? "id_ID" : "en_US")
-    let n = f.string(from: NSNumber(value: Double(amount) / 1_000_000)) ?? "0"
+    let millions = amount >= 1_000_000
+    let n = f.string(from: NSNumber(value: Double(amount) / (millions ? 1_000_000 : 1_000))) ?? "0"
+    guard millions else { return "Rp \(n)k" }
     return ind ? "Rp \(n) JT" : "Rp \(n)M"
 }
 
@@ -118,9 +120,10 @@ func runLocaleChecks() {
     L10n.shared.lang = .eng
     assert(t("Play") == "Play", "english has to come back untouched")
     assert(rupiah(1_500_000) == "Rp 1.5M" && rupiah(1_000_000) == "Rp 1M" && rupiah(3_250_000) == "Rp 3.25M")
+    assert(rupiah(999_000) == "Rp 999k" && rupiah(20_000) == "Rp 20k" && rupiah(5_000) == "Rp 5k")
     L10n.shared.lang = .ind
     assert(t("Play") == "Main", "indonesian has to actually swap the word")
-    assert(rupiah(1_500_000) == "Rp 1,5 JT" && rupiah(250_000) == "Rp 0,25 JT")
+    assert(rupiah(1_500_000) == "Rp 1,5 JT" && rupiah(1_000_000) == "Rp 1 JT" && rupiah(250_000) == "Rp 250k")
     assert(t("Rp 20k") == "Rp 20k", "anything with no entry falls through as it is")
 
     for (english, indonesian) in Indonesian.table {

@@ -18,8 +18,9 @@ enum Steal {
     static let pauseArt  = CGRect(x: 787.498, y: 18.252, width: 65.437, height: 64.748)
     static let strikes = 3               // full aware bars before you're caught
 
-    /// what one lift is worth, in whole rupiah: anything up to a million, rolled per round
-    static func rollLoot() -> Int { Int.random(in: 50...1_000) * 1_000 }
+    /// what one lift is worth, in whole rupiah: 5k up to a million, rolled per round
+    static let loot = 5_000...1_000_000
+    static func rollLoot() -> Int { Int.random(in: loot.lowerBound / 1_000...loot.upperBound / 1_000) * 1_000 }
 
     /// seconds for the road to scroll one screen width. the angkot itself never moves —
     /// the road going past underneath is the whole effect.
@@ -356,6 +357,12 @@ func runStealChecks() {
         if q.over { break }
     }
     assert(switched, "a passenger drifts off at some point in half a minute")
+
+    // a lift is never less than 5k nor more than a million, and always whole thousands
+    for _ in 0..<500 {
+        let v = Steal.rollLoot()
+        assert(Steal.loot.contains(v) && v % 1_000 == 0)
+    }
 
     // the steal bar goes by the mark's own numbers
     let quick = Arrangement(cast: fixed.cast, start: fixed.start, traits: [.farLeft: Traits(

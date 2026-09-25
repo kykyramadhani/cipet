@@ -17,9 +17,11 @@ struct PickVictimView: View {
     let cast: Arrangement
     let showTutorial: Bool
     let onTutorialDone: () -> Void
-    let onStart: (Seating.Person, CGRect) -> Void
+    let onHome: () -> Void
+    let onStart: (Seating.Person, CGRect, Double) -> Void
 
     @State private var vm = PickVictimViewModel()
+    private let ticker = Timer.publish(every: 1.0 / 60, on: .main, in: .common).autoconnect()
 
     var body: some View {
         GeometryReader { geo in
@@ -34,11 +36,20 @@ struct PickVictimView: View {
                     }
                     .transition(.opacity)
                 }
+                if vm.paused {
+                    PausedCard(space: space, onResume: vm.resume, onHome: onHome)
+                }
             }
+            .coordinateSpace(name: Menu.space)
             .frame(width: geo.size.width, height: geo.size.height)
             .clipped()
         }
         .fullBleed()
+        .onReceive(ticker) { _ in vm.tick(1.0 / 60) }
+        .onChange(of: vm.lowOnTime && vm.running, initial: true) { _, on in
+            Audio.shared.ticking(on)
+        }
+        .onDisappear { Audio.shared.ticking(false) }
         .task { runSeatingChecks(); vm.tutorialUp = showTutorial }
     }
 
@@ -54,7 +65,7 @@ struct PickVictimView: View {
                            ghostSeats: vm.seatsOnOffer, thiefAt: thiefSpot,
                            hot: vm.victim, cast: cast, dimFixed: true)
             if vm.onPavement { TutorialPavement(space: space) }
-            TutorialHUD(show: [], clock: "1:30", space: space)
+            TutorialHUD(show: [], clock: vm.clock, space: space, low: vm.lowOnTime)
 
             prompt(space)
             pauseButton(space)
@@ -76,17 +87,19 @@ struct PickVictimView: View {
     // MARK: tap targets, only live once the tutorial is out of the way
 
     @ViewBuilder private func targets(_ space: DesignSpace) -> some View {
-        switch vm.stage {
-        case .victim:
-            ForEach(Seating.victims, id: \.self) { who in
-                hit(Seating.spot(who), space) { vm.pick(who) }
+        if vm.paused { EmptyView() } else {
+            switch vm.stage {
+            case .victim:
+                ForEach(Seating.victims, id: \.self) { who in
+                    hit(Seating.spot(who), space) { vm.pick(who) }
+                }
+            case .seat:
+                ForEach(vm.seatsOnOffer, id: \.self) { spot in
+                    hit(spot, space) { vm.take(seat: spot) }
+                }
+            case .ready:
+                EmptyView()
             }
-        case .seat:
-            ForEach(vm.seatsOnOffer, id: \.self) { spot in
-                hit(spot, space) { vm.take(seat: spot) }
-            }
-        case .ready:
-            EmptyView()
         }
     }
 
@@ -111,17 +124,25 @@ struct PickVictimView: View {
     }
 
     private func pauseButton(_ space: DesignSpace) -> some View {
-        place(Pick.pauseArt, space) { Image("pv_pause").resizable() }
+        place(Pick.pauseArt, space) {
+            Button { vm.pause() } label: { Image("pv_pause").resizable() }
+                .buttonStyle(PressStyle())
+        }
     }
 
     private func confirmButton(_ space: DesignSpace) -> some View {
         place(Pick.confirmArt, space) {
-            Button { if let v = vm.victim, let seat = vm.seat { onStart(v, seat) } } label: {
+            Button {
+                if let v = vm.victim, let seat = vm.seat { onStart(v, seat, vm.timeLeft) }
+            } label: {
                 ZStack {
                     Image(vm.canConfirm ? "menu_play_button" : "pv_confirm_off").resizable()
-                    Text("Confirm")
+                    Text(t("Confirm"))
                         .font(.skranji(space.px(Pick.confirmSize), bold: false))
                         .foregroundStyle(vm.canConfirm ? Ink.soft : Color(white: 250 / 255))
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.7)   // a longer word in another language
+                        .padding(.horizontal, space.px(12))
                 }
             }
             .buttonStyle(PressStyle())
@@ -131,5 +152,6 @@ struct PickVictimView: View {
 }
 
 #Preview(traits: .landscapeLeft) {
-    PickVictimView(cast: .random(avoiding: nil), showTutorial: false, onTutorialDone: {}) { _, _ in }
+    PickVictimView(cast: .random(avoiding: nil), showTutorial: false,
+                   onTutorialDone: {}, onHome: {}) { _, _, _ in }
 }

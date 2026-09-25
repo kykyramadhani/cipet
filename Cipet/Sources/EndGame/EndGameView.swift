@@ -60,12 +60,12 @@ struct EndGameView: View {
     }
 
     private func tally(_ space: DesignSpace) -> some View {
-        let stats = [("Avg time", session.avgTime),
-                     ("Total Items", "\(session.items)"),
-                     ("Total Rounds", "\(session.round)")]
+        let stats = [(t("Avg time"), session.avgTime),
+                     (t("Total Items"), "\(session.items)"),
+                     (t("Total Rounds"), "\(session.round)")]
         return Group {
             place(End.title, space) {
-                Text("Congrats?")
+                Text(t("Congrats?"))
                     .font(.skranji(space.px(End.titleSize)))
                     .foregroundStyle(Ink.black)
                     .fixedSize()
@@ -75,7 +75,7 @@ struct EndGameView: View {
                 row(stats[i].0, stats[i].1, Ink.grey,
                     End.firstY + CGFloat(i) * End.rowStep, space)
             }
-            row("Total Item value", "Rp \(session.takings)k", Ink.black, End.totalY, space)
+            row(t("Total Item value"), "Rp \(session.takings)k", Ink.black, End.totalY, space)
         }
     }
 
@@ -99,7 +99,7 @@ struct EndGameView: View {
             Button(action: onHome) {
                 ZStack {
                     Image("eg_button").resizable()
-                    Text("Back to Home")
+                    Text(t("Back to Home"))
                         .font(.skranji(space.px(End.buttonSize), bold: false))
                         .foregroundStyle(Ink.black)
                 }

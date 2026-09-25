@@ -7,9 +7,11 @@ struct AngkotColored: View {
     let group: CGRect
     let space: DesignSpace
 
-    private static let box  = CGSize(width: 317, height: 301.03949)
-    private static let body = CGRect(x: 0, y: 0,       width: 316.75443, height: 296.12857)
-    private static let tyre = CGRect(x: 0, y: 4.91093, width: 316.99997, height: 296.12857)
+    // the group the three layers are measured in, so anything drawing this van at another
+    // size scales from here rather than restating the numbers
+    static let box  = CGSize(width: 317, height: 301.03949)
+    static let body = CGRect(x: 0, y: 0,       width: 316.75443, height: 296.12857)
+    static let tyre = CGRect(x: 0, y: 4.91093, width: 316.99997, height: 296.12857)
 
     var body: some View {
         let k = group.width / Self.box.width * space.scale

@@ -73,7 +73,7 @@ enum Art {
 // every number we'd touch during playtesting lives here
 
 enum Tune {
-    static let round: Double = 90          // seconds
+    static let round: Double = 60          // seconds
     static let roadSpeed: Double = 300     // scene units per second
     static let slideTime: Double = 0.3     // seat change animation
     static let awareDecay: Double = 0.40   // awareness lost per second when nobodys stealing

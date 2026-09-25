@@ -18,6 +18,14 @@ enum Jail {
     static let signArt  = CGRect(x: 272.39, y: 27.83, width: 327.414, height: 110.169)
     static let signText = CGPoint(x: 324, y: 46)
     static let signSize: CGFloat = 72
+    /// the widest the word may get before it runs into the frame art's border. JAILED is
+    /// 226 so english never scales; a longer one comes down to keep JAILED's own margin.
+    static let signWide: CGFloat = 270
+
+    static func signScale(_ word: String) -> CGFloat {
+        let w = GlyphLine(word, size: signSize).box.width
+        return w > signWide ? signWide / w : 1
+    }
 
     // snappy: the cage drops, and only once it has landed does the word come down
     static let barFall: Double = 0.34
@@ -85,10 +93,11 @@ struct JailScreen: View {
     }
 
     private var sign: some View {
-        Group {
+        let word = t("JAILED")
+        return Group {
             place(Jail.signArt, space) { Image("jailed_frame").resizable() }
-            Text("JAILED")
-                .font(.skranji(space.px(Jail.signSize), bold: false))
+            Text(word)
+                .font(.skranji(space.px(Jail.signSize * Jail.signScale(word)), bold: false))
                 .foregroundStyle(Ink.soft)
                 .fixedSize()
                 .position(x: space.x(Jail.signText.x + 113), y: space.y(Jail.signText.y + 36))

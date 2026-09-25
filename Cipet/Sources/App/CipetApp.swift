@@ -18,17 +18,21 @@ struct RootView: View {
             case .loading:    LoadingView    { router.go(.menu) }.transition(.opacity)
             case .menu:       MainMenuView   { router.startGame() }.transition(.opacity)
             case .countdown:
-                CountdownView(round: router.session.round) { router.go(.pickVictim) }
+                CountdownView(round: router.session.round,
+                              onStart: { router.go(.pickVictim) },
+                              onHome: { router.go(.menu) })
                     .transition(.opacity)
             case .pickVictim:
                 PickVictimView(cast: router.session.arrangement,
                                showTutorial: router.session.tutorialPending,
-                               onTutorialDone: router.session.tutorialFinished) { who, seat in
-                    router.go(.steal(who, seat))
+                               onTutorialDone: router.session.tutorialFinished,
+                               onHome: { router.go(.menu) }) { who, seat, left in
+                    router.go(.steal(who, seat, left))
                 }
                 .transition(.opacity)
-            case let .steal(who, seat):
-                StealView(victim: who, thiefSeat: seat, cast: router.session.arrangement) { exit in
+            case let .steal(who, seat, left):
+                StealView(victim: who, thiefSeat: seat, timeLeft: left,
+                          cast: router.session.arrangement) { exit in
                     switch exit {
                     case let .nextRound(r): router.nextRound(after: r)
                     case let .endGame(r):   router.endGame(after: r)
@@ -40,6 +44,10 @@ struct RootView: View {
                 EndGameView(session: router.session) { router.go(.menu) }.transition(.opacity)
             }
         }
-        .task { Audio.shared.music(); runRouterChecks(); runSessionChecks(); runEndChecks(); runRiderChecks() }
+        .task {
+            Audio.shared.music()
+            runRouterChecks(); runSessionChecks(); runEndChecks(); runRiderChecks()
+            runLocaleChecks(); runAudioChecks()
+        }
     }
 }

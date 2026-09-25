@@ -5,7 +5,8 @@ import SwiftUI
 @Observable final class AppRouter {
     enum Screen {
         case loading, menu, countdown, pickVictim, endGame
-        case steal(Seating.Person, CGRect)
+        /// who, where he sits, and what was left on the clock when Confirm was pressed
+        case steal(Seating.Person, CGRect, Double)
     }
 
     private(set) var screen: Screen = .loading
@@ -34,6 +35,10 @@ import SwiftUI
 
 func runRouterChecks() {
     #if DEBUG
+    // same as the session's checks: these bank rounds, and banking moves the record
+    let keptRound = Record.shared.highestRound, keptValue = Record.shared.topValue
+    defer { Record.shared.restore(round: keptRound, value: keptValue) }
+
     let r = AppRouter()
     assert(!r.session.tutorialPending, "nothing is armed before a game starts")
 
@@ -43,7 +48,7 @@ func runRouterChecks() {
     assert(r.session.tutorialPending == armed, "moving between screens doesnt change it")
 
     r.session.tutorialFinished()
-    r.go(.steal(.farLeft, Seating.seats(beside: .farLeft)[0]))
+    r.go(.steal(.farLeft, Seating.seats(beside: .farLeft)[0], Steal.round))
     r.go(.pickVictim)
     assert(!r.session.tutorialPending, "coming back to the pick stage must not re-arm it")
 

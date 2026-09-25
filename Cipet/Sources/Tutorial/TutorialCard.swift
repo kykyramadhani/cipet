@@ -37,7 +37,7 @@ struct TutorialCard: View {
 
     private var skip: some View {
         Button(action: onSkip) {
-            Text("Skip")
+            Text(t("Skip"))
                 .font(.skranji(space.px(Tut.skipSize), bold: false))
                 .foregroundStyle(Ink.black)
                 .underline()
@@ -57,6 +57,10 @@ struct TutorialCard: View {
                 Text(nextTitle)
                     .font(.skranji(space.px(Tut.nextSize), bold: false))
                     .foregroundStyle(Ink.soft)
+                    // the box is the design's, and a longer word in another language has to
+                    // give way rather than run off the end of it
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.62)
                     .frame(width: space.px(Tut.nextBox.width), height: space.px(Tut.nextBox.height))
                     .offset(x: space.px(-5), y: space.px(-2.5))
             }

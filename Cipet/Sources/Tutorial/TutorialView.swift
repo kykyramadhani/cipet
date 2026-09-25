@@ -50,7 +50,7 @@ struct TutorialView: View {
 
     private func label(_ step: TutorialStep, _ space: DesignSpace) -> some View {
         place(Tut.label.offsetBy(dx: 0, dy: step.labelY), space) {
-            Text("Tutorials")
+            Text(t("Tutorials"))
                 .font(.skranji(space.px(Tut.labelSize), bold: false))
                 .foregroundStyle(Ink.soft)
                 .fixedSize()
@@ -59,7 +59,7 @@ struct TutorialView: View {
     }
 
     private func card(_ step: TutorialStep, _ space: DesignSpace) -> some View {
-        TutorialCard(text: step.text,
+        TutorialCard(text: t(step.text),
                      nextTitle: vm.nextTitle,
                      space: space,
                      onSkip: vm.skip,

@@ -54,9 +54,9 @@ struct SettingsPanel: View {
             place(Cog.card, space) { Image("settings_card").resizable() }
             title
 
-            label("SFX",      Cog.sfxLabel)
-            label("Music",    Cog.musicLabel)
-            label("Language", Cog.langLabel)
+            label(t("SFX"),      Cog.sfxLabel)
+            label(t("Music"),    Cog.musicLabel)
+            label(t("Language"), Cog.langLabel)
 
             slider(Binding(get: { vm.sfx },   set: { vm.sfx = $0 }),   Cog.sfx)
             slider(Binding(get: { vm.music }, set: { vm.music = $0 }), Cog.music)
@@ -71,7 +71,7 @@ struct SettingsPanel: View {
 
     private var title: some View {
         place(Cog.title.insetBy(dx: -20, dy: -20), space) {
-            OutlinedText(string: "Settings",
+            OutlinedText(string: t("Settings"),
                          font: .skranji(space.px(Cog.titleSize)),
                          fill: Ink.pale,
                          thickness: space.px(Cog.titleOutline),
@@ -89,18 +89,36 @@ struct SettingsPanel: View {
         }
     }
 
-    // no translated strings yet so tapping IND would lie. wire it up when the strings exist.
+    // whichever one is on gets the yellow artwork, the other the white one — the two svgs
+    // are the same shape, so the pair swaps by which picture each button draws
     private var language: some View {
         Group {
-            place(Cog.engArt, space) { Image("settings_btn_eng").resizable() }
-            place(Cog.indArt, space) { Image("settings_btn_ind").resizable() }
-            place(Cog.engNode, space) { langLabel("ENG", Ink.soft) }
-            place(Cog.indNode, space) { langLabel("IND", Ink.black) }
+            langButton(.eng, art: Cog.engArt, node: Cog.engNode)
+            langButton(.ind, art: Cog.indArt, node: Cog.indNode)
         }
     }
 
-    private func langLabel(_ text: String, _ colour: Color) -> some View {
-        Text(text).font(.skranji(space.px(Cog.langSize), bold: false)).foregroundStyle(colour)
+    private func langButton(_ lang: Lang, art: CGRect, node: CGRect) -> some View {
+        let on = vm.lang == lang
+        return Group {
+            place(art, space) {
+                Image(on ? "settings_btn_eng" : "settings_btn_ind").resizable()
+            }
+            place(node, space) {
+                Text(lang.label)
+                    .font(.skranji(space.px(Cog.langSize), bold: false))
+                    .foregroundStyle(on ? Ink.soft : Ink.black)
+            }
+            // one target over the pair of them, so the word is as tappable as the pill
+            place(art, space) {
+                Rectangle().fill(.clear).contentShape(Rectangle())
+            }
+            .onTapGesture {
+                guard !on else { return }
+                Audio.shared.play(.click)
+                vm.lang = lang
+            }
+        }
     }
 
     private var closeButton: some View {

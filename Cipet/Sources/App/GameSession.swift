@@ -48,6 +48,9 @@ struct RoundResult {
         takings += r.value
         if r.value > 0 { items += 1 }
         played += r.time
+        // banking is the moment a round is genuinely over, whether the run carries on or
+        // stops here — so it's the moment the record can move
+        Record.shared.note(round: round, takings: takings)
     }
 }
 
@@ -89,12 +92,18 @@ struct Arrangement: Equatable {
 
 func runSessionChecks() {
     #if DEBUG
+    // these play out dozens of rounds, and banking a round is what moves the record —
+    // so put the player's own back the way it was on the way out
+    let keptRound = Record.shared.highestRound, keptValue = Record.shared.topValue
+    defer { Record.shared.restore(round: keptRound, value: keptValue) }
+
     let s = GameSession()
     s.startFirstRound()
     assert(s.round == 1 && s.takings == 0 && s.items == 0)
 
     s.tutorialFinished()
     s.nextRound(after: RoundResult(value: 20, time: 30))
+    assert(Record.shared.hasAny, "finishing a round is what puts the record button up")
     assert(s.round == 2, "Next Round has to count up")
     assert(s.takings == 20 && s.items == 1, "and keep what was already taken")
     assert(!s.tutorialPending, "the tutorial never comes back in a later round")

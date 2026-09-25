@@ -16,6 +16,8 @@ enum Steal {
     static let roundSize: CGFloat = 16
     /// the hud sits at 20 here, 4 higher than on pick target
     static let pauseArt  = CGRect(x: 787.498, y: 18.252, width: 65.437, height: 64.748)
+    /// what holding anywhere doesnt count on: the hud's panels, the pause button, the round tag
+    static let hud = [Tut.walletPanel, Tut.clockPanel, pauseArt, roundTag]
     static let strikes = 3               // full aware bars before you're caught
 
     /// what one lift is worth, in whole rupiah: 5k up to a million, rolled per round

@@ -18,6 +18,8 @@ struct StealView: View {
     @State private var showEnding = false
     /// when he got caught, so the cage can wait for the passengers to finish turning on him
     @State private var caughtAt: Date?
+    /// a finger is down on the grab area, whether or not stealing is allowed right now
+    @State private var fingerDown = false
     private let clock = Timer.publish(every: 1.0 / 60, on: .main, in: .common).autoconnect()
 
     init(victim: Seating.Person, thiefSeat: CGRect, timeLeft: Double, cast: Arrangement, round: Int,
@@ -42,9 +44,8 @@ struct StealView: View {
                 scene(space)
                     .compositingGroup()
                     .blur(radius: softened ? space.px(Cooldown.blur) : 0, opaque: true)
-                grabArea(space)
-                // it stays above the grab area so it still takes its own taps, which is why
-                // it is out here rather than in the scene — and so it blurs on its own
+                // out here rather than in the scene so it blurs on its own. the grab area has a
+                // hole where it is, so it still takes its own taps
                 pauseButton(space)
                     .blur(radius: softened ? space.px(Cooldown.blur) : 0)
                     .allowsHitTesting(vm.phase != .paused)
@@ -53,6 +54,9 @@ struct StealView: View {
                     TutorialHUD(show: [], clock: vm.clock, space: space,
                                 clockOnly: true, low: vm.lowOnTime)
                 }
+                // over the cooldown's wash, so a finger that comes down during it still counts
+                // once the cooldown ends. under the cards, which have their own buttons.
+                grabArea(space)
                 if vm.phase == .paused {
                     PausedCard(space: space, onResume: vm.resume) { onDone(.home) }
                 }
@@ -77,6 +81,8 @@ struct StealView: View {
         }
         .fullBleed()
         .onReceive(clock) { _ in vm.tick(1.0 / 60) }
+        // a hold that's still down when a cooldown or a pause ends just carries on
+        .onChange(of: vm.running) { _, running in vm.holding = running && fingerDown }
         .onChange(of: vm.holding) { _, down in
             guard vm.running else { return }
             beat = down ? .reaching : .returning
@@ -195,10 +201,11 @@ struct StealView: View {
                    height: space.px(DesignSpace.screen.height))
             .position(x: space.x(DesignSpace.screen.width / 2),
                       y: space.y(DesignSpace.screen.height / 2))
+            // everywhere but the hud: the wallet, the clock, pause and the round tag
+            .contentShape(HoldArea(space: space), eoFill: true)
             .gesture(DragGesture(minimumDistance: 0)
-                .onChanged { _ in if vm.running { vm.holding = true } }
-                .onEnded   { _ in vm.holding = false })
-            .allowsHitTesting(vm.running)
+                .onChanged { _ in fingerDown = true; if vm.running { vm.holding = true } }
+                .onEnded   { _ in fingerDown = false; vm.holding = false })
     }
 
     private func pauseButton(_ space: DesignSpace) -> some View {
@@ -224,5 +231,19 @@ struct RoundTag: View {
                 .fixedSize()
                 .position(x: space.x(Steal.roundTag.midX), y: space.y(Steal.roundTag.midY))
         }
+    }
+}
+
+/// the whole screen with holes where the hud is, filled even-odd so the holes let taps through
+struct HoldArea: Shape {
+    let space: DesignSpace
+
+    func path(in rect: CGRect) -> Path {
+        var p = Path(rect)
+        for r in Steal.hud {
+            p.addRect(CGRect(x: space.px(r.minX), y: space.px(r.minY),
+                             width: space.px(r.width), height: space.px(r.height)))
+        }
+        return p
     }
 }

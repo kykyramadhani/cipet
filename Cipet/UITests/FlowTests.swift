@@ -109,8 +109,12 @@ final class FlowTests: XCTestCase {
         sleep(1)
         snap("steal-before")
 
-        // hold on the road in the bottom left, nowhere near the bar
-        at(110, 360).press(forDuration: 2.5)
+        // the hud isnt part of it: holding on the clock does nothing
+        at(437, 50).press(forDuration: 1.5)
+        snap("steal-after-hold-hud")
+
+        // hold on the road on the left, nowhere near the bar (the round tag below is hud)
+        at(110, 320).press(forDuration: 2.5)
         snap("steal-after-hold-bottom-left")
         // and up by the wallet, and on a passenger's head
         at(90, 110).press(forDuration: 1.5)
@@ -120,12 +124,12 @@ final class FlowTests: XCTestCase {
         at(820, 54).tap()
         sleep(1)
         snap("paused")
-        at(110, 360).press(forDuration: 2)
+        at(110, 320).press(forDuration: 2)
         snap("paused-after-hold")
         XCTAssertTrue(app.buttons["Resume"].exists)
         app.buttons["Resume"].tap()
         sleep(1)
-        at(110, 360).press(forDuration: 1.5)
+        at(110, 320).press(forDuration: 1.5)
         snap("resumed-after-hold")
 
         // done once, it's done for good: a fresh launch goes from Play straight to round 1

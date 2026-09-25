@@ -79,6 +79,16 @@ enum Indonesian {
         "This is you!": "Ini kamu!",
         "Choose your target":              "Pilih targetmu",
         "Pick a seat to make your move":   "Pilih kursi buat beraksi",
+        "Pick the best seat to make your move": "Pilih kursi terbaik buat beraksi",
+        "Hold until the bar is full to steal the item.": "Tahan sampai barnya penuh buat ambil barangnya.",
+        "Beware of other passengers\u{2019} suspicion bar.": "Awas bar kecurigaan penumpang lain.",
+        "If a suspicion bar fills up, your suspicion level rises. Stop for 3 seconds to lower it.":
+            "Kalau bar kecurigaan penuh, level kecurigaanmu naik. Berhenti 3 detik buat menurunkannya.",
+        "If your suspicion level is full, you\u{2019}ll go to jail.": "Kalau level kecurigaanmu penuh, kamu masuk penjara.",
+        "Fill the bar without raising too much suspicion, and you win!":
+            "Penuhi barnya tanpa bikin orang terlalu curiga, dan kamu menang!",
+        "skip":     "lewati",
+        "Play now": "Main sekarang",
         "Grab the item and keep your hand steady while stealing.":
             "Ambil barangnya dan tahan tanganmu selama nyopet.",
         "Watch out for other passengers\u{2019} suspicion bar.":
@@ -113,14 +123,31 @@ enum Indonesian {
     ]
 }
 
+/// money is whole rupiah underneath. under a million it's thousands, "Rp 999k" in both
+/// languages; from a million up it's "Rp 1.5M" in english and "Rp 1,5 JT" in indonesian
+func rupiah(_ amount: Int) -> String {
+    let ind = L10n.shared.lang == .ind
+    let f = NumberFormatter()
+    f.numberStyle = .decimal
+    f.maximumFractionDigits = 2
+    f.locale = Locale(identifier: ind ? "id_ID" : "en_US")
+    let millions = amount >= 1_000_000
+    let n = f.string(from: NSNumber(value: Double(amount) / (millions ? 1_000_000 : 1_000))) ?? "0"
+    guard millions else { return "Rp \(n)k" }
+    return ind ? "Rp \(n) JT" : "Rp \(n)M"
+}
+
 func runLocaleChecks() {
     #if DEBUG
     let was = L10n.shared.lang
 
     L10n.shared.lang = .eng
     assert(t("Play") == "Play", "english has to come back untouched")
+    assert(rupiah(1_500_000) == "Rp 1.5M" && rupiah(1_000_000) == "Rp 1M" && rupiah(3_250_000) == "Rp 3.25M")
+    assert(rupiah(999_000) == "Rp 999k" && rupiah(20_000) == "Rp 20k" && rupiah(5_000) == "Rp 5k")
     L10n.shared.lang = .ind
     assert(t("Play") == "Main", "indonesian has to actually swap the word")
+    assert(rupiah(1_500_000) == "Rp 1,5 JT" && rupiah(1_000_000) == "Rp 1 JT" && rupiah(250_000) == "Rp 250k")
     assert(t("Rp 20k") == "Rp 20k", "anything with no entry falls through as it is")
 
     for (english, indonesian) in Indonesian.table {

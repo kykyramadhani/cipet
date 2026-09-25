@@ -20,55 +20,83 @@ struct TutorialAngkot: View {
     var paused = false
     /// the yellow body, while you're stealing
     var colored = false
+    /// the thief when he's animated (stealing). he's drawn at his seat's depth, not on top
+    /// of everything: `thiefAt` says which row that is.
+    var thief: AnyView? = nil
+    /// off for a layer of just people over something else, like the tutorial's lit ones
+    var drawBody = true
 
     var body: some View {
         Group {
-            art("loading_angkot_wheel",    Tut.wheel)
-            art("tut_angkot_interior",     Tut.interior)
-            if colored { art("steal_angkot_exterior", Tut.exteriorColored) }
-            else { art("loading_angkot_exterior", Tut.exterior) }
+            if drawBody { angkot }
             people
         }
     }
 
-    @ViewBuilder private var people: some View {
-        if show.contains(.kid) { art("tut_bocah", Tut.bocah).colorMultiply(fixedTint) }
-        ForEach(Seating.benches[0], id: \.self) { passenger($0) }
+    @ViewBuilder private var angkot: some View {
+            art("loading_angkot_wheel",    Tut.wheel)
+            art("tut_angkot_interior",     Tut.interior)
+            // the driver sits in his cab under the body panel, the way the design layers him
+            place(Tut.inAngkot(Clips.box(over: Tut.sopir, ink: Clips.driverInk)), space) {
+                Image("Driver-0000").resizable()
+            }
+            .colorMultiply(fixedTint)
+            if colored { art("steal_angkot_exterior", Tut.exteriorColored) }
+            else { art("loading_angkot_exterior", Tut.exterior) }
+    }
 
+    // painted back to front: the far bench (and the kid beside it) sits further from us than
+    // the near bench, so anyone on the near bench covers anyone behind them, the thief
+    // included. each bar goes in with its own passenger, at their depth.
+    @ViewBuilder private var people: some View {
+        if show.contains(.kid), cast.kid {
+            place(Tut.inAngkot(Clips.box(over: Tut.bocah)), space) {
+                RiderActor(moves: Rider.kid.moves, mood: .alert, paused: paused)
+            }
+            .colorMultiply(fixedTint)
+            bar(.kid)
+        }
+        row(0)
+        row(1)
+    }
+
+    @ViewBuilder private func row(_ bench: Int) -> some View {
+        let seats = Seating.benches[bench]
+        ForEach(seats, id: \.self) { passenger($0) }
         if show.contains(.seatGhosts) {
-            ForEach(ghostSeats.indices, id: \.self) { i in
-                art("loading_pencipet", ghostSeats[i]).opacity(Tut.ghostFade)
+            ForEach(ghostSeats.filter { Seating.bench(of: $0) == bench }, id: \.self) { spot in
+                sitting(spot).opacity(Tut.ghostFade)
             }
         }
-
-        art("tut_sopir", Tut.sopir).colorMultiply(fixedTint)
-        ForEach(Seating.benches[1], id: \.self) { passenger($0) }
-
-        if show.contains(.onBoard) { art("loading_pencipet", thiefAt) }
-        ForEach(Array(aware.keys), id: \.self) { who in
-            AwarenessBar(box: Seating.awareSlot(who), level: aware[who] ?? 0, space: space)
+        if Seating.bench(of: thiefAt) == bench {
+            if let thief { thief } else if show.contains(.onBoard) { sitting(thiefAt) }
         }
+        ForEach(seats, id: \.self) { bar($0) }
+    }
+
+    @ViewBuilder private func bar(_ who: Seating.Person) -> some View {
+        if let level = aware[who] {
+            AwarenessBar(box: Seating.awareSlot(who), level: level, space: space)
+        }
+    }
+
+    /// the thief sat still at a seat, in the same frames a round sits him in: facing us on
+    /// the far bench, his back to us on the near one
+    private func sitting(_ spot: CGRect) -> some View {
+        let still = Seating.bench(of: spot) == 1
+            ? Clips.behindIdle(left: false)
+            : Clips.thief("Idle-Standup", left: false, behind: false)
+        return place(Tut.inAngkot(Clips.box(over: spot)), space) { Sprite(name: still.frame(0)) }
     }
 
     private var fixedTint: Color { dimFixed ? Ink.grey : .white }
 
-    // picking somebody never changes who they are. the flat cast have a yellow version of
-    // their own drawing to swap to, the animated ones keep their frames and get a ring.
+    // picking somebody never changes who they are: they keep their own frames and get a ring
     @ViewBuilder private func passenger(_ v: Seating.Person) -> some View {
         if let who = cast.who(v) {
-            let ring: Color? = hot == v ? Ink.yellow : nil
-
-            if let moves = who.moves {
-                place(Tut.inAngkot(Clips.box(over: Seating.spot(v))), space) {
-                    RiderActor(moves: moves, mood: moods[v] ?? .calm, paused: paused,
-                               ring: ring, ringWidth: space.px(2))
-                }
-            } else if ring != nil, let yellow = who.hotArt {
-                art(yellow, Seating.spot(v))
-            } else {
-                place(Tut.inAngkot(Seating.spot(v)), space) {
-                    Sprite(name: who.art, ring: ring, ringWidth: space.px(2))
-                }
+            place(Tut.inAngkot(Clips.box(over: Seating.spot(v))), space) {
+                RiderActor(moves: who.moves, mood: moods[v] ?? .alert, paused: paused,
+                           ring: hot == v ? Ink.yellow : nil, ringWidth: space.px(2))
             }
         }
     }
@@ -84,7 +112,10 @@ struct TutorialPavement: View {
 
     var body: some View {
         Group {
-            place(Tut.outside, space) { Image("loading_pencipet").resizable() }
+            // the round's own thief getting to his feet, and holding there
+            place(Clips.box(over: Tut.outside, ink: Clips.standingInk), space) {
+                FrameAnimation(clip: Clips.thief("Idle-Standup", left: false, behind: false))
+            }
             place(Tut.bubble,  space) { Image("tut_bubble").resizable() }
             place(Tut.bubbleText, space) {
                 Text(t("This is you!"))
@@ -105,6 +136,8 @@ struct TutorialHUD: View {
     var clockOnly = false
     /// the last few seconds of the round, which is a whole different panel
     var low = false
+    /// items taken over every round finished so far
+    var items = 0
 
     /// swells on the second and springs back down, so the clock has a pulse
     @State private var beating = false
@@ -117,8 +150,12 @@ struct TutorialHUD: View {
                 panel("tut_panel_wallet", Tut.walletPanel) {
                     Image("tut_wallet").resizable()
                         .frame(width: space.px(Tut.walletIcon), height: space.px(Tut.walletIcon))
-                    Text("00").font(.skranji(space.px(Tut.hudSize), bold: false))
+                    // sized for two digits and left aligned: more digits run on to the right,
+                    // the icon never shifts
+                    Text("\(items)").font(.skranji(space.px(Tut.hudSize), bold: false))
                         .foregroundStyle(.black)
+                        .fixedSize()
+                        .frame(width: space.px(Tut.itemsWidth), alignment: .leading)
                 }
             }
             panel(alarm ? "tut_panel_alarm" : "tut_panel_clock", Tut.clockPanel,

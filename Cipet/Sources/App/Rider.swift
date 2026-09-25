@@ -1,74 +1,89 @@
 import SwiftUI
 
-// everybody who can ride in the back. which seat a face fits is decided by which way it's
-// drawn, so the pools are split that way and a round only ever draws from the right one.
-enum Rider: CaseIterable, Hashable {
-    // drawn facing the front, so you see their face. the far bench.
-    case frontA, frontB, music, sleepy
-    // drawn from behind. the near bench. no animated art for these yet.
-    case backA
+// every animation set in the catalog, by name. ios cant list an asset catalog, so a build
+// phase writes the names out (see project.yml) and this reads them back. "<who><State>" is a
+// state on a loop, "<who><From>-<To>" is the move between two; the frame number isnt part of it.
+enum FrameSets {
+    static let names: [String] = {
+        guard let url = Bundle.main.url(forResource: "frame_sets", withExtension: "txt"),
+              let text = try? String(contentsOf: url, encoding: .utf8) else { return [] }
+        return text.split(separator: "\n").map(String.init)
+    }()
 
-    var facing: Seating.Facing {
-        switch self {
-        case .frontA, .frontB, .music, .sleepy: return .front
-        case .backA:                            return .back
-        }
+    /// who a set belongs to and the state words in it: "BehindMusicGalau-Idle" is
+    /// ("BehindMusic", ["Galau", "Idle"]). the state is the last capitalised word before the dash.
+    static func parse(_ name: String) -> (who: String, states: [String])? {
+        let parts = name.split(separator: "-").map(String.init)
+        guard let head = parts.first, parts.count <= 2,
+              let cut = head.lastIndex(where: \.isUppercase), cut != head.startIndex else { return nil }
+        return (String(head[..<cut]), [String(head[cut...])] + parts.dropFirst())
     }
 
-    /// the animated ones, and which of their state words means which mood
-    var moves: Moves? {
-        switch self {
-        case .music:  return Moves(who: "Music",  calm: "Galau", alert: "Idle", angry: ["Marah", "Angry"])
-        case .sleepy: return Moves(who: "Sleepy", calm: "Sleep", alert: "Idle", angry: ["Angry", "Marah"])
-        default:      return nil
-        }
-    }
-
-    var animated: Bool { moves != nil }
-
-    var art: String {
-        switch self {
-        case .frontA: return "tut_kiri_a"
-        case .frontB: return "tut_kiri_b"
-        case .backA:  return "tut_kanan"
-        case .music, .sleepy:
-            return moves.flatMap { $0.rest($0.calm) }?.frame(0) ?? ""
-        }
-    }
-
-    /// the same drawing in Yellow/50. only the flat cast have one — the animated ones get a
-    /// ring round them instead, so they keep their own frames.
-    var hotArt: String? { animated ? nil : art + "_hot" }
-
-    /// only offer a face we actually shipped the art for. drop the missing frames into the
-    /// catalog and that face joins the pool on its own, no code change.
-    var installed: Bool { UIImage(named: art) != nil }
-
-    static func pool(_ facing: Seating.Facing) -> [Rider] {
-        allCases.filter { $0.facing == facing && $0.installed }
+    /// who -> every state word their sets mention
+    static let states: [String: Set<String>] = names.reduce(into: [:]) { all, name in
+        guard let (who, words) = parse(name) else { return }
+        all[who, default: []].formUnion(words)
     }
 }
 
-/// how an animated passenger is feeling, which is what picks their animation. calm is
-/// headphones on or dozing, alert is looking about, angry is having caught you.
+// one character in the back of the angkot. who they are, which way they face and how they
+// move all come from their sets' names, so a new character is a new folder of frames.
+struct Rider: Hashable {
+    let who: String
+
+    /// drawn from behind means the near bench, where you see their backs
+    var facing: Seating.Facing { who.hasPrefix("Behind") ? .back : .front }
+
+    /// the same person whichever way round they're drawn, so nobody is dealt twice
+    var person: String { who.replacingOccurrences(of: "Behind", with: "") }
+
+    /// a duo comes as a pair: the left half is dealt, the right half sits straight beside it
+    var partner: Rider? {
+        who.contains("LeftDuo") ? Rider(who: who.replacingOccurrences(of: "LeftDuo", with: "RightDuo")) : nil
+    }
+    var isRightHalf: Bool { who.contains("RightDuo") }
+
+    var moves: Moves { Moves(who: who, words: FrameSets.states[who] ?? []) }
+
+    /// a still of them idle, for anywhere that needs a picture rather than the animation
+    var art: String { moves.rest(moves.alert)?.frame(0) ?? "" }
+
+    /// the kid, and everyone the rounds can deal. the thief, the driver and the kid arent dealt.
+    static let kid = Rider(who: "Boy")
+    static var all: [Rider] {
+        FrameSets.states.keys.filter { !$0.contains("Cipet") && $0 != kid.who }.sorted().map(Rider.init)
+    }
+
+    /// who can be dealt into a seat facing this way. a duo's right half comes with its left.
+    static func pool(_ facing: Seating.Facing) -> [Rider] {
+        all.filter { $0.facing == facing && !$0.isRightHalf }
+    }
+}
+
+/// what an animated passenger is doing. calm is their own thing (music on, asleep, chatting)
+/// and not watching; alert is idle and looking about; angry is only ever for getting caught.
 enum Mood: Hashable { case calm, alert, angry }
 
-// a character's animation sets, read off their names: "<who><State>" holds a state on a
-// loop, "<who><From>-<To>" moves from one state to another. so a new set dropped in under
-// that naming is found here with no code change. only the state words are listed, since
-// ios has no way to list what's inside the asset catalog.
+// a character's sets read as states and the moves between them
 struct Moves: Equatable {
     let who: String
-    let calm: String
+    let calm: String      // the non-idle state: Galau, Sleep, Talking. the kid only has Idle.
     let alert: String
-    let angry: [String]   // music's is "Marah", sleepy's is "Angry"; whichever is there
+    let angry: String
 
-    var words: [String] { [calm, alert] + angry }
+    init(who: String, words: Set<String>) {
+        self.who = who
+        alert = "Idle"
+        angry = "Angry"
+        calm = words.subtracting([alert, angry]).sorted().first ?? alert
+    }
 
-    func goal(_ mood: Mood) -> [String] {
+    var words: [String] { [calm, alert, angry] }
+
+    func goal(_ mood: Mood) -> String {
         switch mood {
-        case .calm:  return [calm]
-        case .alert: return [alert]
+        case .calm:  return calm
+        case .alert: return alert
         case .angry: return angry
         }
     }
@@ -79,7 +94,7 @@ struct Moves: Equatable {
     }
 
     /// a state is held on its own loop if it has one, otherwise on the last frame of the move
-    /// that leads into it — music has no idle loop, he just sits there with them off
+    /// that leads into it — music has no idle loop, and angry is the end of getting there
     func rest(_ state: String) -> Clip? {
         let loop = Clip(who + state, loops: true)
         if loop.exists { return loop }
@@ -91,26 +106,31 @@ struct Moves: Equatable {
         return nil
     }
 
-    /// the shortest run of moves from one state to any of `goals`
-    func route(from start: String, to goals: [String]) -> (clips: [Clip], end: String)? {
-        if goals.contains(start) { return ([], start) }
+    /// the shortest run of moves from one state to another
+    func route(from start: String, to goal: String) -> (clips: [Clip], end: String)? {
+        if start == goal { return ([], start) }
         var queue = [(start, [Clip]())]
         var seen: Set = [start]
         while !queue.isEmpty {
             let (state, path) = queue.removeFirst()
             for next in words where !seen.contains(next) {
                 guard let step = move(state, next) else { continue }
-                if goals.contains(next) { return (path + [step], next) }
+                if next == goal { return (path + [step], next) }
                 seen.insert(next)
                 queue.append((next, path + [step]))
             }
         }
         return nil
     }
+
+    /// how long getting from one mood to another takes on screen
+    func time(from: Mood, to: Mood) -> Double {
+        route(from: goal(from), to: goal(to))?.clips.reduce(0) { $0 + $1.duration } ?? 0
+    }
 }
 
 // an animated passenger. they rest in whatever state their mood asks for, and when the
-// mood changes they play every move it takes to get there, in order, then settle.
+// mood changes they play every move it takes to get there, once each, in order, then settle.
 struct RiderActor: View {
     let moves: Moves
     let mood: Mood
@@ -130,7 +150,7 @@ struct RiderActor: View {
         self.paused = paused
         self.ring = ring
         self.ringWidth = ringWidth
-        let start = moves.goal(mood)[0]
+        let start = moves.goal(mood)
         _state = State(initialValue: start)
         _playing = State(initialValue: moves.rest(start))
     }
@@ -167,42 +187,47 @@ struct RiderActor: View {
 
 func runRiderChecks() {
     #if DEBUG
-    // nobody is offered a seat their artwork doesnt face
+    // the names split into who and state, whatever the character
+    assert(FrameSets.parse("BehindMusicGalau-Idle")! == ("BehindMusic", ["Galau", "Idle"]))
+    assert(FrameSets.parse("SleepySleep")! == ("Sleepy", ["Sleep"]))
+    assert(FrameSets.parse("LeftDuoTalking-Idle")! == ("LeftDuo", ["Talking", "Idle"]))
+    assert(FrameSets.parse("Driver") == nil, "a single word is nobody's state")
+
+    assert(!FrameSets.names.isEmpty, "the build phase didnt write frame_sets.txt")
+    // every set it lists is really there, and the list is the whole folder
+    for name in FrameSets.names { assert(Clip(name).exists, "\(name) is listed but has no frames") }
+
+    // both benches have somebody, and nobody is dealt onto the wrong one
     for f in [Seating.Facing.front, .back] {
         let pool = Rider.pool(f)
         assert(!pool.isEmpty, "\(f) seats have nobody to put in them")
-        assert(pool.allSatisfy { $0.facing == f })
+        assert(pool.allSatisfy { $0.facing == f && ($0.facing == .back) == $0.who.hasPrefix("Behind") })
     }
-    assert(Rider.pool(.front).contains(.sleepy) && Rider.pool(.front).contains(.music),
-           "both animated faces are in the front pool")
-    assert(!Rider.pool(.back).contains { $0.animated },
-           "music and sleepy face forwards, they cant sit on the near bench")
-    for p in Rider.pool(.front) + Rider.pool(.back) {
-        assert(UIImage(named: p.art) != nil, "\(p) has no artwork")
-        assert(p.animated == (p.hotArt == nil), "flat cast swap to yellow, animated ones get a ring")
+    // the old flat drawings are gone for good
+    for gone in ["tut_kiri_a", "tut_kiri_b", "tut_kanan", "tut_bocah", "tut_sopir"] {
+        assert(UIImage(named: gone) == nil, "\(gone) should have been removed")
     }
 
-    // every mood is reachable from every other, using nothing but the sets' names
-    for rider in [Rider.music, .sleepy] {
-        let m = rider.moves!
-        assert(m.rest(m.calm)?.loops == true, "\(m.who) has to idle on a loop when calm")
-        assert(m.rest(m.alert) != nil, "\(m.who) needs something to show when alert")
-        for from in [Mood.calm, .alert] {
-            for to in [Mood.calm, .alert, .angry] where to != from {
-                let r = m.route(from: m.goal(from)[0], to: m.goal(to))
-                assert(r != nil && !r!.clips.isEmpty, "\(m.who) cant get from \(from) to \(to)")
-            }
+    // every passenger can go idle <-> their own thing, and get angry from either
+    for rider in Rider.all {
+        let m = rider.moves
+        assert(m.calm != m.alert, "\(m.who) has nothing to do but idle")
+        assert(m.rest(m.calm)?.loops == true, "\(m.who) has to hold \(m.calm) on a loop")
+        assert(m.rest(m.alert) != nil && m.rest(m.angry) != nil, "\(m.who) cant be shown idle or angry")
+        for (a, b) in [(Mood.calm, Mood.alert), (.alert, .calm), (.calm, .angry), (.alert, .angry)] {
+            let r = m.route(from: m.goal(a), to: m.goal(b))
+            assert(r != nil && !r!.clips.isEmpty, "\(m.who) cant get from \(a) to \(b)")
+            assert(r!.clips.allSatisfy { !$0.loops }, "a move plays once, it never loops")
         }
+        if let p = rider.partner { assert(Rider.all.contains(p), "\(rider.who) has no other half") }
     }
-    let music = Rider.music.moves!, sleepy = Rider.sleepy.moves!
-    assert(music.route(from: "Galau", to: ["Idle"])!.clips.map(\.name) == ["MusicGalau-Idle"])
-    assert(music.route(from: "Idle", to: ["Galau"])!.clips.map(\.name) == ["MusicIdle-Galau"])
-    assert(music.route(from: "Galau", to: music.angry)!.clips.map(\.name) == ["MusicGalau-Marah"])
-    assert(music.route(from: "Idle", to: music.angry)!.clips.map(\.name) == ["MusicIdle-Angry"])
-    assert(sleepy.route(from: "Sleep", to: sleepy.angry)!.clips.map(\.name)
-           == ["SleepySleep-Idle", "SleepyIdle-Angry"], "asleep has to wake up before getting angry")
-    assert(music.rest("Idle")?.frame(0) == "MusicGalau-Idle-0035",
-           "no idle loop for music, so he holds the end of taking them off")
-    assert(sleepy.rest("Idle")?.name == "SleepyIdle" && sleepy.rest("Sleep")?.name == "SleepySleep")
+    // galau to idle is exactly the one move, and asleep has to wake before getting angry
+    let music = Rider(who: "Music").moves, sleepy = Rider(who: "Sleepy").moves
+    assert(music.route(from: "Galau", to: "Idle")!.clips.map(\.name) == ["MusicGalau-Idle"])
+    assert(sleepy.route(from: "Sleep", to: "Angry")!.clips.map(\.name) == ["SleepySleep-Idle", "SleepyIdle-Angry"])
+    assert(music.rest("Idle")?.frame(0) == "MusicGalau-Idle-0035", "no idle loop, so he holds the end of it")
+
+    // the kid only ever idles
+    assert(Rider.kid.moves.calm == "Idle" && Rider.kid.moves.rest("Idle")?.loops == true)
     #endif
 }

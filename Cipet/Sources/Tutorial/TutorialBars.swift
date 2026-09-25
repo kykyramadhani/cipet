@@ -1,34 +1,34 @@
 import SwiftUI
 
-// one passenger's suspicion, sat over their head
+// one passenger's suspicion, sat over their head. it's drawn at the design's 68x20 and then
+// scaled to fit `box`, so a bench of neighbours can each have one without them touching.
 struct AwarenessBar: View {
-    let box: CGRect        // the 68x20 slot the bar sits in, in the angkot's coordinates
+    let box: CGRect        // where the bar goes, in the angkot's coordinates
     let level: CGFloat     // 0...1
     let space: DesignSpace
 
     var body: some View {
-        let fill = Tut.awareFill
-
-        Group {
-            place(Tut.inAngkot(Tut.centred(Tut.awareTrack.offsetBy(dx: box.minX, dy: box.minY),
-                                           on: Tut.awareArt)), space) {
+        let fill = Tut.awareFill, track = Tut.centred(Tut.awareTrack, on: Tut.awareArt)
+        place(Tut.inAngkot(box), space) {
+            ZStack(alignment: .topLeading) {
                 Image("tut_aware_track").resizable()
-            }
-            place(Tut.inAngkot(CGRect(x: box.minX + fill.minX, y: box.minY + fill.minY,
-                                      width: fill.width * min(1, max(0, level)),
-                                      height: fill.height)), space) {
+                    .frame(width: space.px(track.width), height: space.px(track.height))
+                    .offset(x: space.px(track.minX), y: space.px(track.minY))
                 TwoToneBar(core: Ink.red, rim: Ink.redGlow,
                            radius: space.px(fill.height / 2), edge: space.px(1.4))
-            }
-            place(Tut.inAngkot(Tut.eye.offsetBy(dx: box.minX, dy: box.minY)), space) {
+                    .frame(width: space.px(fill.width * min(1, max(0, level))), height: space.px(fill.height))
+                    .offset(x: space.px(fill.minX), y: space.px(fill.minY))
                 Circle().fill(Color(white: 250 / 255))
                     .overlay(Circle().strokeBorder(Ink.black, lineWidth: space.px(1.429)))
                     .overlay {
                         Image("tut_eye").resizable()
-                            .frame(width: space.px(Tut.eyeArt.width),
-                                   height: space.px(Tut.eyeArt.height))
+                            .frame(width: space.px(Tut.eyeArt.width), height: space.px(Tut.eyeArt.height))
                     }
+                    .frame(width: space.px(Tut.eye.width), height: space.px(Tut.eye.height))
             }
+            .frame(width: space.px(Tut.awareBox.width), height: space.px(Tut.awareBox.height),
+                   alignment: .topLeading)
+            .scaleEffect(box.width / Tut.awareBox.width)
         }
     }
 }

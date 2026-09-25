@@ -27,6 +27,15 @@ targets:
         INFOPLIST_KEY_UILaunchScreen_Generation: YES
         INFOPLIST_KEY_UIRequiresFullScreen: YES
         INFOPLIST_KEY_UISupportedInterfaceOrientations: "UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight"
+        ENABLE_USER_SCRIPT_SANDBOXING: NO   # the set list below reads Resources at build time
+    # ios cant list what's in an asset catalog, so every build writes the animation sets'
+    # names into the bundle. drop a new set into Frames and it's picked up, no code change.
+    postCompileScripts:
+      - name: List animation sets
+        basedOnDependencyAnalysis: false
+        script: |
+          ls "$SRCROOT/Resources/Assets.xcassets/Frames" | sed -n 's/-[0-9]\{4\}\.imageset$//p' | sort -u \
+            > "$TARGET_BUILD_DIR/$UNLOCALIZED_RESOURCES_FOLDER_PATH/frame_sets.txt"
 
   # plays the start of a game with real touches, since the simulator tools cant tap here
   CipetUITests:

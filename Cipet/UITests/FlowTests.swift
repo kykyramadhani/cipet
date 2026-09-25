@@ -22,10 +22,6 @@ final class FlowTests: XCTestCase {
         if let shots { try? shot.pngRepresentation.write(to: URL(fileURLWithPath: "\(shots)/\(name).png")) }
     }
 
-    // where the next arrow sits on each tutorial page, then Play now on the last
-    private let nexts: [(CGFloat, CGFloat)] = [(826, 295), (826, 316), (828, 266), (284, 360),
-                                               (278, 357), (806, 267), (828, 347), (189, 307)]
-
     // every bench seat, as a passenger (to pick) and as a place to sit, with the angkot 20 lower
     private let people: [(CGFloat, CGFloat)] = [(289, 173), (350, 173), (412, 173),
                                                 (292, 249), (357, 249), (415, 249)]
@@ -34,6 +30,8 @@ final class FlowTests: XCTestCase {
 
     func testFirstGameThenHoldAnywhere() {
         XCUIDevice.shared.orientation = .landscapeLeft
+        // as if it's the first Play ever, whatever an earlier run left behind
+        app.launchArguments = ["-hasCompletedTutorial", "NO"]
         app.launch()
 
         // menu -> Play goes straight into the tutorial, not round 1
@@ -42,11 +40,16 @@ final class FlowTests: XCTestCase {
         sleep(1)
         XCTAssertFalse(app.buttons["Start"].exists, "the tutorial comes before the round card")
 
-        for (i, p) in nexts.enumerated() {
-            snap("tutorial-\(i + 1)")
-            at(p.0, p.1).tap()
+        var page = 1
+        while app.buttons["tutorial-next"].waitForExistence(timeout: 3) {
+            snap("tutorial-\(page)")
+            app.buttons["tutorial-next"].tap()
+            page += 1
             sleep(1)
         }
+        snap("tutorial-\(page)")
+        XCTAssertEqual(page, 6, "six tutorial screens")
+        app.buttons["tutorial-play"].tap()
 
         // round 1's card counts itself down into pick target, there's no Start to press
         sleep(1)
@@ -88,6 +91,15 @@ final class FlowTests: XCTestCase {
         sleep(1)
         at(110, 360).press(forDuration: 1.5)
         snap("resumed-after-hold")
+
+        // done once, it's done for good: a fresh launch goes from Play straight to round 1
+        app.terminate()
+        app.launchArguments = []
+        app.launch()
+        XCTAssertTrue(app.buttons["Play"].waitForExistence(timeout: 20))
+        app.buttons["Play"].tap()
+        XCTAssertFalse(app.buttons["tutorial-next"].waitForExistence(timeout: 3), "the tutorial came back")
+        XCTAssertTrue(app.buttons["Confirm"].waitForExistence(timeout: 15), "straight into round 1")
     }
 }
 

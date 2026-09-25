@@ -87,7 +87,7 @@ struct EndGameView: View {
         [(t("Avg time"), session.avgTime), (t("Total Items"), "\(session.items)"),
          (t("Total Rounds"), "\(session.round)")]
     }
-    private var total: String { "Rp \(session.takings)k" }
+    private var total: String { rupiah(session.takings) }
 
     @ViewBuilder private func congrats(_ space: DesignSpace) -> some View {
         Ink.yellow.ignoresSafeArea()

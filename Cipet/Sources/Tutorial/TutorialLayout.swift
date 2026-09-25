@@ -14,7 +14,8 @@ enum Tut {
     static let bocah  = CGRect(x: 230.99, y: 116.21, width: 66.166, height: 84)
     static let kiriA  = CGRect(x: 166.50, y: 110.94, width: 57.497, height: 84)
     static let kiriB  = CGRect(x:  43.65, y: 110.94, width: 57.497, height: 84)
-    static let sopir  = CGRect(x: 297.27, y: 114.63, width: 62.222, height: 84)
+    /// the driver, in his cab bottom right, under the body panel. fixed, never dealt.
+    static let sopir  = CGRect(x: 289.13, y: 197.44, width: 62.5, height: 84.38)
     static let kanan  = CGRect(x: 105.63, y: 186.88, width: 67.836, height: 84)
     static let seated = CGRect(x: 103.02, y: 109.00, width: 59.615, height: 83.395)
 
@@ -37,6 +38,13 @@ enum Tut {
     static let awareFill  = CGRect(x: 13, y: 5, width: 50, height: 10)
     static let eye        = CGRect(x: 0,  y: 0, width: 20, height: 20)
     static let eyeArt     = CGSize(width: 15.5139, height: 11.3174)
+    /// bars are drawn at 80%: the design's 68 is wider than two neighbouring seats allow
+    static let awareScale: CGFloat = 0.8
+    static let awareGap:   CGFloat = 2
+    /// the new drawings' heads reach this far above the old flat drawings' boxes (the duo's
+    /// hair is the tallest), and the kid's head starts this far below his
+    static let headLift:    CGFloat = 7
+    static let kidHeadDrop: CGFloat = 5.4
 
     // MARK: hud
     static let walletPanel = CGRect(x: 24,  y: 20, width: 140, height: 60)
@@ -47,6 +55,8 @@ enum Tut {
     static let clockIcon:  CGFloat = 40
     static let hudSize:    CGFloat = 40
     static let hudGap:     CGFloat = 8
+    /// the item count's box: two digits wide, so going from 9 to 10 doesnt move anything
+    static let itemsWidth: CGFloat = 46
 
     // the last ten seconds: the panel goes red and the whole thing beats once a second.
     // it swells on the tick and springs back, so the rest is the shape you mostly read.

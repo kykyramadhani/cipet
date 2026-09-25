@@ -5,6 +5,8 @@ struct StealView: View {
     let thiefSeat: CGRect
     let cast: Arrangement
     let round: Int
+    /// items taken over the rounds already finished
+    let items: Int
     /// the round is over and the player has chosen where to go. the round never leaves on
     /// its own — winning or getting caught shows a result here, it does not pop the screen.
     enum Exit { case nextRound(RoundResult), endGame(RoundResult, Ending), home }
@@ -14,14 +16,18 @@ struct StealView: View {
     @State private var beat: ThiefActor.Beat = .sitting
     /// held back until the thief has finished reacting, so the endings dont cut him off
     @State private var showEnding = false
+    /// when he got caught, so the cage can wait for the passengers to finish turning on him
+    @State private var caughtAt: Date?
     private let clock = Timer.publish(every: 1.0 / 60, on: .main, in: .common).autoconnect()
 
     init(victim: Seating.Person, thiefSeat: CGRect, timeLeft: Double, cast: Arrangement, round: Int,
+         items: Int = 0,
          onDone: @escaping (Exit) -> Void) {
         self.victim = victim
         self.thiefSeat = thiefSeat
         self.cast = cast
         self.round = round
+        self.items = items
         self.onDone = onDone
         _vm = State(initialValue: StealViewModel(victim: victim, thiefSeat: thiefSeat, cast: cast,
                                                  timeLeft: timeLeft))
@@ -51,7 +57,7 @@ struct StealView: View {
                     PausedCard(space: space, onResume: vm.resume) { onDone(.home) }
                 }
                 if vm.phase == .succeeded && showEnding {
-                    SucceedCard(remaining: vm.clock, value: Steal.itemValue,
+                    SucceedCard(remaining: vm.clock, value: vm.loot,
                                 victim: victim, cast: cast, space: space,
                                 onNext: { Audio.shared.play(.leave); onDone(.nextRound(result)) },
                                 onEnd: { onDone(.endGame(result, .walkedAway)) })
@@ -87,7 +93,8 @@ struct StealView: View {
             // it's a cooldown or the real thing, and the endings wait for him to land it.
             switch p {
             case .penalty:   beat = .caught(midSteal: midSteal); Audio.shared.play(.warning)
-            case .caught:    beat = .caught(midSteal: midSteal); Audio.shared.play(.fight)
+            case .caught:
+                beat = .caught(midSteal: midSteal); caughtAt = .now; Audio.shared.play(.fight)
             case .stealing:  if isFlinching { beat = .sitting }
             case .succeeded: beat = .standing; Audio.shared.play(.stole)
             case .paused:    break
@@ -113,9 +120,12 @@ struct StealView: View {
     private var midSteal: Bool { beat == .reaching || beat == .stealing }
     private var isFlinching: Bool { if case .caught = beat { return true }; return false }
 
+    /// the run's items, counting this one the moment "Succeed!" comes up
+    private var shownItems: Int { items + (vm.phase == .succeeded && showEnding ? 1 : 0) }
+
     /// what this round was worth, whichever way it ended
     private var result: RoundResult {
-        RoundResult(value: vm.phase == .succeeded ? Steal.itemValue : 0,
+        RoundResult(value: vm.phase == .succeeded ? vm.loot : 0,
                     time: Steal.round - vm.timeLeft)
     }
 
@@ -131,7 +141,12 @@ struct StealView: View {
             Audio.shared.play(.coins)
             withAnimation(.easeInOut(duration: 0.25)) { showEnding = true }
         case .caught:
-            withAnimation(.easeInOut(duration: 0.25)) { showEnding = true }
+            // everyone's current face -> MARAH, then a beat of it, then the cage
+            let anger = vm.angerTime > 0 ? vm.angerTime + Steal.angerHold : 0
+            let left = anger - Date.now.timeIntervalSince(caughtAt ?? .now)
+            DispatchQueue.main.asyncAfter(deadline: .now() + max(0, left)) {
+                withAnimation(.easeInOut(duration: 0.25)) { showEnding = true }
+            }
         default: break
         }
     }
@@ -140,16 +155,16 @@ struct StealView: View {
         ZStack(alignment: .topLeading) {
             road(space)
 
-            Group {
-                TutorialAngkot(show: [.kid], space: space, hot: victim,
-                               cast: cast, aware: vm.aware, moods: vm.moods,
-                               paused: vm.phase == .paused, colored: true)
-                ThiefActor(beat: beat, seat: thiefSeat, reachingLeft: reachingLeft,
-                           space: space, paused: vm.phase == .paused, onFinish: finished)
-            }
-            .offset(y: space.px(Steal.angkotDrop))
-            TutorialHUD(show: [], clock: vm.clock, space: space, low: vm.lowOnTime)
-            roundTag(space)
+            TutorialAngkot(show: [.kid], space: space, thiefAt: thiefSeat, hot: victim,
+                           cast: cast, aware: vm.bars, moods: vm.moods,
+                           paused: vm.phase == .paused, colored: true,
+                           thief: AnyView(ThiefActor(beat: beat, seat: thiefSeat, reachingLeft: reachingLeft,
+                                                     behind: Seating.bench(of: thiefSeat) == 1,
+                                                     space: space, paused: vm.phase == .paused,
+                                                     onFinish: finished)))
+                .offset(y: space.px(Steal.angkotDrop))
+            TutorialHUD(show: [], clock: vm.clock, space: space, low: vm.lowOnTime, items: shownItems)
+            RoundTag(round: round, space: space)
 
             StealBar(progress: vm.grab, space: space)
             SuspicionBar(lit: vm.suspicion, space: space)
@@ -186,7 +201,20 @@ struct StealView: View {
             .allowsHitTesting(vm.running)
     }
 
-    private func roundTag(_ space: DesignSpace) -> some View {
+    private func pauseButton(_ space: DesignSpace) -> some View {
+        place(Steal.pauseArt, space) {
+            Button { vm.pause() } label: { Image("pv_pause").resizable() }
+                .buttonStyle(PressStyle())
+        }
+    }
+}
+
+/// "Round #N" on its yellow tab, bottom left
+struct RoundTag: View {
+    let round: Int
+    let space: DesignSpace
+
+    var body: some View {
         Group {
             // the art is the tab drawn upside down
             place(Steal.roundArt, space) { Image("round_tag").resizable().scaleEffect(y: -1) }
@@ -195,13 +223,6 @@ struct StealView: View {
                 .foregroundStyle(Ink.black)
                 .fixedSize()
                 .position(x: space.x(Steal.roundTag.midX), y: space.y(Steal.roundTag.midY))
-        }
-    }
-
-    private func pauseButton(_ space: DesignSpace) -> some View {
-        place(Steal.pauseArt, space) {
-            Button { vm.pause() } label: { Image("pv_pause").resizable() }
-                .buttonStyle(PressStyle())
         }
     }
 }

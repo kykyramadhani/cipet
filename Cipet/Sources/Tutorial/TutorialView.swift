@@ -12,6 +12,14 @@ enum Tutorial {
         let box: CGRect
         enum Row { case none, next(skip: String), play }
         let row: Row
+
+    }
+
+    /// how far a card that's come out taller than the design has to rise to stay this far
+    /// off the bottom of the screen. a card that fits the design's box never moves.
+    static let cardMargin: CGFloat = 6
+    static func rise(_ box: CGRect, _ height: CGFloat) -> CGFloat {
+        max(0, box.minY + height - (DesignSpace.screen.height - cardMargin))
     }
 
     struct Page {
@@ -164,6 +172,9 @@ struct TutorialCard: View {
     let onSkip: () -> Void
     let onNext: () -> Void
 
+    /// how tall the card really came out, in design units
+    @State private var height: CGFloat = 0
+
     var body: some View {
         place(card.box, space) {
             VStack(spacing: space.px(14)) {
@@ -196,9 +207,18 @@ struct TutorialCard: View {
             // the design's border is drawn over the edge and takes no room, so the words sit
             // 14 in from the box
             .padding(space.px(14))
-            .frame(width: space.px(card.box.width), height: space.px(card.box.height))
+            .frame(width: space.px(card.box.width))
+            // never shorter than the design's card; a longer translation makes it taller
+            // instead of clipping, at the same width and size of type
+            .frame(minHeight: space.px(card.box.height))
+            .fixedSize(horizontal: false, vertical: true)
             .background(Ink.paper, in: RoundedRectangle(cornerRadius: space.px(10)))
             .overlay(RoundedRectangle(cornerRadius: space.px(10)).strokeBorder(.black, lineWidth: space.px(6)))
+            .onGeometryChange(for: CGFloat.self) { $0.size.height } action: { height = $0 / space.scale }
+            // it grows downward from the design's top edge, and only rises by as much as it
+            // takes to stay on screen
+            .offset(y: -space.px(Tutorial.rise(card.box, height)))
+            .frame(width: space.px(card.box.width), height: space.px(card.box.height), alignment: .top)
         }
     }
 
@@ -220,7 +240,13 @@ private func runTutorialChecks() {
     if case .play = Tutorial.pages.last!.cards.last!.row {} else { assertionFailure("and ends on Play now") }
     let screen = CGRect(origin: .zero, size: DesignSpace.screen)
     for p in Tutorial.pages {
-        for c in p.cards { assert(screen.contains(c.box), "\(c.text) runs off screen") }
+        for c in p.cards {
+            assert(screen.contains(c.box), "\(c.text) runs off screen")
+            // the design's own size stays put; anything taller rises just enough, never off the top
+            assert(Tutorial.rise(c.box, c.box.height) == 0, "\(c.text) moved at its own size")
+            let tall = c.box.height + 60
+            assert(c.box.minY - Tutorial.rise(c.box, tall) + tall <= screen.height - Tutorial.cardMargin + 0.001)
+        }
     }
     // the tutorial's people are real riders, and the thief sits beside the mark
     for r in Tutorial.cast.cast.values { assert(Rider.all.contains(r), "\(r.who) isnt a gameplay rider") }

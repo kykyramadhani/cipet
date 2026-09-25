@@ -235,7 +235,7 @@ func runCardTitleChecks() {
     // every heading the game shows fits at full size, in both languages, so none of them is
     // silently riding minimumScaleFactor the way the old Paused box was
     for word in ["Settings", "Record", "Paused", "Instruction"] {
-        for copy in [word, Indonesian.table[word] ?? word] {
+        for copy in [word, t(word, in: .ind)] {
             let w = GlyphLine(copy, size: CardTitle.size, bold: true).box.width
             assert(w <= 320, "\(copy) is \(Int(w)) wide and would be shrunk to fit")
         }

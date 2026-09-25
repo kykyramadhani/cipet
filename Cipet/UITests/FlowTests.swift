@@ -28,10 +28,31 @@ final class FlowTests: XCTestCase {
     private let seats: [(CGFloat, CGFloat)] = [(289, 171), (350, 171), (412, 171),
                                                (292, 254), (357, 254), (415, 254)]
 
+    // the tutorial in indonesian, whose sentences run longer: every page has to be walkable
+    // and its cards are saved for checking that none of the words got cut off
+    func testIndonesianTutorial() {
+        XCUIDevice.shared.orientation = .landscapeLeft
+        app.launchArguments = ["-hasCompletedTutorial", "NO", "-language", "ind"]
+        app.launch()
+        XCTAssertTrue(app.buttons["Main"].waitForExistence(timeout: 20), "the menu should be in indonesian")
+        app.buttons["Main"].tap()
+        var page = 1
+        while app.buttons["tutorial-next"].waitForExistence(timeout: 3) {
+            sleep(1)
+            snap("id-tutorial-\(page)")
+            app.buttons["tutorial-next"].tap()
+            page += 1
+        }
+        sleep(1)
+        snap("id-tutorial-\(page)")
+        XCTAssertEqual(page, 6)
+        XCTAssertTrue(app.buttons["tutorial-play"].exists)
+    }
+
     func testFirstGameThenHoldAnywhere() {
         XCUIDevice.shared.orientation = .landscapeLeft
-        // as if it's the first Play ever, whatever an earlier run left behind
-        app.launchArguments = ["-hasCompletedTutorial", "NO"]
+        // as if it's the first Play ever, in english, whatever an earlier run left behind
+        app.launchArguments = ["-hasCompletedTutorial", "NO", "-language", "eng"]
         app.launch()
 
         // menu -> Play goes straight into the tutorial, not round 1
@@ -94,7 +115,7 @@ final class FlowTests: XCTestCase {
 
         // done once, it's done for good: a fresh launch goes from Play straight to round 1
         app.terminate()
-        app.launchArguments = []
+        app.launchArguments = ["-language", "eng"]
         app.launch()
         XCTAssertTrue(app.buttons["Play"].waitForExistence(timeout: 20))
         app.buttons["Play"].tap()

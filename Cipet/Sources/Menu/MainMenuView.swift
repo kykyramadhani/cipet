@@ -262,7 +262,7 @@ func runMenuChecks() {
     // minimumScaleFactor to stay on the button
     let room = Menu.button.width - 2 * 14
     for word in ["Play", "Record"] {
-        for copy in [word, Indonesian.table[word] ?? word] {
+        for copy in [word, t(word, in: .ind)] {
             let w = GlyphLine(copy, size: Menu.playSize).box.width
             assert(w <= room, "\(copy) is \(Int(w)) wide against \(Int(room)) of plate")
         }

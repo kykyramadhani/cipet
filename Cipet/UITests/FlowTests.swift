@@ -23,8 +23,8 @@ final class FlowTests: XCTestCase {
     }
 
     // where the next arrow sits on each tutorial page, then Play now on the last
-    private let nexts: [(CGFloat, CGFloat)] = [(826, 295), (826, 316), (806, 267), (828, 266),
-                                               (284, 360), (278, 357), (828, 347), (189, 307)]
+    private let nexts: [(CGFloat, CGFloat)] = [(826, 295), (826, 316), (828, 266), (284, 360),
+                                               (278, 357), (806, 267), (828, 347), (189, 307)]
 
     // every bench seat, as a passenger (to pick) and as a place to sit, with the angkot 20 lower
     private let people: [(CGFloat, CGFloat)] = [(289, 173), (350, 173), (412, 173),

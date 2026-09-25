@@ -15,14 +15,14 @@ enum Tutorial {
              next: CGRect(x: 814, y: 283, width: 24, height: 24)),
         Page(art: "tutorial_259_201",  skip: CGRect(x: 683, y: 307, width: 30, height: 18),
              next: CGRect(x: 814, y: 304, width: 24, height: 24)),
-        Page(art: "tutorial_278_2688", skip: CGRect(x: 663, y: 258, width: 30, height: 18),
-             next: CGRect(x: 794, y: 255, width: 24, height: 24)),
         Page(art: "tutorial_278_1745", skip: CGRect(x: 685, y: 257, width: 30, height: 18),
              next: CGRect(x: 816, y: 254, width: 24, height: 24)),
         Page(art: "tutorial_288_194",  skip: CGRect(x: 141, y: 351, width: 30, height: 18),
              next: CGRect(x: 272, y: 348, width: 24, height: 24)),
         Page(art: "tutorial_278_3324", skip: CGRect(x: 135, y: 348, width: 30, height: 18),
              next: CGRect(x: 266, y: 345, width: 24, height: 24)),
+        Page(art: "tutorial_278_2688", skip: CGRect(x: 663, y: 258, width: 30, height: 18),
+             next: CGRect(x: 794, y: 255, width: 24, height: 24)),
         Page(art: "tutorial_278_3061", skip: CGRect(x: 685, y: 338, width: 30, height: 18),
              next: CGRect(x: 816, y: 335, width: 24, height: 24)),
         Page(art: "tutorial_278_3241", skip: nil,
@@ -87,8 +87,10 @@ private func runTutorialChecks() {
         }
     }
     assert(Tutorial.pages.last!.skip == nil, "the last page only has Play now")
-    assert(Tutorial.pages[0].art == "tutorial_278_1161" && Tutorial.pages[1].art == "tutorial_259_201",
-           "choose your target comes before picking a seat")
+    // target, seat, hold, suspicion, jail, cooldown, succeed if, succeed
+    assert(Tutorial.pages.map(\.art) == ["tutorial_278_1161", "tutorial_259_201", "tutorial_278_1745",
+                                         "tutorial_288_194", "tutorial_278_3324", "tutorial_278_2688",
+                                         "tutorial_278_3061", "tutorial_278_3241"], "tutorial pages out of order")
     assert(Tutorial.tap(CGRect(x: 0, y: 0, width: 24, height: 24)).width == Tutorial.minTap)
     #endif
 }

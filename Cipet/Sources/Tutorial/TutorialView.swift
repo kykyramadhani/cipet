@@ -11,10 +11,10 @@ enum Tutorial {
     }
 
     static let pages: [Page] = [
-        Page(art: "tutorial_259_201",  skip: CGRect(x: 683, y: 307, width: 30, height: 18),
-             next: CGRect(x: 814, y: 304, width: 24, height: 24)),
         Page(art: "tutorial_278_1161", skip: CGRect(x: 683, y: 283, width: 31, height: 18),
              next: CGRect(x: 814, y: 283, width: 24, height: 24)),
+        Page(art: "tutorial_259_201",  skip: CGRect(x: 683, y: 307, width: 30, height: 18),
+             next: CGRect(x: 814, y: 304, width: 24, height: 24)),
         Page(art: "tutorial_278_2688", skip: CGRect(x: 663, y: 258, width: 30, height: 18),
              next: CGRect(x: 794, y: 255, width: 24, height: 24)),
         Page(art: "tutorial_278_1745", skip: CGRect(x: 685, y: 257, width: 30, height: 18),
@@ -87,6 +87,8 @@ private func runTutorialChecks() {
         }
     }
     assert(Tutorial.pages.last!.skip == nil, "the last page only has Play now")
+    assert(Tutorial.pages[0].art == "tutorial_278_1161" && Tutorial.pages[1].art == "tutorial_259_201",
+           "choose your target comes before picking a seat")
     assert(Tutorial.tap(CGRect(x: 0, y: 0, width: 24, height: 24)).width == Tutorial.minTap)
     #endif
 }

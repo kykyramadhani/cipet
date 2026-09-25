@@ -106,7 +106,7 @@ struct StealView: View {
             case .paused:    break
             }
         }
-        .task { Haptics.warmUp(); warmThief(); runStealChecks(); runPortraitChecks(); runJailChecks(); runThiefChecks(); runClipChecks(); runCooldownChecks(); runBarChecks() }
+        .task { Haptics.warmUp(); warmThief(); runStealChecks(); runPortraitChecks(); runJailChecks(); runThiefChecks(); runClipChecks(); runCooldownChecks(); runBarChecks(); runHoldChecks() }
     }
 
     /// both the cooldown and the pause card sit on a blurred round rather than a black one,
@@ -205,24 +205,17 @@ struct StealView: View {
     /// you're only deciding how long to leave it there. letting go, or getting spotted,
     /// drops it. the pause button is drawn over this, so it still takes its own taps.
     private func grabArea(_ space: DesignSpace) -> some View {
-        Rectangle().fill(.clear).contentShape(Rectangle())
-            .frame(width: space.px(DesignSpace.screen.width),
-                   height: space.px(DesignSpace.screen.height))
-            .position(x: space.x(DesignSpace.screen.width / 2),
-                      y: space.y(DesignSpace.screen.height / 2))
-            // everywhere but the hud: the wallet, the clock, pause and the round tag
-            .contentShape(HoldArea(space: space), eoFill: true)
-            .gesture(DragGesture(minimumDistance: 0)
-                // this fires on every wobble of the finger, and any write to the model redraws
-                // the whole scene even when nothing changed, so only the first one writes
-                .onChanged { _ in
-                    if !fingerDown { fingerDown = true }
-                    if vm.running && !vm.holding { vm.holding = true }
-                }
-                .onEnded { _ in
-                    fingerDown = false
-                    if vm.holding { vm.holding = false }
-                })
+        HoldSurface { down in
+            fingerDown = down
+            // only a change is written: any write to the model redraws the whole scene
+            if vm.holding != (down && vm.running) { vm.holding = down && vm.running }
+        }
+        .frame(width: space.px(DesignSpace.screen.width),
+               height: space.px(DesignSpace.screen.height))
+        .position(x: space.x(DesignSpace.screen.width / 2),
+                  y: space.y(DesignSpace.screen.height / 2))
+        // everywhere but the hud: the wallet, the clock, pause and the round tag
+        .contentShape(HoldArea(space: space), eoFill: true)
     }
 
     private func pauseButton(_ space: DesignSpace) -> some View {
@@ -249,6 +242,72 @@ struct RoundTag: View {
                 .position(x: space.x(Steal.roundTag.midX), y: space.y(Steal.roundTag.midY))
         }
     }
+}
+
+/// the hold, read straight off the touches. a swiftui gesture only hears about a finger once
+/// the system has ruled out its own swipes, and near the edges and along the phone's bottom
+/// end that wasnt until the finger lifted ("system gesture gate timed out"); even mid screen
+/// it came ~100ms late. a recogniser's touchesBegan comes the moment the finger lands. this
+/// one never recognises anything, so it cancels nothing and the system swipes still work.
+struct HoldSurface: UIViewRepresentable {
+    let onHold: (Bool) -> Void
+
+    func makeUIView(context: Context) -> UIView {
+        let v = UIView()
+        v.addGestureRecognizer(Touches(onHold: onHold))
+        return v
+    }
+
+    func updateUIView(_ v: UIView, context: Context) {
+        (v.gestureRecognizers?.first as? Touches)?.onHold = onHold
+    }
+
+    final class Touches: UIGestureRecognizer {
+        var onHold: (Bool) -> Void
+        private var fingers = 0
+
+        init(onHold: @escaping (Bool) -> Void) {
+            self.onHold = onHold
+            super.init(target: nil, action: nil)
+            cancelsTouchesInView = false
+            delaysTouchesEnded = false
+        }
+
+        override func touchesBegan(_ touches: Set<UITouch>, with event: UIEvent) {
+            if fingers == 0 { onHold(true) }
+            fingers += touches.count
+        }
+        override func touchesEnded(_ touches: Set<UITouch>, with event: UIEvent) { lift(touches) }
+        // a system swipe that takes the finger over cancels it, which is a let go too
+        override func touchesCancelled(_ touches: Set<UITouch>, with event: UIEvent) { lift(touches) }
+
+        private func lift(_ touches: Set<UITouch>) {
+            fingers -= touches.count
+            guard fingers <= 0 else { return }
+            fingers = 0
+            onHold(false)
+            state = .failed   // done with this sequence, so the next one starts clean
+        }
+
+        override func reset() {
+            if fingers > 0 { fingers = 0; onHold(false) }
+        }
+    }
+}
+
+func runHoldChecks() {
+    #if DEBUG
+    // a second finger doesnt start it again, and lifting one of two doesnt end it
+    var said: [Bool] = []
+    let g = HoldSurface.Touches { said.append($0) }
+    let a = UITouch(), b = UITouch(), e = UIEvent()
+    g.touchesBegan([a], with: e)
+    g.touchesBegan([b], with: e)
+    g.touchesEnded([a], with: e)
+    assert(said == [true], "still one finger down")
+    g.touchesCancelled([b], with: e)
+    assert(said == [true, false], "the last finger up lets go, once")
+    #endif
 }
 
 /// the whole screen with holes where the hud is, filled even-odd so the holes let taps through

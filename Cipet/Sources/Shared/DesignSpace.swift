@@ -35,10 +35,5 @@ extension View {
         ignoresSafeArea()
             .statusBarHidden()
             .persistentSystemOverlays(.hidden)
-            // with the home indicator hidden, ios holds back any touch near an edge while it
-            // decides whether it's a system swipe ("system gesture gate timed out"), and in
-            // landscape that's exactly where a thumb rests to hold. the game gets the touch
-            // first; a system swipe just takes a second go.
-            .defersSystemGestures(on: .all)
     }
 }

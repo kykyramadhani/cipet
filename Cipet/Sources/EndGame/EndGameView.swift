@@ -7,13 +7,14 @@ enum End {
     // same halftone as the countdown card and the jail screen, just tinted for a yellow bg
     static let dots = CGRect(x: -100.003, y: -257.998, width: 1074.986, height: 918.275)
 
-    static let card    = CGRect(x: 187,    y: 31,    width: 500,     height: 340)
-    static let cardArt = CGRect(x: 183.65, y: 28.79, width: 506.668, height: 346.217)
+    // grown 30 from the design's 340, still centred, to fit Play Again over the other button
+    static let card    = CGRect(x: 187,    y: 16,    width: 500,     height: 370)
+    static let cardArt = CGRect(x: 183.65, y: 13.79, width: 506.668, height: 376.217)
     static let thief   = CGRect(x: 136,    y: 61,    width: 227.24,  height: 317.84)
 
     /// the whole right hand column of the card: heading, the tally, and the button
-    static let column = CGRect(x: 363, y: 61, width: 300, height: 289)
-    static let title  = CGRect(x: 363, y: 61, width: 300, height: 72)
+    static let column = CGRect(x: 363, y: 46, width: 300, height: 319)
+    static let title  = CGRect(x: 363, y: 46, width: 300, height: 72)
     static let titleSize: CGFloat = 60
     static let labelSize: CGFloat = 22
     static let valueSize: CGFloat = 24
@@ -21,31 +22,39 @@ enum End {
     // the rows are laid out by hand rather than stacked, because skranji's line boxes are
     // taller than the design's and the last one ended up under the button
     static let rowH:    CGFloat = 26.4
-    static let rowStep: CGFloat = 34.4   // row plus the 8 between them
-    static let firstY:  CGFloat = 149
-    static let totalY:  CGFloat = 264.2  // the black one, after the bigger gap
+    static let rowStep: CGFloat = 32     // row plus the 5.6 between them
+    static let firstY:  CGFloat = 134
+    static let totalY:  CGFloat = 240    // the black one, after the bigger gap
 
-    static let button     = CGRect(x: 363,    y: 310,     width: 300,     height: 40)
-    static let buttonArt  = CGRect(x: 360.68, y: 307.696, width: 303.054, height: 45.3038)
+    /// Play Again in yellow, and under it Back to Main Menu in red, 8 apart
+    static let again      = CGRect(x: 363,    y: 277,     width: 300,     height: 40)
+    static let againArt   = CGRect(x: 360.68, y: 274.696, width: 303.054, height: 45.3038)
+    static let button     = CGRect(x: 363,    y: 325,     width: 300,     height: 40)
+    static let buttonArt  = CGRect(x: 360.68, y: 322.696, width: 303.054, height: 45.3038)
     static let buttonSize: CGFloat = 20
 
     // MARK: jailed: small card on the left, the cage over the thief, the sign top right
     static let jailThief   = CGRect(x: 543.02, y: 94, width: 198.8, height: 278.1)
     static let jailSign    = CGRect(x: 506, y: 33, width: 320, height: 100)
-    static let jailCardArt = CGRect(x: 44.652, y: 71.612, width: 366.668, height: 260.379)
-    static let jailTally   = CGPoint(x: 68, y: 101)
+    // 48 taller than the design for the second button, and moved up 24 to stay centred
+    static let jailCardArt = CGRect(x: 44.652, y: 47.612, width: 366.668, height: 308.379)
+    static let jailTally   = CGPoint(x: 68, y: 77)
     static let jailWidth: CGFloat = 320
-    static let jailButton    = CGRect(x: 68, y: 261, width: 320, height: 40)
-    static let jailButtonArt = CGRect(x: 65.685, y: 258.696, width: 322.854, height: 45.3037)
+    static let jailAgain     = CGRect(x: 68, y: 237, width: 320, height: 40)
+    static let jailAgainArt  = CGRect(x: 65.685, y: 234.696, width: 322.854, height: 45.3037)
+    static let jailButton    = CGRect(x: 68, y: 285, width: 320, height: 40)
+    static let jailButtonArt = CGRect(x: 65.685, y: 282.696, width: 322.854, height: 45.3037)
 
     // MARK: failed: the big card shifted left, the thief peeking in with a sad bubble
     static let failCardArt = cardArt.offsetBy(dx: -107, dy: 0)
-    static let failTitle   = CGRect(x: 130, y: 61, width: 400, height: 48)
+    static let failTitle   = CGRect(x: 130, y: 46, width: 400, height: 48)
     static let failTitleSize: CGFloat = 40
-    static let failTally   = CGPoint(x: 130, y: 141)
+    static let failTally   = CGPoint(x: 130, y: 126)
     static let failWidth: CGFloat = 400
-    static let failButton    = CGRect(x: 130, y: 310, width: 400, height: 40)
-    static let failButtonArt = CGRect(x: 127.671, y: 307.696, width: 401.832, height: 45.3036)
+    static let failAgain     = CGRect(x: 130, y: 277, width: 400, height: 40)
+    static let failAgainArt  = CGRect(x: 127.671, y: 274.696, width: 401.832, height: 45.3036)
+    static let failButton    = CGRect(x: 130, y: 325, width: 400, height: 40)
+    static let failButtonArt = CGRect(x: 127.671, y: 322.696, width: 401.832, height: 45.3036)
     static let failThief   = CGRect(x: 609.96, y: 131, width: 227.24, height: 317.84)
     static let bubbleArt   = CGRect(x: 676.822, y: 79.775, width: 145.891, height: 107.506)
     static let bubbleText  = CGPoint(x: 750, y: 134)
@@ -63,6 +72,8 @@ enum End {
 struct EndGameView: View {
     let session: GameSession
     var ending: Ending = .walkedAway
+    /// straight into a fresh game's round 1, the same as Play on the menu
+    var onPlayAgain: () -> Void = {}
     let onHome: () -> Void
 
     var body: some View {
@@ -87,7 +98,7 @@ struct EndGameView: View {
         [(t("Avg time"), session.avgTime), (t("Total Items"), "\(session.items)"),
          (t("Total Rounds"), "\(session.round)")]
     }
-    private var total: String { "Rp \(session.takings)k" }
+    private var total: String { rupiah(session.takings) }
 
     @ViewBuilder private func congrats(_ space: DesignSpace) -> some View {
         Ink.yellow.ignoresSafeArea()
@@ -108,7 +119,8 @@ struct EndGameView: View {
         statRow(t("Total Item value"), total, End.labelSize, End.valueSize, Ink.black,
                 CGRect(x: End.column.minX, y: End.totalY, width: End.column.width, height: End.rowH),
                 space)
-        artButton(t("Back to Home"), "eg_button", End.button, End.buttonArt, space, onHome)
+        artButton(t("Play Again"), "eg_button", End.again, End.againArt, space, onPlayAgain)
+        artButton(t("Back to Main Menu"), "eg_button_red", End.button, End.buttonArt, space, onHome)
         place(End.thief, space) { Image("loading_pencipet").resizable() }
     }
 
@@ -120,7 +132,8 @@ struct EndGameView: View {
         JailSign(word: "JAILED", box: End.jailSign, space: space)
         place(End.jailCardArt, space) { Image("jail_card").resizable() }
         tally(End.jailTally, End.jailWidth, space)
-        artButton(t("Back to Home"), "jail_button", End.jailButton, End.jailButtonArt, space, onHome)
+        artButton(t("Play Again"), "jail_button", End.jailAgain, End.jailAgainArt, space, onPlayAgain)
+        artButton(t("Back to Main Menu"), "jail_button_red", End.jailButton, End.jailButtonArt, space, onHome)
     }
 
     @ViewBuilder private func failed(_ space: DesignSpace) -> some View {
@@ -135,7 +148,8 @@ struct EndGameView: View {
                 .frame(maxWidth: .infinity, alignment: .leading)
         }
         tally(End.failTally, End.failWidth, space)
-        artButton(t("Back to Home"), "fail_button", End.failButton, End.failButtonArt, space, onHome)
+        artButton(t("Play Again"), "fail_button", End.failAgain, End.failAgainArt, space, onPlayAgain)
+        artButton(t("Back to Main Menu"), "fail_button_red", End.failButton, End.failButtonArt, space, onHome)
         place(End.failThief, space) { Image("loading_pencipet").resizable() }
         // the bubble's tail points down at him, so the art goes in upside down
         place(End.bubbleArt, space) { Image("fail_bubble").resizable().scaleEffect(y: -1) }
@@ -210,7 +224,8 @@ func runEndChecks() {
     // the tally has to finish before the button starts, which is what it didnt do at first
     assert(End.title.maxY < End.firstY)
     assert(End.firstY + 2 * End.rowStep + End.rowH < End.totalY, "the greys clear the black one")
-    assert(End.totalY + End.rowH < End.button.minY, "and the total clears the button")
+    assert(End.totalY + End.rowH < End.again.minY, "and the total clears the buttons")
+    assert(End.again.maxY + 8 == End.button.minY, "Play Again sits 8 over the other one")
     assert(End.column.contains(End.button))
     assert(End.buttonArt.contains(End.button))
     assert(End.button.maxY == End.column.maxY, "the button is pinned to the bottom of the column")
@@ -220,8 +235,10 @@ func runEndChecks() {
     assert(End.dots.width > DesignSpace.screen.width, "the halftone covers the whole screen")
 
     // the red cards: the total clears the button, and the button sits on the card's bottom inset
-    assert(End.jailTally.y + End.redTotalY + End.rowH < End.jailButton.minY)
-    assert(End.failTally.y + End.redTotalY + End.rowH < End.failButton.minY)
+    assert(End.jailTally.y + End.redTotalY + End.rowH < End.jailAgain.minY)
+    assert(End.failTally.y + End.redTotalY + End.rowH < End.failAgain.minY)
+    assert(End.jailAgain.maxY + 8 == End.jailButton.minY && End.failAgain.maxY + 8 == End.failButton.minY)
+    assert(End.jailCardArt.maxY > End.jailButtonArt.maxY + 20, "both buttons on the jail card")
     assert(End.jailButtonArt.contains(End.jailButton), "the art bleeds round the button")
     assert(End.failTitle.maxY + 32 == End.failTally.y, "32 under the title")
     assert(End.jailCardArt.contains(CGRect(origin: End.jailTally,

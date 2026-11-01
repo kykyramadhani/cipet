@@ -2,12 +2,7 @@ import AVFoundation
 
 /// filenames in Resources/Audio have to match these exactly
 enum SFX: String, CaseIterable {
-    case success = "sfx_success"
-    case caught  = "sfx_caught"
-    case move    = "sfx_move"
-    case win     = "sfx_win"
-
-    case click     = "button_clicked"       // anything you tap
+    case click    = "button_clicked"       // anything you tap
     case engine    = "vehicle_turnOn"       // the angkot pulling up on the countdown
     case whistle   = "whistle"              // steal time, go
     case seated    = "character_seated"     // he takes the seat he picked
@@ -42,9 +37,15 @@ final class Audio {
     /// the clock in the last ten seconds. a continuous recording rather than a click on
     /// the second, so it loops and fades out instead of being fired per tick.
     private var clock: AVAudioPlayer?
-    /// music was asked for before the track finished loading, so start it when it lands
-    private var wantsMusic = false
     private var lastPlayed: [SFX: TimeInterval] = [:]
+
+    /// everything that touches the audio session or a player runs here, never on the main
+    /// thread. activating the session, preparing players and even play() (which quietly
+    /// re-activates a session the system has let go of) are round trips to the audio daemon;
+    /// on main they held up touch handling and the hold on the steal screen started late.
+    /// callers just drop the request in and carry on. being serial, anything asked for
+    /// before loading is done simply runs after it.
+    private let queue = DispatchQueue(label: "cipet.audio", qos: .userInitiated)
 
     private static let voices = 3   // so the same sound can overlap itself
     /// a state that flickers cant machine-gun the same sound. one event, one playback.
@@ -58,27 +59,17 @@ final class Audio {
     private init() {
         UserDefaults.standard.register(defaults: ["sfxVolume":   Self.defaultVolume,
                                                   "musicVolume": Self.defaultVolume])
-
-        // ambient means we respect the silent switch and dont cut whatever the player
-        // already has going. switch to .playback if we ever want sound on silent.
-        try? AVAudioSession.sharedInstance().setCategory(.ambient, options: [.mixWithOthers])
-
-        // activating the session is a round trip to the audio daemon that blocks until it
-        // answers, and so does every player's prepareToPlay (51 of them for the sfx), so all
-        // of it happens off the main thread and the players are handed back when ready.
-        // ponytail: ios 27's activate(options:completionHandler:) does this job, switch to it
-        // once the deployment target reaches 27
-        DispatchQueue.global(qos: .userInitiated).async {
-            try? AVAudioSession.sharedInstance().setActive(true)
-            let sounds = Self.sfxPool()
-            let track = Self.track("bgm")
-            let ticking = Self.track(Self.clockTrack)
-            DispatchQueue.main.async {
-                self.pool = sounds
-                self.bgm = track
-                self.clock = ticking
-                if self.wantsMusic { self.music() }
-            }
+        queue.async {
+            // ambient means we respect the silent switch and dont cut whatever the player
+            // already has going. switch to .playback if we ever want sound on silent.
+            // ponytail: ios 27's activate(options:completionHandler:) does this job, switch
+            // to it once the deployment target reaches 27
+            let session = AVAudioSession.sharedInstance()
+            try? session.setCategory(.ambient, options: [.mixWithOthers])
+            try? session.setActive(true)
+            self.pool = Self.sfxPool()
+            self.bgm = Self.track("bgm")
+            self.clock = Self.track(Self.clockTrack)
         }
     }
 
@@ -124,24 +115,27 @@ final class Audio {
     /// starts the loop if it isnt running and sets the volume. no argument means use the
     /// saved one, so this doubles as the settings slider's hook.
     func music(volume: Double? = nil) {
-        wantsMusic = true
-        guard let bgm else { return }   // still loading, it starts itself when it lands
-        bgm.volume = volume.map(Float.init) ?? Self.musicVolume
-        if !bgm.isPlaying { bgm.play() }
+        queue.async {
+            guard let bgm = self.bgm else { return }
+            bgm.volume = volume.map(Float.init) ?? Self.musicVolume
+            if !bgm.isPlaying { bgm.play() }
+        }
     }
 
     /// the ticking runs for the last stretch of a round, so it's started and stopped
     /// rather than played. calling it again while it's already going is a no-op, which is
     /// what lets the view drive it straight off the state.
     func ticking(_ on: Bool) {
-        guard let clock else { return }
-        if on {
-            clock.volume = Self.clockLevel * Self.sfxVolume
-            guard !clock.isPlaying, Self.sfxVolume > 0 else { return }
-            clock.currentTime = 0
-            clock.play()
-        } else if clock.isPlaying {
-            clock.stop()
+        queue.async {
+            guard let clock = self.clock else { return }
+            if on {
+                clock.volume = Self.clockLevel * Self.sfxVolume
+                guard !clock.isPlaying, Self.sfxVolume > 0 else { return }
+                clock.currentTime = 0
+                clock.play()
+            } else if clock.isPlaying {
+                clock.stop()
+            }
         }
     }
 
@@ -157,18 +151,20 @@ final class Audio {
     }
 
     private func play(_ sfx: SFX, volume: Float?, at master: Float) {
-        let volume = volume ?? sfx.level
-        guard let voices = pool[sfx], !voices.isEmpty, master > 0 else { return }
-
+        // the moment is taken here, so the gap between repeats is the caller's timing
         let now = Date.timeIntervalSinceReferenceDate
-        guard now - (lastPlayed[sfx] ?? -.greatestFiniteMagnitude) >= Self.minGap else { return }
-        lastPlayed[sfx] = now
-        let i = (next[sfx] ?? 0) % voices.count
-        next[sfx] = i + 1
-        let p = voices[i]
-        p.volume = volume * master
-        p.currentTime = 0
-        p.play()
+        queue.async {
+            let volume = volume ?? sfx.level
+            guard let voices = self.pool[sfx], !voices.isEmpty, master > 0 else { return }
+            guard now - (self.lastPlayed[sfx] ?? -.greatestFiniteMagnitude) >= Self.minGap else { return }
+            self.lastPlayed[sfx] = now
+            let i = (self.next[sfx] ?? 0) % voices.count
+            self.next[sfx] = i + 1
+            let p = voices[i]
+            p.volume = volume * master
+            p.currentTime = 0
+            p.play()
+        }
     }
 }
 

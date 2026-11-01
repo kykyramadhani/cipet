@@ -215,6 +215,7 @@ struct PausedCard: View {
         return place(Pause.plate(node, Pause.wideArt), space) {
             Button(action: action) { Image(art).resizable() }
                 .buttonStyle(PressStyle())
+                .accessibilityLabel(title)   // the words are drawn over it, so name it for voiceover
         }
         .overlay(alignment: .topLeading) {
             place(row, space) {
@@ -327,18 +328,10 @@ struct VictimPortrait: View {
         .clipShape(RoundedRectangle(cornerRadius: space.px(Self.radius)))
     }
 
-    /// the yellow version of their drawing where there is one — the animated faces only
-    /// have their own frames, so they show as they are
-    private var art: String {
-        guard let who = cast.who(victim) else { return "" }   // you only ever rob a filled seat
-        return who.hotArt ?? who.art
-    }
+    /// them idle, in their own frames, drawn from the same bigger box the angkot uses
+    private var art: String { cast.who(victim)?.art ?? "" }
 
-    /// the animated faces are drawn from a bigger box than the seat, the same way the
-    /// angkot draws them, or they come out shrunk inside their own frame
-    private func mark(_ seat: CGRect) -> CGRect {
-        cast.who(victim)?.animated == true ? Clips.box(over: seat) : seat
-    }
+    private func mark(_ seat: CGRect) -> CGRect { Clips.box(over: seat) }
 
     private func layer(_ name: String, _ r: CGRect,
                        _ ox: CGFloat, _ oy: CGFloat, _ s: CGFloat) -> some View {
@@ -411,13 +404,13 @@ struct SucceedCard: View {
                     .fixedSize()
                     .frame(maxWidth: .infinity, alignment: .leading)
             }
-            let lines = [(t("Remaining time"), remaining), (t("Item value"), "Rp \(value)k")]
+            let lines = [(t("Remaining time"), remaining), (t("Item value"), rupiah(value))]
             ForEach(lines.indices, id: \.self) { i in
                 statRow(lines[i].0, lines[i].1, 22, 24, Ink.stone,
                         CGRect(x: Self.title.minX, y: Self.rows[i], width: Self.title.width,
                                height: Self.rowH), space)
             }
-            statRow(t("Total Item value"), "Rp \(value)k", 22, 24, .black,
+            statRow(t("Total Item value"), rupiah(value), 22, 24, .black,
                     CGRect(x: Self.title.minX, y: Self.totalY, width: Self.title.width,
                            height: Self.rowH), space)
             artButton(t("End Game"), "succeed_red", Self.endBox, Self.endArt, space, onEnd)

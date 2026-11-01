@@ -17,6 +17,13 @@ import SwiftUI
         }
     }
 
+    var haptic: Double {
+        didSet {
+            UserDefaults.standard.set(haptic, forKey: "hapticIntensity")
+            if haptic != oldValue { Haptics.preview(haptic) }
+        }
+    }
+
     /// the panel's own view of the language, so tapping a flag redraws the whole game
     var lang: Lang {
         get { L10n.shared.lang }
@@ -26,5 +33,6 @@ import SwiftUI
     init() {
         sfx   = UserDefaults.standard.object(forKey: "sfxVolume")   as? Double ?? Audio.defaultVolume
         music = UserDefaults.standard.object(forKey: "musicVolume") as? Double ?? Audio.defaultVolume
+        haptic = UserDefaults.standard.object(forKey: "hapticIntensity") as? Double ?? Haptics.defaultIntensity
     }
 }

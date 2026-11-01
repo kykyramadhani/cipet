@@ -22,18 +22,52 @@ final class FlowTests: XCTestCase {
         if let shots { try? shot.pngRepresentation.write(to: URL(fileURLWithPath: "\(shots)/\(name).png")) }
     }
 
-    // where the next arrow sits on each tutorial page, then Play now on the last
-    private let nexts: [(CGFloat, CGFloat)] = [(826, 295), (826, 316), (828, 266), (284, 360),
-                                               (278, 357), (806, 267), (828, 347), (189, 307)]
-
     // every bench seat, as a passenger (to pick) and as a place to sit, with the angkot 20 lower
     private let people: [(CGFloat, CGFloat)] = [(289, 173), (350, 173), (412, 173),
                                                 (292, 249), (357, 249), (415, 249)]
     private let seats: [(CGFloat, CGFloat)] = [(289, 171), (350, 171), (412, 171),
                                                (292, 254), (357, 254), (415, 254)]
 
+    // the tutorial in indonesian, whose sentences run longer: every page has to be walkable
+    // and its cards are saved for checking that none of the words got cut off
+    func testIndonesianTutorial() {
+        XCUIDevice.shared.orientation = .landscapeLeft
+        app.launchArguments = ["-hasCompletedTutorial", "NO", "-language", "ind"]
+        app.launch()
+        XCTAssertTrue(app.buttons["Main"].waitForExistence(timeout: 20), "the menu should be in indonesian")
+        app.buttons["Main"].tap()
+        var page = 1
+        while app.buttons["tutorial-next"].waitForExistence(timeout: 3) {
+            sleep(1)
+            snap("id-tutorial-\(page)")
+            app.buttons["tutorial-next"].tap()
+            page += 1
+        }
+        sleep(1)
+        snap("id-tutorial-\(page)")
+        XCTAssertEqual(page, 6)
+        XCTAssertTrue(app.buttons["tutorial-play"].exists)
+
+        // and on into picking, where the tab has the longest indonesian line to hold
+        app.buttons["tutorial-play"].tap()
+        let confirm = app.buttons["Konfirmasi"]
+        XCTAssertTrue(confirm.waitForExistence(timeout: 15))
+        sleep(1)
+        snap("id-pick-target")
+        for p in people where !confirm.isEnabled { at(p.0, p.1).tap() }
+        confirm.tap()
+        sleep(1)
+        if confirm.exists {
+            for s in seats where !confirm.isEnabled { at(s.0, s.1).tap() }
+            sleep(1)
+            snap("id-pick-ready")
+        }
+    }
+
     func testFirstGameThenHoldAnywhere() {
         XCUIDevice.shared.orientation = .landscapeLeft
+        // as if it's the first Play ever, in english, whatever an earlier run left behind
+        app.launchArguments = ["-hasCompletedTutorial", "NO", "-language", "eng"]
         app.launch()
 
         // menu -> Play goes straight into the tutorial, not round 1
@@ -42,11 +76,16 @@ final class FlowTests: XCTestCase {
         sleep(1)
         XCTAssertFalse(app.buttons["Start"].exists, "the tutorial comes before the round card")
 
-        for (i, p) in nexts.enumerated() {
-            snap("tutorial-\(i + 1)")
-            at(p.0, p.1).tap()
+        var page = 1
+        while app.buttons["tutorial-next"].waitForExistence(timeout: 3) {
+            snap("tutorial-\(page)")
+            app.buttons["tutorial-next"].tap()
+            page += 1
             sleep(1)
         }
+        snap("tutorial-\(page)")
+        XCTAssertEqual(page, 6, "six tutorial screens")
+        app.buttons["tutorial-play"].tap()
 
         // round 1's card counts itself down into pick target, there's no Start to press
         sleep(1)
@@ -70,8 +109,12 @@ final class FlowTests: XCTestCase {
         sleep(1)
         snap("steal-before")
 
-        // hold on the road in the bottom left, nowhere near the bar
-        at(110, 360).press(forDuration: 2.5)
+        // the hud isnt part of it: holding on the clock does nothing
+        at(437, 50).press(forDuration: 1.5)
+        snap("steal-after-hold-hud")
+
+        // hold on the road on the left, nowhere near the bar (the round tag below is hud)
+        at(110, 320).press(forDuration: 2.5)
         snap("steal-after-hold-bottom-left")
         // and up by the wallet, and on a passenger's head
         at(90, 110).press(forDuration: 1.5)
@@ -81,13 +124,22 @@ final class FlowTests: XCTestCase {
         at(820, 54).tap()
         sleep(1)
         snap("paused")
-        at(110, 360).press(forDuration: 2)
+        at(110, 320).press(forDuration: 2)
         snap("paused-after-hold")
         XCTAssertTrue(app.buttons["Resume"].exists)
         app.buttons["Resume"].tap()
         sleep(1)
-        at(110, 360).press(forDuration: 1.5)
+        at(110, 320).press(forDuration: 1.5)
         snap("resumed-after-hold")
+
+        // done once, it's done for good: a fresh launch goes from Play straight to round 1
+        app.terminate()
+        app.launchArguments = ["-language", "eng"]
+        app.launch()
+        XCTAssertTrue(app.buttons["Play"].waitForExistence(timeout: 20))
+        app.buttons["Play"].tap()
+        XCTAssertFalse(app.buttons["tutorial-next"].waitForExistence(timeout: 3), "the tutorial came back")
+        XCTAssertTrue(app.buttons["Confirm"].waitForExistence(timeout: 15), "straight into round 1")
     }
 }
 

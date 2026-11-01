@@ -23,7 +23,12 @@ enum Ink {
     static let stone   = Color(red: 115 / 255, green: 115 / 255, blue: 115 / 255)
 }
 
-/// m:ss, for the clock and the end screen
+/// the round clock: whole seconds, two digits. a round is never longer than 60, so 60 not 1:00
+func ss(_ seconds: Double) -> String {
+    String(format: "%02d", max(0, Int(seconds.rounded())))
+}
+
+/// m:ss, for the end screen's average
 func mmss(_ seconds: Double) -> String {
     let s = max(0, Int(seconds.rounded()))
     return String(format: "%d:%02d", s / 60, s % 60)
@@ -235,7 +240,7 @@ func runCardTitleChecks() {
     // every heading the game shows fits at full size, in both languages, so none of them is
     // silently riding minimumScaleFactor the way the old Paused box was
     for word in ["Settings", "Record", "Paused", "Instruction"] {
-        for copy in [word, Indonesian.table[word] ?? word] {
+        for copy in [word, t(word, in: .ind)] {
             let w = GlyphLine(copy, size: CardTitle.size, bold: true).box.width
             assert(w <= 320, "\(copy) is \(Int(w)) wide and would be shrunk to fit")
         }

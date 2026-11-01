@@ -122,7 +122,7 @@ func runRecordPanelChecks() {
     assert(abs(GlyphLine("Highest Round", size: Rec.labelSize).box.height - Rec.labelLine) < 0.01,
            "the label row is the font's own line")
     for label in ["Highest Round", "Top Value"] {
-        for copy in [label, Indonesian.table[label] ?? label] {
+        for copy in [label, t(label, in: .ind)] {
             let w = GlyphLine(copy, size: Rec.labelSize).box.width
             assert(w <= Rec.column.width, "\(copy) is \(Int(w)) wide against \(Int(Rec.column.width))")
         }

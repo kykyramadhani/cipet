@@ -16,30 +16,22 @@ struct RoundResult {
     private(set) var played = 0.0
     private(set) var arrangement = Arrangement.fixed
 
-    var tutorialPending = false
-
     func startFirstRound() {
         round = 1
         takings = 0
         items = 0
         played = 0
-        tutorialPending = Seen.shouldShowTutorial
-        arrangement = .random(avoiding: nil)
+        arrangement = .random(avoiding: nil, round: round)
     }
 
     /// a fresh round: new number, new seating, and the tutorial stays done
     func nextRound(after r: RoundResult) {
         bank(r)
         round += 1
-        arrangement = .random(avoiding: arrangement)
+        arrangement = .random(avoiding: arrangement, round: round)
     }
 
     func endGame(after r: RoundResult) { bank(r) }
-
-    func tutorialFinished() {
-        tutorialPending = false
-        Seen.tutorial = true
-    }
 
     /// how long a round took on average, over the ones actually played
     var avgTime: String { mmss(played / Double(max(1, round))) }
@@ -54,28 +46,95 @@ struct RoundResult {
     }
 }
 
-// who is sitting where this round. how many there are, which seats they're in, who they
-// are and what mood the animated ones start in are all dealt fresh each round; only the
-// driver and the kid never change, and neither is in here.
+// how one passenger behaves this round, dealt fresh every round and fixed until it ends.
+// the rates are always in this order, whatever gets rolled:
+//   grabRate <= slip < awareCalm < awareRate
+// grab and slip start level and only grab falls behind, by a fixed step every 5 rounds
+// (see grabGap), so the steal bar is the sluggish one and suspicion the twitchy one.
+struct Traits: Equatable {
+    let grabRate: Double    // the steal bar fills this fast while you hold (they're the mark)
+    let slip: Double        // and sags this fast when you let go
+    let awareCalm: Double   // their bar drains this fast whenever they're not catching you
+    let awareRate: Double   // and fills this fast while they're idle and you're at it
+    /// how far their bar has to get before they clock you. their bar is drawn against this,
+    /// so it still reads full at the moment of the strike.
+    let threshold: CGFloat
+    /// how long they stay idle, and how long in their own thing, before switching
+    let idleFor: ClosedRange<Double>
+    let calmFor: ClosedRange<Double>
+
+    /// how watchful each kind of person is when idle, per second
+    static let watchful: [String: ClosedRange<Double>] = [
+        "Sleepy": 0.26...0.34, "Music": 0.30...0.40, "Duo": 0.32...0.42,
+    ]
+
+    /// the kid isnt rolled: the same every round. he's slow to get suspicious and loses
+    /// interest twice as fast as he gains it — the one exception to the rates' usual order.
+    /// (he's never the mark, so his grab and slip are never used.)
+    static let kid = Traits(grabRate: 0.03, slip: 0.04, awareCalm: 0.12, awareRate: 0.06,
+                            threshold: 1, idleFor: 1_000_000...1_000_000, calmFor: 1...2)
+    /// how long they drift off for. sleep lasts, a chat or a song less so.
+    static let drift: [String: ClosedRange<Double>] = [
+        "Sleepy": 6...11, "Music": 4...8, "Duo": 3...7,
+    ]
+
+    /// how far the steal bar's fill lags its sag: none for rounds 1-4, then 0.05% more
+    /// every 5 rounds, and never more than 0.50%, however long a run goes. not rolled.
+    static let grabStep = 0.0005
+    static let grabGapCap = 0.005
+    static func grabGap(round: Int) -> Double {
+        min(grabGapCap, grabStep * Double(max(0, round) / 5))
+    }
+
+    static func random(for rider: Rider, round: Int = 1) -> Traits {
+        if rider == .kid { return kid }
+        let key = watchful.keys.first { rider.person.contains($0) }
+        let rate = Double.random(in: key.map { watchful[$0]! } ?? 0.30...0.40)
+        // each one a slice below the next, so the order can never come out wrong
+        let calm = rate * .random(in: 0.6...0.85)
+        let slip = calm * .random(in: 0.6...0.85)
+        let grab = slip - grabGap(round: round)
+        let away = drift.first { rider.person.contains($0.key) }?.value ?? 4...8
+        return Traits(grabRate: grab, slip: slip, awareCalm: calm, awareRate: rate,
+                      threshold: .random(in: 0.75...1), idleFor: 3...6, calmFor: away)
+    }
+
+    /// middling numbers and nobody ever drifting off, for the tutorial cast and the checks
+    static let steady = Traits(grabRate: 0.143, slip: 0.16, awareCalm: 0.18, awareRate: 0.22,
+                               threshold: 1, idleFor: 1_000_000...1_000_000, calmFor: 4...8)
+}
+
+// who is sitting where this round: how many, which seats, who they are, what they're
+// doing to begin with, how watchful they are, and whether the kid is on at all. all of it
+// is dealt fresh each round and holds still until the round is over. the driver never changes.
 struct Arrangement: Equatable {
     /// seat -> who's in it. a seat that isnt here is empty.
     let cast: [Seating.Person: Rider]
-    /// how each animated passenger starts: headphones on or off, asleep or awake
+    /// how each passenger starts: idle, or in their own thing
     var start: [Seating.Person: Mood] = [:]
+    /// the kid rides some rounds and not others. when he's on he's always idle.
+    var kid = true
+    var traits: [Seating.Person: Traits] = [:]
 
-    /// the tutorial's cast, straight off the design
-    static let fixed = Arrangement(cast: [.farLeft: .frontB, .farRight: .frontA, .nearMid: .backA])
+    /// the tutorial's seats, straight off the design
+    static let fixed = Arrangement(
+        cast: [.farLeft: Rider(who: "Music"), .farRight: Rider(who: "Sleepy"),
+               .nearMid: Rider(who: "BehindMusic")],
+        start: [.farLeft: .alert, .farRight: .alert, .nearMid: .alert, .kid: .alert],
+        traits: [.farLeft: .steady, .farRight: .steady, .nearMid: .steady, .kid: .steady])
 
     /// a round has at least two to choose between and always leaves a seat free
     static let headcount = 2...5
 
-    func who(_ seat: Seating.Person) -> Rider? { cast[seat] }
+    func who(_ seat: Seating.Person) -> Rider? { seat == .kid ? (kid ? .kid : nil) : cast[seat] }
 
     /// anyone on a bench. the kid and the driver never are.
     var targets: [Seating.Person] { Seating.dealt.filter { cast[$0] != nil } }
 
     /// everyone who can catch you at it: every passenger, whoever you're robbing too, and the kid
-    var watchers: [Seating.Person] { targets + [.kid] }
+    var watchers: [Seating.Person] { targets + (kid ? [.kid] : []) }
+
+    func traits(_ p: Seating.Person) -> Traits { traits[p] ?? .steady }
 
     /// the empty seats either side of someone on their bench. the ends of a bench only have
     /// one neighbour, and a neighbour who's already sat there isnt a seat.
@@ -90,20 +149,33 @@ struct Arrangement: Equatable {
     /// somebody has somewhere to sit next to them, or there's no round to play
     var playable: Bool { targets.contains { !seats(beside: $0).isEmpty } }
 
-    static func random(avoiding previous: Arrangement?) -> Arrangement {
+    static func random(avoiding previous: Arrangement?, round: Int = 1) -> Arrangement {
         for _ in 0..<50 {
-            let seats = Seating.dealt.shuffled().prefix(Int.random(in: headcount))
             var cast: [Seating.Person: Rider] = [:]
-            var taken: Set<Rider> = []   // one of each animated face per angkot, no twins
-            for seat in seats {
-                let pool = Rider.pool(Seating.facing(seat)).filter { !($0.animated && taken.contains($0)) }
+            var dealt: Set<String> = []   // nobody twice, not even once from each side
+            for seat in Seating.dealt.shuffled().prefix(Int.random(in: headcount)) where cast[seat] == nil {
+                // a duo's right half needs the seat on their right, on the same bench
+                let right = Seating.right(of: seat).flatMap { cast[$0] == nil ? $0 : nil }
+                let pool = Rider.pool(Seating.facing(seat))
+                    .filter { !dealt.contains($0.person) && ($0.partner == nil || right != nil) }
                 guard let rider = pool.randomElement() else { continue }
-                if rider.animated { taken.insert(rider) }
                 cast[seat] = rider
+                dealt.insert(rider.person)
+                if let half = rider.partner, let right { cast[right] = half; dealt.insert(half.person) }
             }
-            let start = cast.filter(\.value.animated).mapValues { _ in Bool.random() ? Mood.calm : .alert }
-            let next = Arrangement(cast: cast, start: start)
-            if next != previous && next.playable { return next }
+            var start = cast.mapValues { _ in Bool.random() ? Mood.calm : .alert }
+            // a duo is one conversation, so both halves start together
+            for (seat, rider) in cast where rider.isRightHalf {
+                if let left = Seating.left(of: seat) { start[seat] = start[left] }
+            }
+            let kid = Bool.random()
+            if kid { start[.kid] = .alert }
+            var traits = cast.mapValues { Traits.random(for: $0, round: round) }
+            if kid { traits[.kid] = .random(for: .kid) }
+            let next = Arrangement(cast: cast, start: start, kid: kid, traits: traits)
+            if next.cast != previous?.cast && headcount.contains(cast.count) && next.playable {
+                return next
+            }
         }
         return .fixed
     }
@@ -120,22 +192,21 @@ func runSessionChecks() {
     s.startFirstRound()
     assert(s.round == 1 && s.takings == 0 && s.items == 0)
 
-    s.tutorialFinished()
     s.nextRound(after: RoundResult(value: 20, time: 30))
     assert(Record.shared.hasAny, "finishing a round is what puts the record button up")
     assert(s.round == 2, "Next Round has to count up")
     assert(s.takings == 20 && s.items == 1, "and keep what was already taken")
-    assert(!s.tutorialPending, "the tutorial never comes back in a later round")
 
     s.nextRound(after: RoundResult(value: 0, time: 90))
     assert(s.items == 1, "a round you came away empty from isnt an item")
     assert(s.avgTime == "0:40", "60 seconds over 3 rounds")
+    assert(ss(60) == "60" && ss(9) == "09" && ss(0) == "00", "the round clock is bare seconds")
 
     // deal a lot of rounds and make sure everything that's meant to change does
     var seen = [s.arrangement]
-    for _ in 0..<80 {
+    for _ in 0..<120 {
         s.nextRound(after: RoundResult(value: 0, time: 0))
-        assert(s.arrangement != seen.last!, "two rounds running with the same seating is a bug")
+        assert(s.arrangement.cast != seen.last!.cast, "two rounds running with the same seating is a bug")
         seen.append(s.arrangement)
     }
     assert(Set(seen.map(\.cast.count)).count >= 3, "the number of passengers has to vary")
@@ -144,26 +215,60 @@ func runSessionChecks() {
         assert(seen.contains { $0.cast[seat] != nil } && seen.contains { $0.cast[seat] == nil },
                "\(seat) should be sat in some rounds and empty in others")
     }
-    for face in [Rider.music, .sleepy] {
-        let seats = Set(seen.flatMap { a in a.cast.filter { $0.value == face }.map(\.key) })
-        assert(seats.count > 1, "\(face) is always in the same seat, or never dealt at all")
-        let moods = Set(seen.flatMap { a in a.cast.filter { $0.value == face }.compactMap { a.start[$0.key] } })
-        assert(moods == [.calm, .alert], "\(face) should start both ways round")
+    assert(seen.contains { $0.kid } && seen.contains { !$0.kid }, "the kid rides some rounds and not others")
+    let everyone = Set(seen.flatMap { $0.cast.values })
+    assert(everyone == Set(Rider.all), "every character in the catalog gets dealt, and only them")
+    for rider in Rider.all where !rider.isRightHalf {
+        let moods = Set(seen.flatMap { a in a.cast.filter { $0.value == rider }.compactMap { a.start[$0.key] } })
+        assert(moods == [.calm, .alert], "\(rider.who) should start both ways round")
     }
 
     for a in seen {
         assert(Arrangement.headcount.contains(a.cast.count))
         assert(a.playable, "every round leaves someone you can sit next to")
-        assert(a.cast[.kid] == nil, "the kid is fixed, he's never dealt")
+        assert(a.cast[.kid] == nil, "the kid has his own seat, he's never dealt onto a bench")
+        assert(a.watchers.contains(.kid) == a.kid && (a.start[.kid] != nil) == a.kid)
+        if a.kid { assert(a.start[.kid] == .alert, "the kid is always idle") }
         for (seat, rider) in a.cast {
-            assert(rider.facing == Seating.facing(seat), "\(rider) is facing the wrong way for \(seat)")
+            assert(rider.facing == Seating.facing(seat), "\(rider.who) is facing the wrong way for \(seat)")
+            // a duo sits as a pair, left half then right, on one bench, doing the same thing
+            if let half = rider.partner {
+                let right = Seating.right(of: seat)
+                assert(right != nil && a.cast[right!] == half, "\(rider.who) is sat without their other half")
+                assert(a.start[right!] == a.start[seat])
+            }
+            if rider.isRightHalf {
+                assert(Seating.left(of: seat).flatMap { a.cast[$0] }?.partner == rider)
+            }
         }
-        let faces = a.cast.values.filter(\.animated)
-        assert(faces.count == Set(faces).count, "no twins")
-        assert(Set(a.start.keys) == Set(a.cast.filter(\.value.animated).keys),
-               "only the animated ones have a mood")
+        let people = a.cast.values.map(\.person)
+        assert(people.count == Set(people).count, "nobody twice in one angkot")
+        assert(Set(a.start.keys) == Set(a.watchers) && Set(a.traits.keys) == Set(a.watchers))
+        // the four rates keep their order for every single passenger dealt
+        for (who, t) in a.traits where who != .kid {
+            assert(t.grabRate <= t.slip && t.slip < t.awareCalm && t.awareCalm < t.awareRate,
+                   "grabRate <= slip < awareCalm < awareRate, always")
+            assert(t.slip - t.grabRate <= Traits.grabGapCap + 1e-12, "grab never lags slip by more than 0.50%")
+            assert(t.threshold > 0 && t.threshold <= 1)
+        }
     }
-    assert(Arrangement.fixed.cast.count == 3 && Arrangement.fixed.start.isEmpty,
-           "the tutorial cast comes straight off the design")
+    // the kid, when he's on, catches on far slower than any passenger
+    // grab starts level with slip and only lags it by a fixed 0.05% every 5 rounds, capped
+    for (round, gap) in [(1, 0.0), (4, 0.0), (5, 0.0005), (9, 0.0005), (10, 0.001), (15, 0.0015),
+                         (49, 0.0045), (50, 0.005), (51, 0.005), (1_000, 0.005)] {
+        assert(abs(Traits.grabGap(round: round) - gap) < 1e-12, "round \(round) should lag by \(gap)")
+    }
+    for _ in 0..<50 {
+        let first = Traits.random(for: Rider(who: "Music"), round: 1)
+        assert(first.grabRate == first.slip, "round 1: grab and slip are exactly level")
+        let late = Traits.random(for: Rider(who: "Sleepy"), round: 5_000)
+        assert(abs((late.slip - late.grabRate) - Traits.grabGapCap) < 1e-12, "and the gap stops at 0.50%")
+    }
+
+    // the kid is the same every round: slow up, twice as quick back down
+    for a in seen where a.kid { assert(a.traits[.kid] == Traits.kid, "the kid's rates are never rolled") }
+    assert(Traits.kid.awareCalm == 2 * Traits.kid.awareRate)
+    let slowest = Traits.watchful.values.map(\.lowerBound).min()!
+    assert(Traits.kid.awareRate * 4 <= slowest, "the kid has to be a lot slower than anyone")
     #endif
 }

@@ -7,11 +7,12 @@ import SwiftUI
     static let shared = Record()
 
     private static let roundKey = "recordRound"
-    private static let valueKey = "recordValue"
+    // whole rupiah now. the old key held thousands, so it's left behind rather than misread
+    private static let valueKey = "recordValueRupiah"
 
     /// the furthest round anyone has reached, counting the one they were caught on
     private(set) var highestRound: Int
-    /// the biggest a single run's takings have got, in thousands of rupiah
+    /// the biggest a single run's takings have got, in whole rupiah
     private(set) var topValue: Int
 
     private init() {
@@ -23,7 +24,7 @@ import SwiftUI
     var hasAny: Bool { highestRound > 0 }
 
     var roundText: String { "\(highestRound)" }
-    var valueText: String { "Rp\(topValue)k" }
+    var valueText: String { rupiah(topValue) }
 
     /// called as each round is banked, so a run that's abandoned halfway still counts
     /// whatever it got to
@@ -59,7 +60,7 @@ func runRecordChecks() {
 
     r.note(round: 1, takings: 0)
     assert(r.hasAny, "one finished round is enough to have one")
-    assert(r.roundText == "1" && r.valueText == "Rp0k")
+    assert(r.roundText == "1" && r.valueText == rupiah(0))
 
     // it only ever goes up, whichever way a run ends
     r.note(round: 4, takings: 60)
@@ -68,13 +69,13 @@ func runRecordChecks() {
 
     // the two move independently — a long run and a rich one need not be the same run
     r.note(round: 9, takings: 0)
-    r.note(round: 1, takings: 300)
-    assert(r.highestRound == 9 && r.topValue == 300)
-    assert(r.valueText == "Rp300k")
+    r.note(round: 1, takings: 1_500_000)
+    assert(r.highestRound == 9 && r.topValue == 1_500_000)
+    assert(r.valueText == rupiah(1_500_000))
 
     // and it survives a relaunch, which is the whole point of it
     assert(UserDefaults.standard.integer(forKey: "recordRound") == 9)
-    assert(UserDefaults.standard.integer(forKey: "recordValue") == 300)
+    assert(UserDefaults.standard.integer(forKey: "recordValueRupiah") == 1_500_000)
 
     r.restore(round: wasRound, value: wasValue)
     #endif

@@ -14,12 +14,15 @@ enum Cog {
 
     static let labelSize:  CGFloat = 30
     static let labelTrack: CGFloat = -1.8467
-    static let sfxLabel   = CGRect(x: 256, y: 147, width: 43,  height: 41)
-    static let musicLabel = CGRect(x: 256, y: 199, width: 69,  height: 41)
-    static let langLabel  = CGRect(x: 251, y: 256, width: 116, height: 41)
+    // 125:1508 had three rows 52 apart; Haptic makes four, so they close up to 44
+    static let sfxLabel    = CGRect(x: 256, y: 139, width: 43,  height: 41)
+    static let musicLabel  = CGRect(x: 256, y: 183, width: 69,  height: 41)
+    static let hapticLabel = CGRect(x: 256, y: 227, width: 88,  height: 41)
+    static let langLabel   = CGRect(x: 251, y: 271, width: 116, height: 41)
 
-    static let sfx   = Row(track: CGRect(x: 346, y: 159, width: 259, height: 18.873), knobY: 154)
-    static let music = Row(track: CGRect(x: 346, y: 211, width: 259, height: 18.873), knobY: 207)
+    static let sfx    = Row(track: CGRect(x: 346, y: 151, width: 259, height: 18.873), knobY: 146)
+    static let music  = Row(track: CGRect(x: 346, y: 195, width: 259, height: 18.873), knobY: 190)
+    static let haptic = Row(track: CGRect(x: 346, y: 239, width: 259, height: 18.873), knobY: 234)
     static let trackStroke: CGFloat = 3.118
     static let fillDrop:    CGFloat = 1.99   // the fill sits this far below the track top
     static let fillHeight:  CGFloat = 14.9
@@ -28,10 +31,10 @@ enum Cog {
     static let knobNudge = CGSize(width: -1.44, height: -2.36)
     static let grabSlack: CGFloat = 14   // taller than the track so a thumb can catch it
 
-    static let engArt  = CGRect(x: 387.849, y: 260.071, width: 104.412, height: 38.4296)
-    static let indArt  = CGRect(x: 501.849, y: 260.071, width: 104.412, height: 38.4296)
-    static let engNode = CGRect(x: 389, y: 261, width: 102, height: 36)
-    static let indNode = CGRect(x: 503, y: 261, width: 102, height: 36)
+    static let engArt  = CGRect(x: 387.849, y: 275.071, width: 104.412, height: 38.4296)
+    static let indArt  = CGRect(x: 501.849, y: 275.071, width: 104.412, height: 38.4296)
+    static let engNode = CGRect(x: 389, y: 276, width: 102, height: 36)
+    static let indNode = CGRect(x: 503, y: 276, width: 102, height: 36)
     static let langSize: CGFloat = 20
 
     /// knob's right edge sits on the end of the fill, clamped so it never hangs off either end
@@ -56,10 +59,12 @@ struct SettingsPanel: View {
 
             label(t("SFX"),      Cog.sfxLabel)
             label(t("Music"),    Cog.musicLabel)
+            label(t("Haptic"),   Cog.hapticLabel)
             label(t("Language"), Cog.langLabel)
 
             slider(Binding(get: { vm.sfx },   set: { vm.sfx = $0 }),   Cog.sfx)
             slider(Binding(get: { vm.music }, set: { vm.music = $0 }), Cog.music)
+            slider(Binding(get: { vm.haptic }, set: { vm.haptic = $0 }), Cog.haptic)
 
             language
             closeButton

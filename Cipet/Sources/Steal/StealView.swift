@@ -5,6 +5,10 @@ struct StealView: View {
     let thiefSeat: CGRect
     let cast: Arrangement
     let round: Int
+    /// items taken over the rounds already finished, as they stood when the round began.
+    /// kept, not read live: Next Round banks this one into the session while this screen is
+    /// still fading out, and the live count plus the +1 below showed it twice.
+    @State private var items: Int
     /// the round is over and the player has chosen where to go. the round never leaves on
     /// its own — winning or getting caught shows a result here, it does not pop the screen.
     enum Exit { case nextRound(RoundResult), endGame(RoundResult, Ending), home }
@@ -14,14 +18,20 @@ struct StealView: View {
     @State private var beat: ThiefActor.Beat = .sitting
     /// held back until the thief has finished reacting, so the endings dont cut him off
     @State private var showEnding = false
+    /// when he got caught, so the cage can wait for the passengers to finish turning on him
+    @State private var caughtAt: Date?
+    /// a finger is down on the grab area, whether or not stealing is allowed right now
+    @State private var fingerDown = false
     private let clock = Timer.publish(every: 1.0 / 60, on: .main, in: .common).autoconnect()
 
     init(victim: Seating.Person, thiefSeat: CGRect, timeLeft: Double, cast: Arrangement, round: Int,
+         items: Int = 0,
          onDone: @escaping (Exit) -> Void) {
         self.victim = victim
         self.thiefSeat = thiefSeat
         self.cast = cast
         self.round = round
+        _items = State(initialValue: items)
         self.onDone = onDone
         _vm = State(initialValue: StealViewModel(victim: victim, thiefSeat: thiefSeat, cast: cast,
                                                  timeLeft: timeLeft))
@@ -36,9 +46,8 @@ struct StealView: View {
                 scene(space)
                     .compositingGroup()
                     .blur(radius: softened ? space.px(Cooldown.blur) : 0, opaque: true)
-                grabArea(space)
-                // it stays above the grab area so it still takes its own taps, which is why
-                // it is out here rather than in the scene — and so it blurs on its own
+                // out here rather than in the scene so it blurs on its own. the grab area has a
+                // hole where it is, so it still takes its own taps
                 pauseButton(space)
                     .blur(radius: softened ? space.px(Cooldown.blur) : 0)
                     .allowsHitTesting(vm.phase != .paused)
@@ -47,11 +56,14 @@ struct StealView: View {
                     TutorialHUD(show: [], clock: vm.clock, space: space,
                                 clockOnly: true, low: vm.lowOnTime)
                 }
+                // over the cooldown's wash, so a finger that comes down during it still counts
+                // once the cooldown ends. under the cards, which have their own buttons.
+                grabArea(space)
                 if vm.phase == .paused {
                     PausedCard(space: space, onResume: vm.resume) { onDone(.home) }
                 }
                 if vm.phase == .succeeded && showEnding {
-                    SucceedCard(remaining: vm.clock, value: Steal.itemValue,
+                    SucceedCard(remaining: vm.clock, value: vm.loot,
                                 victim: victim, cast: cast, space: space,
                                 onNext: { Audio.shared.play(.leave); onDone(.nextRound(result)) },
                                 onEnd: { onDone(.endGame(result, .walkedAway)) })
@@ -71,29 +83,34 @@ struct StealView: View {
         }
         .fullBleed()
         .onReceive(clock) { _ in vm.tick(1.0 / 60) }
+        // a hold that's still down when a cooldown or a pause ends just carries on
+        .onChange(of: vm.running) { _, running in vm.holding = running && fingerDown }
         .onChange(of: vm.holding) { _, down in
+            // ahead of the guard: getting spotted lets go too, and that has to stop it
+            if !down { Haptics.stopHold() }
             guard vm.running else { return }
             beat = down ? .reaching : .returning
             if down {
                 Audio.shared.play(.grab)
-                Haptics.grab()
+                Haptics.startHold()
             }
         }
         .onChange(of: ticking, initial: true) { _, on in Audio.shared.ticking(on) }
-        .onDisappear { Audio.shared.ticking(false) }
+        .onDisappear { Audio.shared.ticking(false); Haptics.stopHold() }
         .onChange(of: vm.suspicion) { _, _ in Audio.shared.play(.suspicion) }
         .onChange(of: vm.phase) { _, p in
             // getting clocked is the thief's moment, not the screen's. he flinches whether
             // it's a cooldown or the real thing, and the endings wait for him to land it.
             switch p {
             case .penalty:   beat = .caught(midSteal: midSteal); Audio.shared.play(.warning)
-            case .caught:    beat = .caught(midSteal: midSteal); Audio.shared.play(.fight)
+            case .caught:
+                beat = .caught(midSteal: midSteal); caughtAt = .now; Audio.shared.play(.fight)
             case .stealing:  if isFlinching { beat = .sitting }
             case .succeeded: beat = .standing; Audio.shared.play(.stole)
             case .paused:    break
             }
         }
-        .task { Haptics.warmUp(); runStealChecks(); runPortraitChecks(); runJailChecks(); runThiefChecks(); runClipChecks(); runCooldownChecks(); runBarChecks() }
+        .task { Haptics.warmUp(); warmThief(); runStealChecks(); runPortraitChecks(); runJailChecks(); runThiefChecks(); runClipChecks(); runCooldownChecks(); runBarChecks(); runHoldChecks() }
     }
 
     /// both the cooldown and the pause card sit on a blurred round rather than a black one,
@@ -107,15 +124,27 @@ struct StealView: View {
         vm.lowOnTime && !vm.over && vm.phase != .paused && vm.timeLeft > 0
     }
 
+    /// the thief's frames are looked up the first time each move plays; do it now, before
+    /// anyone can hold, so the first reach doesnt stop to find them
+    private func warmThief() {
+        let behind = Seating.bench(of: thiefSeat) == 1
+        for m in ["Idle-Nyopet", "Nyopet", "Nyopet-Idle", "Nyopet-Caught", "Caught", "Idle-Standup"] {
+            _ = Clips.thief(m, left: reachingLeft, behind: behind).frames
+        }
+    }
+
     /// he reaches towards whoever he's robbing
     private var reachingLeft: Bool { Seating.spot(victim).midX < thiefSeat.midX }
 
     private var midSteal: Bool { beat == .reaching || beat == .stealing }
     private var isFlinching: Bool { if case .caught = beat { return true }; return false }
 
+    /// the run's items, counting this one the moment "Succeed!" comes up
+    private var shownItems: Int { items + (vm.phase == .succeeded && showEnding ? 1 : 0) }
+
     /// what this round was worth, whichever way it ended
     private var result: RoundResult {
-        RoundResult(value: vm.phase == .succeeded ? Steal.itemValue : 0,
+        RoundResult(value: vm.phase == .succeeded ? vm.loot : 0,
                     time: Steal.round - vm.timeLeft)
     }
 
@@ -131,7 +160,12 @@ struct StealView: View {
             Audio.shared.play(.coins)
             withAnimation(.easeInOut(duration: 0.25)) { showEnding = true }
         case .caught:
-            withAnimation(.easeInOut(duration: 0.25)) { showEnding = true }
+            // everyone's current face -> MARAH, then a beat of it, then the cage
+            let anger = vm.angerTime > 0 ? vm.angerTime + Steal.angerHold : 0
+            let left = anger - Date.now.timeIntervalSince(caughtAt ?? .now)
+            DispatchQueue.main.asyncAfter(deadline: .now() + max(0, left)) {
+                withAnimation(.easeInOut(duration: 0.25)) { showEnding = true }
+            }
         default: break
         }
     }
@@ -140,16 +174,16 @@ struct StealView: View {
         ZStack(alignment: .topLeading) {
             road(space)
 
-            Group {
-                TutorialAngkot(show: [.kid], space: space, hot: victim,
-                               cast: cast, aware: vm.aware, moods: vm.moods,
-                               paused: vm.phase == .paused, colored: true)
-                ThiefActor(beat: beat, seat: thiefSeat, reachingLeft: reachingLeft,
-                           space: space, paused: vm.phase == .paused, onFinish: finished)
-            }
-            .offset(y: space.px(Steal.angkotDrop))
-            TutorialHUD(show: [], clock: vm.clock, space: space, low: vm.lowOnTime)
-            roundTag(space)
+            TutorialAngkot(show: [.kid], space: space, thiefAt: thiefSeat, hot: victim,
+                           cast: cast, aware: vm.bars, moods: vm.moods,
+                           paused: vm.phase == .paused, colored: true,
+                           thief: AnyView(ThiefActor(beat: beat, seat: thiefSeat, reachingLeft: reachingLeft,
+                                                     behind: Seating.bench(of: thiefSeat) == 1,
+                                                     space: space, paused: vm.phase == .paused,
+                                                     onFinish: finished)))
+                .offset(y: space.px(Steal.angkotDrop))
+            TutorialHUD(show: [], clock: vm.clock, space: space, low: vm.lowOnTime, items: shownItems)
+            RoundTag(round: round, space: space)
 
             StealBar(progress: vm.grab, space: space)
             SuspicionBar(lit: vm.suspicion, space: space)
@@ -175,18 +209,33 @@ struct StealView: View {
     /// you're only deciding how long to leave it there. letting go, or getting spotted,
     /// drops it. the pause button is drawn over this, so it still takes its own taps.
     private func grabArea(_ space: DesignSpace) -> some View {
-        Rectangle().fill(.clear).contentShape(Rectangle())
-            .frame(width: space.px(DesignSpace.screen.width),
-                   height: space.px(DesignSpace.screen.height))
-            .position(x: space.x(DesignSpace.screen.width / 2),
-                      y: space.y(DesignSpace.screen.height / 2))
-            .gesture(DragGesture(minimumDistance: 0)
-                .onChanged { _ in if vm.running { vm.holding = true } }
-                .onEnded   { _ in vm.holding = false })
-            .allowsHitTesting(vm.running)
+        HoldSurface { down in
+            fingerDown = down
+            // only a change is written: any write to the model redraws the whole scene
+            if vm.holding != (down && vm.running) { vm.holding = down && vm.running }
+        }
+        .frame(width: space.px(DesignSpace.screen.width),
+               height: space.px(DesignSpace.screen.height))
+        .position(x: space.x(DesignSpace.screen.width / 2),
+                  y: space.y(DesignSpace.screen.height / 2))
+        // everywhere but the hud: the wallet, the clock, pause and the round tag
+        .contentShape(HoldArea(space: space), eoFill: true)
     }
 
-    private func roundTag(_ space: DesignSpace) -> some View {
+    private func pauseButton(_ space: DesignSpace) -> some View {
+        place(Steal.pauseArt, space) {
+            Button { vm.pause() } label: { Image("pv_pause").resizable() }
+                .buttonStyle(PressStyle())
+        }
+    }
+}
+
+/// "Round #N" on its yellow tab, bottom left
+struct RoundTag: View {
+    let round: Int
+    let space: DesignSpace
+
+    var body: some View {
         Group {
             // the art is the tab drawn upside down
             place(Steal.roundArt, space) { Image("round_tag").resizable().scaleEffect(y: -1) }
@@ -197,11 +246,84 @@ struct StealView: View {
                 .position(x: space.x(Steal.roundTag.midX), y: space.y(Steal.roundTag.midY))
         }
     }
+}
 
-    private func pauseButton(_ space: DesignSpace) -> some View {
-        place(Steal.pauseArt, space) {
-            Button { vm.pause() } label: { Image("pv_pause").resizable() }
-                .buttonStyle(PressStyle())
+/// the hold, read straight off the touches. a swiftui gesture only hears about a finger once
+/// the system has ruled out its own swipes, and near the edges and along the phone's bottom
+/// end that wasnt until the finger lifted ("system gesture gate timed out"); even mid screen
+/// it came ~100ms late. a recogniser's touchesBegan comes the moment the finger lands. this
+/// one never recognises anything, so it cancels nothing and the system swipes still work.
+struct HoldSurface: UIViewRepresentable {
+    let onHold: (Bool) -> Void
+
+    func makeUIView(context: Context) -> UIView {
+        let v = UIView()
+        v.addGestureRecognizer(Touches(onHold: onHold))
+        return v
+    }
+
+    func updateUIView(_ v: UIView, context: Context) {
+        (v.gestureRecognizers?.first as? Touches)?.onHold = onHold
+    }
+
+    final class Touches: UIGestureRecognizer {
+        var onHold: (Bool) -> Void
+        private var fingers = 0
+
+        init(onHold: @escaping (Bool) -> Void) {
+            self.onHold = onHold
+            super.init(target: nil, action: nil)
+            cancelsTouchesInView = false
+            delaysTouchesEnded = false
         }
+
+        override func touchesBegan(_ touches: Set<UITouch>, with event: UIEvent) {
+            if fingers == 0 { onHold(true) }
+            fingers += touches.count
+        }
+        override func touchesEnded(_ touches: Set<UITouch>, with event: UIEvent) { lift(touches) }
+        // a system swipe that takes the finger over cancels it, which is a let go too
+        override func touchesCancelled(_ touches: Set<UITouch>, with event: UIEvent) { lift(touches) }
+
+        private func lift(_ touches: Set<UITouch>) {
+            fingers -= touches.count
+            guard fingers <= 0 else { return }
+            fingers = 0
+            onHold(false)
+            state = .failed   // done with this sequence, so the next one starts clean
+        }
+
+        override func reset() {
+            if fingers > 0 { fingers = 0; onHold(false) }
+        }
+    }
+}
+
+func runHoldChecks() {
+    #if DEBUG
+    // a second finger doesnt start it again, and lifting one of two doesnt end it
+    var said: [Bool] = []
+    let g = HoldSurface.Touches { said.append($0) }
+    let a = UITouch(), b = UITouch(), e = UIEvent()
+    g.touchesBegan([a], with: e)
+    g.touchesBegan([b], with: e)
+    g.touchesEnded([a], with: e)
+    assert(said == [true], "still one finger down")
+    g.touchesCancelled([b], with: e)
+    assert(said == [true, false], "the last finger up lets go, once")
+    #endif
+}
+
+/// the whole screen with holes where the hud is, filled even-odd so the holes let taps through
+struct HoldArea: Shape {
+    let space: DesignSpace
+
+    func path(in rect: CGRect) -> Path {
+        var p = Path(rect)
+        for r in Steal.hud {
+            p.addRect(CGRect(x: space.px(r.minX), y: space.px(r.minY),
+                             width: space.px(r.width), height: space.px(r.height)))
+        }
+        return p
     }
 }
